@@ -1,0 +1,93 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build-and-test:
+    name: Build & Test
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 10
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+          dotnet-quality: 'preview'
+
+      - name: Restore
+        run: dotnet restore Orchestrator.slnx
+
+      - name: Build
+        run: dotnet build Orchestrator.slnx --no-restore --configuration Release
+
+      - name: Test
+        run: >
+          dotnet test Orchestrator.slnx
+          --no-build
+          --configuration Release
+          --logger "trx;LogFileName=results.trx"
+          --results-directory TestResults
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: TestResults/*.trx
+
+  publish-node-a:
+    name: Publish Node A
+    needs: build-and-test
+    runs-on: windows-latest
+    if: github.ref == 'refs/heads/main'
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 10
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+          dotnet-quality: 'preview'
+
+      - name: Publish Node A
+        run: dotnet publish src/Orchestrator.Mcp/Orchestrator.Mcp.csproj /p:PublishProfile=NodeA --configuration Release
+
+      - name: Upload Node A artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: node-a-mcp-server
+          path: publish/node-a/
+
+  publish-node-b:
+    name: Publish Node B
+    needs: build-and-test
+    runs-on: windows-latest
+    if: github.ref == 'refs/heads/main'
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 10
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+          dotnet-quality: 'preview'
+
+      - name: Publish Node B
+        run: dotnet publish src/Orchestrator.NodeWorker/Orchestrator.NodeWorker.csproj /p:PublishProfile=NodeB --configuration Release
+
+      - name: Upload Node B artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: node-b-worker
+          path: publish/node-b/

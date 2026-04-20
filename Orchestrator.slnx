@@ -1,0 +1,19 @@
+<Solution>
+  <Folder Name="/Plans/">
+    <File Path="Plans/DTOClasses.md" />
+    <File Path="Plans/MasterPlan.md" />
+    <File Path="Plans/ProgressPlan.md" />
+    <File Path="Plans/McpToolListing.md" />
+    <File Path="Plans/SuggestionsPlan.md" />
+  </Folder>
+  <Folder Name="/src/">
+    <Project Path="src/NodeClient.Copilot/NodeClient.Copilot.csproj" />
+    <Project Path="src/NodeClient.Ollama/NodeClient.Ollama.csproj" />
+    <Project Path="src/Orchestrator.Agents/Orchestrator.Agents.csproj" />
+    <Project Path="src/Orchestrator.Core/Orchestrator.Core.csproj" />
+    <Project Path="src/Orchestrator.Infrastructure/Orchestrator.Infrastructure.csproj" />
+    <Project Path="src/Orchestrator.Mcp/Orchestrator.Mcp.csproj" />
+    <Project Path="src/Orchestrator.NodeWorker/Orchestrator.NodeWorker.csproj" />
+    <Project Path="src/Orchestrator.Tests/Orchestrator.Tests.csproj" />
+  </Folder>
+</Solution>
