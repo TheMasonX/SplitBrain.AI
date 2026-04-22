@@ -6,6 +6,7 @@ using Orchestrator.Core.Enums;
 using Orchestrator.Core.Interfaces;
 using Orchestrator.Core.Models;
 using Orchestrator.Core.Serialization;
+using Orchestrator.Mcp.Idempotency;
 
 namespace Orchestrator.Mcp.Tools;
 
@@ -13,16 +14,25 @@ namespace Orchestrator.Mcp.Tools;
 public sealed class GenerateTestsTool
 {
     private readonly IRoutingService _routing;
+    private readonly IIdempotencyCache _idempotency;
 
-    public GenerateTestsTool(IRoutingService routing) => _routing = routing;
+    public GenerateTestsTool(IRoutingService routing, IIdempotencyCache idempotency)
+    {
+        _routing = routing;
+        _idempotency = idempotency;
+    }
 
     [McpServerTool(Name = "generate_tests"), Description("Generates unit tests for the provided source code.")]
-    public async Task<string> GenerateTestsAsync(
+    public Task<string> GenerateTestsAsync(
         [Description("Source code to generate tests for")] string code,
         [Description("Programming language (e.g. csharp, python, typescript)")] string language,
         [Description("Test framework (e.g. xunit, nunit, pytest, jest)")] string framework,
         [Description("Coverage focus: happy_path | edge_cases | error_handling | all")] string coverage = "all",
+        [Description("(Optional) Idempotency key — same key returns cached result within 5 minutes")] string? idempotencyKey = null,
         CancellationToken cancellationToken = default)
+        => IdempotencyHelper.ExecuteAsync(_idempotency, idempotencyKey, () => ExecuteCoreAsync(code, language, framework, coverage, cancellationToken), cancellationToken);
+
+    private async Task<string> ExecuteCoreAsync(string code, string language, string framework, string coverage, CancellationToken cancellationToken)
     {
         if (string.IsNullOrWhiteSpace(code))
             throw new ArgumentException("code is required.");

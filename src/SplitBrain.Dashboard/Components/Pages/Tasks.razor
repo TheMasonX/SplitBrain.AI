@@ -1,0 +1,84 @@
+@page "/tasks"
+@rendermode InteractiveServer
+@inject DashboardState State
+@implements IDisposable
+
+<PageTitle>Tasks — SplitBrain.AI</PageTitle>
+
+<h1>Agent Tasks</h1>
+
+@{
+    var tasks = State.AgentTasks.Values
+        .OrderByDescending(t => t.ElapsedMs)
+        .ToList();
+}
+
+@if (!tasks.Any())
+{
+    <p class="sb-muted">No agent tasks yet. Tasks appear here as agents run.</p>
+}
+else
+{
+    <table class="sb-table">
+        <thead>
+            <tr>
+                <th>Task ID</th>
+                <th>Type</th>
+                <th>Status</th>
+                <th>Tokens</th>
+                <th>Elapsed</th>
+                <th>Logs</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var task in tasks)
+            {
+                var statusClass = task.Status switch
+                {
+                    "Done" or "Completed" => "sb-badge-running",
+                    "Failed" => "sb-badge-missing",
+                    "Running" or "Plan" or "Implement" or "Review" or "Test" => "sb-badge-available",
+                    _ => ""
+                };
+
+                var relatedLogs = State.RecentLogs
+                    .Where(l => l.TaskId == task.TaskId)
+                    .Take(5)
+                    .ToList();
+
+                <tr>
+                    <td><code>@task.TaskId[..Math.Min(8, task.TaskId.Length)]…</code></td>
+                    <td>@task.TaskType</td>
+                    <td><span class="sb-badge @statusClass">@task.Status</span></td>
+                    <td>@task.TokensConsumed.ToString("N0")</td>
+                    <td>@(task.ElapsedMs > 0 ? $"{task.ElapsedMs / 1000.0:F1}s" : "—")</td>
+                    <td>
+                        @if (relatedLogs.Any())
+                        {
+                            <ul class="sb-task-logs">
+                                @foreach (var log in relatedLogs)
+                                {
+                                    <li class="@(log.Level is "Error" or "Fatal" ? "sb-error" : "")">
+                                        @log.Timestamp.ToLocalTime().ToString("HH:mm:ss") @log.Message
+                                    </li>
+                                }
+                            </ul>
+                        }
+                        else
+                        {
+                            <span class="sb-muted">—</span>
+                        }
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    protected override void OnInitialized() =>
+        State.OnChange += StateHasChanged;
+
+    public void Dispose() =>
+        State.OnChange -= StateHasChanged;
+}

@@ -39,9 +39,8 @@ public sealed class NodeAInferenceNodeTests
 
         var health = await _sut.GetHealthAsync();
 
-        health.NodeId.Should().Be("A");
-        health.Status.Should().Be(NodeStatus.Healthy);
-        health.CheckedAt.Should().BeCloseTo(DateTimeOffset.UtcNow, TimeSpan.FromSeconds(5));
+        health.State.Should().Be(HealthState.Healthy);
+        health.LastChecked.Should().BeCloseTo(DateTimeOffset.UtcNow, TimeSpan.FromSeconds(5));
     }
 
     [Test]
@@ -50,14 +49,14 @@ public sealed class NodeAInferenceNodeTests
         const string expectedText = "review result";
         var request = new InferenceRequest { Prompt = "review", Model = "some-other-model" };
 
-        _client.ExecuteAsync(Arg.Is<InferenceRequest>(r => r.Model == "qcoder"), Arg.Any<CancellationToken>())
+        _client.ExecuteAsync(Arg.Is<InferenceRequest>(r => r.Model == "qcoder:latest"), Arg.Any<CancellationToken>())
                .Returns(expectedText);
 
         var result = await _sut.ExecuteAsync(request);
 
         result.Text.Should().Be(expectedText);
         result.NodeId.Should().Be("A");
-        result.Model.Should().Be("qwen2.5-coder:7b-instruct-q4_K_M");
+        result.Model.Should().Be("qcoder:latest");
         result.LatencyMs.Should().BeGreaterThanOrEqualTo(0);
     }
 }

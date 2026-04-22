@@ -5,6 +5,7 @@ using Orchestrator.Agents;
 using Orchestrator.Agents.Models;
 using Orchestrator.Core.Models;
 using Orchestrator.Core.Serialization;
+using Orchestrator.Mcp.Idempotency;
 
 namespace Orchestrator.Mcp.Tools;
 
@@ -12,19 +13,29 @@ namespace Orchestrator.Mcp.Tools;
 public sealed class AgentTaskTool
 {
     private readonly IAgentOrchestrator _agent;
+    private readonly IIdempotencyCache _idempotency;
 
-    public AgentTaskTool(IAgentOrchestrator agent) => _agent = agent;
+    public AgentTaskTool(IAgentOrchestrator agent, IIdempotencyCache idempotency)
+    {
+        _agent = agent;
+        _idempotency = idempotency;
+    }
 
     [McpServerTool(Name = "agent_task"),
      Description("Runs a bounded autonomous agent loop (Plan → Implement → Review → Test) for a natural-language goal. Max 4 iterations, 12k tokens.")]
-    public async Task<string> RunAgentTaskAsync(
+    public Task<string> RunAgentTaskAsync(
         [Description("High-level goal in natural language (e.g. 'Add null-check to UserService.GetById')")]
         string goal,
         [Description("(Optional) Absolute path to the working directory the agent may patch and test")]
         string? workingDirectory = null,
         [Description("(Optional) Additional context injected into every prompt (e.g. stack trace, spec excerpt)")]
         string? context = null,
+        [Description("(Optional) Idempotency key — same key returns cached result within 5 minutes")]
+        string? idempotencyKey = null,
         CancellationToken cancellationToken = default)
+        => IdempotencyHelper.ExecuteAsync(_idempotency, idempotencyKey, () => ExecuteCoreAsync(goal, workingDirectory, context, cancellationToken), cancellationToken);
+
+    private async Task<string> ExecuteCoreAsync(string goal, string? workingDirectory, string? context, CancellationToken cancellationToken)
     {
         var request = new AgentRequest
         {

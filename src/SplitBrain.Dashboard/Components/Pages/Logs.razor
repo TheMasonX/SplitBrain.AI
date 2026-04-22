@@ -1,0 +1,89 @@
+@page "/logs"
+@rendermode InteractiveServer
+@inject DashboardState State
+@implements IDisposable
+
+<PageTitle>Logs — SplitBrain.AI</PageTitle>
+
+<h1>Live Log Stream</h1>
+
+<div class="sb-log-controls">
+    <label>
+        Min Level:
+        <select @bind="_minLevel">
+            <option value="Verbose">Verbose</option>
+            <option value="Debug">Debug</option>
+            <option value="Information" selected>Information</option>
+            <option value="Warning">Warning</option>
+            <option value="Error">Error</option>
+        </select>
+    </label>
+    <label>
+        Filter:
+        <input type="text" @bind="_filter" @bind:event="oninput" placeholder="node / task / message…" />
+    </label>
+    <button @onclick="() => _paused = !_paused">@(_paused ? "▶ Resume" : "⏸ Pause")</button>
+</div>
+
+<div class="sb-log-list">
+    @foreach (var entry in FilteredLogs)
+    {
+        <div class="sb-log-row sb-level-@entry.Level.ToLowerInvariant()">
+            <span class="sb-log-time">@entry.Timestamp.ToLocalTime().ToString("HH:mm:ss.fff")</span>
+            <span class="sb-log-badge">@entry.Level</span>
+            @if (entry.NodeId is not null)
+            {
+                <span class="sb-tag">@entry.NodeId</span>
+            }
+            <span class="sb-log-msg">@entry.Message</span>
+            @if (entry.Exception is not null)
+            {
+                <details class="sb-log-ex"><summary>Exception</summary><pre>@entry.Exception</pre></details>
+            }
+        </div>
+    }
+    @if (!FilteredLogs.Any())
+    {
+        <p class="sb-muted">No log entries match current filters.</p>
+    }
+</div>
+
+@code {
+    private string _minLevel = "Information";
+    private string _filter = "";
+    private bool _paused;
+
+    private static readonly string[] LevelOrder = ["Verbose", "Debug", "Information", "Warning", "Error", "Fatal"];
+
+    private IEnumerable<StructuredLogEntry> FilteredLogs
+    {
+        get
+        {
+            var minIdx = Array.IndexOf(LevelOrder, _minLevel);
+            return State.RecentLogs
+                .Where(e =>
+                {
+                    var idx = Array.IndexOf(LevelOrder, e.Level);
+                    return idx >= minIdx;
+                })
+                .Where(e => string.IsNullOrWhiteSpace(_filter)
+                    || e.Message.Contains(_filter, StringComparison.OrdinalIgnoreCase)
+                    || (e.NodeId?.Contains(_filter, StringComparison.OrdinalIgnoreCase) ?? false)
+                    || (e.TaskId?.Contains(_filter, StringComparison.OrdinalIgnoreCase) ?? false));
+        }
+    }
+
+    protected override void OnInitialized()
+    {
+        State.OnChange += OnStateChange;
+    }
+
+    private void OnStateChange()
+    {
+        if (!_paused)
+            InvokeAsync(StateHasChanged);
+    }
+
+    public void Dispose() =>
+        State.OnChange -= OnStateChange;
+}

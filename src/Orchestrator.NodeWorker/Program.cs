@@ -41,15 +41,31 @@ app.MapGet("/health", async (IInferenceNode node, INodeHealthCache cache, Cancel
         });
 
     // Cold cache: probe live
-    var health = await node.GetHealthAsync(ct);
-    cache.Set(health);
+    var nodeHealth = await node.GetHealthAsync(ct);
+    var legacyStatus = nodeHealth.State switch
+    {
+        Orchestrator.Core.Models.HealthState.Healthy => Orchestrator.Core.Enums.NodeStatus.Healthy,
+        Orchestrator.Core.Models.HealthState.Degraded => Orchestrator.Core.Enums.NodeStatus.Degraded,
+        _ => Orchestrator.Core.Enums.NodeStatus.Unavailable
+    };
+    var legacy = new NodeHealth
+    {
+        NodeId = node.NodeId,
+        Status = legacyStatus,
+        QueueDepth = nodeHealth.ActiveRequests,
+        AvailableVramMb = nodeHealth.VramLoadedMB.HasValue && nodeHealth.VramTotalMB.HasValue
+            ? (int)(nodeHealth.VramTotalMB.Value - nodeHealth.VramLoadedMB.Value)
+            : 0,
+        CheckedAt = nodeHealth.LastChecked
+    };
+    cache.Set(legacy);
     return Results.Ok(new
     {
-        nodeId = health.NodeId,
-        status = health.Status.ToString(),
-        queueDepth = health.QueueDepth,
-        availableVramMb = health.AvailableVramMb,
-        checkedAt = health.CheckedAt
+        nodeId = legacy.NodeId,
+        status = legacy.Status.ToString(),
+        queueDepth = legacy.QueueDepth,
+        availableVramMb = legacy.AvailableVramMb,
+        checkedAt = legacy.CheckedAt
     });
 });
 

@@ -2,6 +2,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Orchestrator.Core.Enums;
 using Orchestrator.Core.Interfaces;
+using Orchestrator.Core.Models;
 
 namespace Orchestrator.NodeWorker;
 
@@ -44,10 +45,22 @@ public sealed class NodeWorkerService : BackgroundService
         {
             try
             {
-                var health = await _node.GetHealthAsync(stoppingToken);
-                _healthCache.Set(health);
+                var nodeHealth = await _node.GetHealthAsync(stoppingToken);
+                var legacyStatus = ToNodeStatus(nodeHealth.State);
 
-                if (health.Status != NodeStatus.Unavailable)
+                // Store in legacy cache used by RoutingService
+                _healthCache.Set(new NodeHealth
+                {
+                    NodeId = _node.NodeId,
+                    Status = legacyStatus,
+                    QueueDepth = nodeHealth.ActiveRequests,
+                    AvailableVramMb = nodeHealth.VramLoadedMB.HasValue && nodeHealth.VramTotalMB.HasValue
+                        ? (int)(nodeHealth.VramTotalMB.Value - nodeHealth.VramLoadedMB.Value)
+                        : 0,
+                    CheckedAt = nodeHealth.LastChecked
+                });
+
+                if (legacyStatus != NodeStatus.Unavailable)
                 {
                     if (_consecutiveFailures > 0)
                     {
@@ -57,10 +70,10 @@ public sealed class NodeWorkerService : BackgroundService
                         _consecutiveFailures = 0;
                     }
 
-                    CurrentStatus = health.Status;
+                    CurrentStatus = legacyStatus;
                     _logger.LogInformation(
-                        "Heartbeat node={NodeId} status={Status} queue={Queue} vram={Vram}MB",
-                        health.NodeId, health.Status, health.QueueDepth, health.AvailableVramMb);
+                        "Heartbeat node={NodeId} status={Status} latencyMs={Latency}",
+                        _node.NodeId, legacyStatus, nodeHealth.LatencyMs);
                 }
                 else
                 {
@@ -78,6 +91,13 @@ public sealed class NodeWorkerService : BackgroundService
 
         _logger.LogInformation("NodeWorkerService stopping on node {NodeId}", _node.NodeId);
     }
+
+    private static NodeStatus ToNodeStatus(HealthState state) => state switch
+    {
+        HealthState.Healthy => NodeStatus.Healthy,
+        HealthState.Degraded => NodeStatus.Degraded,
+        _ => NodeStatus.Unavailable
+    };
 
     private void RecordFailure()
     {

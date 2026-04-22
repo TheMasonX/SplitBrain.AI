@@ -1,0 +1,73 @@
+@page "/nodes"
+@rendermode InteractiveServer
+@inject DashboardState State
+@implements IDisposable
+
+<PageTitle>Nodes — SplitBrain.AI</PageTitle>
+
+<h1>Node Detail</h1>
+
+@foreach (var (nodeId, snapshot) in State.NodeHealth.OrderBy(kv => kv.Key))
+{
+    <section class="sb-node-detail">
+        <h2>@snapshot.DisplayName <small>(@nodeId)</small></h2>
+        <table class="sb-table">
+            <tbody>
+                <tr><td>State</td><td><b>@snapshot.Health.State</b></td></tr>
+                <tr><td>Latency</td><td>@snapshot.Health.LatencyMs.ToString("F1") ms</td></tr>
+                <tr><td>Active Requests</td><td>@snapshot.Health.ActiveRequests</td></tr>
+                @if (snapshot.Health.VramTotalMB is > 0)
+                {
+                    <tr><td>VRAM</td><td>@snapshot.Health.VramLoadedMB / @snapshot.Health.VramTotalMB MB</td></tr>
+                }
+                @if (snapshot.Health.ErrorMessage is not null)
+                {
+                    <tr><td>Error</td><td class="sb-error">@snapshot.Health.ErrorMessage</td></tr>
+                }
+                <tr><td>Last Checked</td><td>@snapshot.Health.LastChecked.ToLocalTime().ToString("HH:mm:ss")</td></tr>
+            </tbody>
+        </table>
+
+        @if (snapshot.Health.AvailableModels.Any())
+        {
+            <h3>Available Models</h3>
+            <ul>
+                @foreach (var m in snapshot.Health.AvailableModels)
+                {
+                    <li>@m</li>
+                }
+            </ul>
+        }
+
+        @if (snapshot.Health.RunningModels.Any())
+        {
+            <h3>Running Models</h3>
+            <table class="sb-table">
+                <thead><tr><th>Model</th><th>VRAM</th><th>Expires</th></tr></thead>
+                <tbody>
+                    @foreach (var m in snapshot.Health.RunningModels)
+                    {
+                        <tr>
+                            <td>@m.ModelId</td>
+                            <td>@((m.SizeVramBytes / 1024 / 1024).ToString("F0")) MB</td>
+                            <td>@(m.ExpiresAt?.ToLocalTime().ToString("HH:mm:ss") ?? "—")</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+    </section>
+}
+
+@if (!State.NodeHealth.Any())
+{
+    <p class="sb-muted">No node data yet. Health checks run every few seconds.</p>
+}
+
+@code {
+    protected override void OnInitialized() =>
+        State.OnChange += StateHasChanged;
+
+    public void Dispose() =>
+        State.OnChange -= StateHasChanged;
+}

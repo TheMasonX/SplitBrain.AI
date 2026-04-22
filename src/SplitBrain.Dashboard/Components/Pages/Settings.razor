@@ -1,0 +1,142 @@
+@page "/settings"
+@rendermode InteractiveServer
+@inject INodeRegistry NodeRegistry
+@inject DashboardState State
+@implements IDisposable
+
+<PageTitle>Settings — SplitBrain.AI</PageTitle>
+
+<h1>Node Topology</h1>
+
+@if (!string.IsNullOrEmpty(_saveMessage))
+{
+    <div class="@(_saveError ? "sb-alert sb-error" : "sb-alert sb-alert-success")">@_saveMessage</div>
+}
+
+<table class="sb-table">
+    <thead>
+        <tr>
+            <th>Node</th>
+            <th>Provider</th>
+            <th>Role</th>
+            <th>Host</th>
+            <th>Timeout (s)</th>
+            <th>Max Parallel</th>
+            <th>Priority</th>
+            <th>Enabled</th>
+            <th>Live Status</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var reg in _nodes)
+        {
+            var cfg = reg.Config;
+            State.NodeHealth.TryGetValue(cfg.NodeId, out var snap);
+            var state = snap?.Health.State;
+            var stateClass = state switch
+            {
+                HealthState.Healthy    => "sb-badge-running",
+                HealthState.Degraded   => "sb-badge-available",
+                HealthState.Unavailable => "sb-badge-missing",
+                _ => ""
+            };
+
+            <tr class="@(cfg.Enabled ? "" : "sb-muted")">
+                <td>
+                    <b>@cfg.DisplayName</b><br />
+                    <small>@cfg.NodeId</small>
+                    @if (cfg.Tags.Any())
+                    {
+                        <br /><small>@string.Join(", ", cfg.Tags)</small>
+                    }
+                </td>
+                <td>@cfg.Provider</td>
+                <td>@cfg.Role</td>
+                <td>@(cfg.Ollama?.Host ?? cfg.Copilot?.CliUrl ?? "—")</td>
+                <td>@(cfg.Ollama?.TimeoutSeconds ?? cfg.Copilot?.TimeoutSeconds ?? 0)</td>
+                <td>@cfg.MaxConcurrentRequests</td>
+                <td>@cfg.Priority</td>
+                <td>
+                    @if (cfg.Enabled)
+                    {
+                        <span class="sb-badge sb-badge-running">Yes</span>
+                    }
+                    else
+                    {
+                        <span class="sb-badge sb-badge-missing">No</span>
+                    }
+                </td>
+                <td>
+                    @if (snap is not null)
+                    {
+                        <span class="sb-badge @stateClass">@state</span>
+                        <br /><small>@snap.Health.LatencyMs.ToString("F0") ms</small>
+                    }
+                    else
+                    {
+                        <span class="sb-muted">No data</span>
+                    }
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+@if (!_nodes.Any())
+{
+    <p class="sb-muted">No nodes registered. Add nodes via <code>nodes.json</code> or <code>appsettings.json</code>.</p>
+}
+
+<div class="sb-settings-actions">
+    <button class="sb-btn" @onclick="SaveTopologyAsync" disabled="@_saving">
+        @(_saving ? "Saving…" : "💾 Save Topology")
+    </button>
+</div>
+
+@code {
+    private List<NodeRegistration> _nodes = [];
+    private bool _saving;
+    private string? _saveMessage;
+    private bool _saveError;
+
+    protected override void OnInitialized()
+    {
+        RefreshNodes();
+        State.OnChange += OnStateChanged;
+    }
+
+    private void OnStateChanged()
+    {
+        RefreshNodes();
+        StateHasChanged();
+    }
+
+    private void RefreshNodes() =>
+        _nodes = NodeRegistry.GetAllNodes().OrderBy(n => n.Config.Priority).ThenBy(n => n.Config.NodeId).ToList();
+
+    private async Task SaveTopologyAsync()
+    {
+        _saving = true;
+        _saveMessage = null;
+        StateHasChanged();
+        try
+        {
+            await NodeRegistry.SaveTopologyAsync();
+            _saveMessage = "Topology saved to nodes.json.";
+            _saveError = false;
+        }
+        catch (Exception ex)
+        {
+            _saveMessage = $"Save failed: {ex.Message}";
+            _saveError = true;
+        }
+        finally
+        {
+            _saving = false;
+            StateHasChanged();
+        }
+    }
+
+    public void Dispose() =>
+        State.OnChange -= OnStateChanged;
+}

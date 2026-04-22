@@ -98,6 +98,7 @@ public sealed record AgentStep
 /// </summary>
 internal sealed class AgentSession
 {
+    internal string TaskId { get; } = Guid.NewGuid().ToString("N");
     internal AgentState State { get; set; } = AgentState.Init;
     internal int Iteration { get; set; }
     internal int TokensUsed { get; set; }

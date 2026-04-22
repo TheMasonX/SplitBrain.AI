@@ -1,0 +1,68 @@
+﻿@page "/"
+@rendermode InteractiveServer
+@inject DashboardState State
+@implements IDisposable
+
+<PageTitle>Overview — SplitBrain.AI</PageTitle>
+
+<h1>Cluster Overview</h1>
+
+@if (!State.NodeHealth.Any())
+{
+    <p class="sb-muted">Waiting for health data…</p>
+}
+else
+{
+    <div class="sb-node-grid">
+        @foreach (var (nodeId, snapshot) in State.NodeHealth.OrderBy(kv => kv.Key))
+        {
+            var stateClass = snapshot.Health.State switch
+            {
+                HealthState.Healthy => "sb-healthy",
+                HealthState.Degraded => "sb-degraded",
+                _ => "sb-unavailable"
+            };
+            <div class="sb-node-card @stateClass">
+                <div class="sb-node-header">
+                    <span class="sb-led"></span>
+                    <strong>@snapshot.DisplayName</strong>
+                    <span class="sb-badge">@snapshot.Health.State</span>
+                </div>
+                <div class="sb-node-body">
+                    <div>Latency: <b>@snapshot.Health.LatencyMs.ToString("F0") ms</b></div>
+                    <div>Active: <b>@snapshot.Health.ActiveRequests</b></div>
+                    @if (snapshot.Health.VramTotalMB is > 0)
+                    {
+                        var used = snapshot.Health.VramLoadedMB ?? 0;
+                        var total = snapshot.Health.VramTotalMB!.Value;
+                        var pct = total > 0 ? (double)used / total * 100 : 0;
+                        <div>VRAM: <b>@used / @total MB (@pct.ToString("F0")%)</b></div>
+                        <progress value="@pct" max="100" class="sb-vram-bar @(pct > 90 ? "sb-critical" : "")"></progress>
+                    }
+                    @if (snapshot.Health.RunningModels.Any())
+                    {
+                        <div class="sb-models">
+                            @foreach (var m in snapshot.Health.RunningModels)
+                            {
+                                <span class="sb-tag">@m.ModelId</span>
+                            }
+                        </div>
+                    }
+                    @if (snapshot.Health.ErrorMessage is not null)
+                    {
+                        <div class="sb-error">@snapshot.Health.ErrorMessage</div>
+                    }
+                </div>
+                <div class="sb-node-footer">Updated @snapshot.Timestamp.ToLocalTime().ToString("HH:mm:ss")</div>
+            </div>
+        }
+    </div>
+}
+
+@code {
+    protected override void OnInitialized() =>
+        State.OnChange += StateHasChanged;
+
+    public void Dispose() =>
+        State.OnChange -= StateHasChanged;
+}

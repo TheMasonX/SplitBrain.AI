@@ -8,6 +8,7 @@ using Orchestrator.Core.Interfaces;
 using Orchestrator.Core.Models;
 using Orchestrator.Core.Serialization;
 using Orchestrator.Core.Validation;
+using Orchestrator.Mcp.Idempotency;
 
 namespace Orchestrator.Mcp.Tools;
 
@@ -15,15 +16,24 @@ namespace Orchestrator.Mcp.Tools;
 public sealed class RefactorCodeTool
 {
     private readonly IRoutingService _routing;
+    private readonly IIdempotencyCache _idempotency;
 
-    public RefactorCodeTool(IRoutingService routing) => _routing = routing;
+    public RefactorCodeTool(IRoutingService routing, IIdempotencyCache idempotency)
+    {
+        _routing = routing;
+        _idempotency = idempotency;
+    }
 
     [McpServerTool(Name = "refactor_code"), Description("Refactors code for the requested goal while preserving behaviour.")]
-    public async Task<string> RefactorCodeAsync(
+    public Task<string> RefactorCodeAsync(
         [Description("Source code to refactor")] string code,
         [Description("Programming language (e.g. csharp, python, typescript)")] string language,
         [Description("Refactor goal: readability | performance | solid | naming | extract_method | reduce_complexity")] string goal,
+        [Description("(Optional) Idempotency key — same key returns cached result within 5 minutes")] string? idempotencyKey = null,
         CancellationToken cancellationToken = default)
+        => IdempotencyHelper.ExecuteAsync(_idempotency, idempotencyKey, () => ExecuteCoreAsync(code, language, goal, cancellationToken), cancellationToken);
+
+    private async Task<string> ExecuteCoreAsync(string code, string language, string goal, CancellationToken cancellationToken)
     {
         var request = new RefactorCodeRequest
         {

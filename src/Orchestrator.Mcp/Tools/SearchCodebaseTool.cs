@@ -7,6 +7,7 @@ using Orchestrator.Core.Interfaces;
 using Orchestrator.Core.Models;
 using Orchestrator.Core.Serialization;
 using Orchestrator.Core.Validation;
+using Orchestrator.Mcp.Idempotency;
 
 namespace Orchestrator.Mcp.Tools;
 
@@ -14,16 +15,25 @@ namespace Orchestrator.Mcp.Tools;
 public sealed class SearchCodebaseTool
 {
     private readonly IRoutingService _routing;
+    private readonly IIdempotencyCache _idempotency;
 
-    public SearchCodebaseTool(IRoutingService routing) => _routing = routing;
+    public SearchCodebaseTool(IRoutingService routing, IIdempotencyCache idempotency)
+    {
+        _routing = routing;
+        _idempotency = idempotency;
+    }
 
     [McpServerTool(Name = "search_codebase"), Description("Searches the codebase semantically and returns relevant snippets.")]
-    public async Task<string> SearchCodebaseAsync(
+    public Task<string> SearchCodebaseAsync(
         [Description("Natural language query or symbol name to search for")] string query,
         [Description("Root path of the codebase to search (absolute or relative)")] string rootPath,
         [Description("File glob pattern to limit search scope, e.g. **/*.cs")] string pattern = "**/*",
         [Description("Maximum number of results to return (1–20)")] int topK = 10,
+        [Description("(Optional) Idempotency key — same key returns cached result within 5 minutes")] string? idempotencyKey = null,
         CancellationToken cancellationToken = default)
+        => IdempotencyHelper.ExecuteAsync(_idempotency, idempotencyKey, () => ExecuteCoreAsync(query, rootPath, pattern, topK, cancellationToken), cancellationToken);
+
+    private async Task<string> ExecuteCoreAsync(string query, string rootPath, string pattern, int topK, CancellationToken cancellationToken)
     {
         var request = new SearchCodebaseRequest
         {

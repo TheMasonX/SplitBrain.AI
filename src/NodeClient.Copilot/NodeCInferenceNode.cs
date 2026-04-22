@@ -2,32 +2,28 @@ using Azure.Identity;
 using Azure.Security.KeyVault.Secrets;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Orchestrator.Core.Configuration;
 using Orchestrator.Core.Enums;
 using Orchestrator.Core.Interfaces;
 using Orchestrator.Core.Models;
 using System.Diagnostics;
+using System.Runtime.CompilerServices;
 
 namespace NodeClient.Copilot;
 
 /// <summary>
 /// Node C — GitHub Copilot API inference node.
-///
-/// API key resolution order (enterprise-safe, no plaintext in config):
-///   1. Azure Key Vault  (when <c>CopilotNode:KeyVaultUri</c> is configured)
-///   2. Environment variable  COPILOT_API_KEY
-///
-/// <c>DefaultAzureCredential</c> is used for Key Vault access, which supports
-/// managed identity, workload identity, Azure CLI, and Visual Studio — suitable
-/// for both cloud deployments and enterprise developer machines without storing
-/// credentials in source-controlled files.
 /// </summary>
 public sealed class NodeCInferenceNode : IInferenceNode
 {
     private readonly ICopilotClient _client;
     private readonly string _model;
     private readonly ILogger<NodeCInferenceNode> _logger;
+    private NodeHealthStatus _health = new() { State = HealthState.Unavailable, LastChecked = DateTimeOffset.MinValue };
 
     public string NodeId => "C";
+    public NodeProviderType Provider => NodeProviderType.CopilotSdk;
+    public NodeHealthStatus Health => _health;
 
     public NodeCapabilities Capabilities { get; }
 
@@ -41,7 +37,7 @@ public sealed class NodeCInferenceNode : IInferenceNode
         {
             NodeId = "C",
             Model = _model,
-            VramMb = 0,           // cloud — no local VRAM constraint
+            VramMb = 0,
             SupportsStreaming = true
         };
     }
@@ -64,43 +60,69 @@ public sealed class NodeCInferenceNode : IInferenceNode
         };
     }
 
-    public async Task<NodeHealth> GetHealthAsync(CancellationToken cancellationToken = default)
+    public async IAsyncEnumerable<InferenceChunk> StreamAsync(
+        InferenceRequest request,
+        [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
-        NodeStatus status;
-        try
+        var result = await ExecuteAsync(request, cancellationToken);
+        yield return new InferenceChunk
         {
-            status = await _client.IsHealthyAsync(cancellationToken)
-                ? NodeStatus.Healthy
-                : NodeStatus.Degraded;
-        }
-        catch
-        {
-            status = NodeStatus.Unavailable;
-        }
-
-        return new NodeHealth
-        {
-            NodeId = NodeId,
-            Status = status,
-            CheckedAt = DateTimeOffset.UtcNow
+            Content = result.Text,
+            IsFinal = true,
+            FinalResult = new Orchestrator.Core.Models.InferenceResult
+            {
+                Text = result.Text,
+                NodeId = result.NodeId,
+                Model = result.Model,
+                LatencyMs = result.LatencyMs
+            }
         };
     }
 
+    public async Task<NodeHealthStatus> GetHealthAsync(CancellationToken cancellationToken = default)
+    {
+        NodeHealthStatus status;
+        try
+        {
+            var isHealthy = await _client.IsHealthyAsync(cancellationToken);
+            status = new NodeHealthStatus
+            {
+                State = isHealthy ? HealthState.Healthy : HealthState.Degraded,
+                LastChecked = DateTimeOffset.UtcNow,
+                AvailableModels = [_model]
+            };
+        }
+        catch (Exception ex)
+        {
+            status = new NodeHealthStatus
+            {
+                State = HealthState.Unavailable,
+                LastChecked = DateTimeOffset.UtcNow,
+                ErrorMessage = ex.Message
+            };
+        }
+        _health = status;
+        return status;
+    }
+
+    public Task<IReadOnlyList<ModelInfo>> ListModelsAsync(CancellationToken cancellationToken = default)
+    {
+        IReadOnlyList<ModelInfo> result = [new ModelInfo { ModelId = _model }];
+        return Task.FromResult(result);
+    }
+
+    public ValueTask DisposeAsync() => ValueTask.CompletedTask;
+
     // ---------------------------------------------------------------------------
-    // Factory helper — resolves API token from Key Vault or environment variable
+    // Factory helper
     // ---------------------------------------------------------------------------
 
-    /// <summary>
-    /// Creates a <see cref="NodeCInferenceNode"/> after securely resolving the
-    /// GitHub Copilot API token.  Call once at startup from DI registration.
-    /// </summary>
     public static async Task<NodeCInferenceNode> CreateAsync(
         CopilotClientOptions options,
         ILogger<NodeCInferenceNode> logger,
         CancellationToken cancellationToken = default)
     {
         var token = await ResolveApiTokenAsync(options, logger, cancellationToken);
-
         var client = new CopilotClient(token, Options.Create(options));
         return new NodeCInferenceNode(client, Options.Create(options), logger);
     }
@@ -110,12 +132,9 @@ public sealed class NodeCInferenceNode : IInferenceNode
         ILogger logger,
         CancellationToken cancellationToken)
     {
-        // 1. Azure Key Vault — enterprise preferred path
         if (!string.IsNullOrWhiteSpace(options.KeyVaultUri))
         {
-            logger.LogInformation(
-                "Node C: resolving API token from Key Vault {Uri}, secret={SecretName}",
-                options.KeyVaultUri, options.KeyVaultSecretName);
+            logger.LogInformation("Node C: resolving API token from Key Vault {Uri}", options.KeyVaultUri);
             try
             {
                 var credential = new DefaultAzureCredential();
@@ -130,7 +149,6 @@ public sealed class NodeCInferenceNode : IInferenceNode
             }
         }
 
-        // 2. Environment variable — acceptable for developer machines
         var envToken = Environment.GetEnvironmentVariable("COPILOT_API_KEY");
         if (!string.IsNullOrWhiteSpace(envToken))
         {
@@ -138,21 +156,17 @@ public sealed class NodeCInferenceNode : IInferenceNode
             return envToken;
         }
 
-        // 3. gh CLI OAuth token — used when the developer is logged in via `gh auth login`
         var ghToken = TryResolveGhCliToken(logger);
         if (!string.IsNullOrWhiteSpace(ghToken))
             return ghToken;
 
         throw new InvalidOperationException(
             "Node C (GitHub Copilot) API token could not be resolved. " +
-            "Configure CopilotNode:KeyVaultUri (recommended for enterprise), " +
-            "set the COPILOT_API_KEY environment variable, " +
-            "or log in with the GitHub CLI (`gh auth login`).");
+            "Configure CopilotNode:KeyVaultUri, set COPILOT_API_KEY, or run `gh auth login`.");
     }
 
     private static string? TryResolveGhCliToken(ILogger logger)
     {
-        // gh CLI token via `gh auth token` — works if the user is logged in
         try
         {
             using var process = new Process
@@ -173,13 +187,13 @@ public sealed class NodeCInferenceNode : IInferenceNode
 
             if (process.ExitCode == 0 && !string.IsNullOrWhiteSpace(token))
             {
-                logger.LogInformation("Node C: API token sourced from gh CLI (`gh auth token`)");
+                logger.LogInformation("Node C: API token sourced from gh CLI");
                 return token;
             }
         }
         catch (Exception ex)
         {
-            logger.LogDebug(ex, "Node C: gh CLI token resolution failed (gh not installed or not logged in)");
+            logger.LogDebug(ex, "Node C: gh CLI token resolution failed");
         }
 
         return null;

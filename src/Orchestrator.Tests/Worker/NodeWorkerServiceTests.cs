@@ -12,20 +12,20 @@ public sealed class NodeWorkerServiceTests
     private readonly INodeHealthCache _healthCache = Substitute.For<INodeHealthCache>();
     private readonly ILogger<NodeWorkerService> _logger = Substitute.For<ILogger<NodeWorkerService>>();
 
-    private NodeHealth HealthyB() => new()
+    private static NodeHealthStatus HealthyB() => new()
     {
-        NodeId = "B",
-        Status = NodeStatus.Healthy,
-        QueueDepth = 0,
-        AvailableVramMb = 7500,
-        CheckedAt = DateTimeOffset.UtcNow
+        State = HealthState.Healthy,
+        LastChecked = DateTimeOffset.UtcNow,
+        ActiveRequests = 0,
+        VramTotalMB = 8192,
+        VramLoadedMB = 692
     };
 
     [Test]
     public async Task ExecuteAsync_LogsStartupAndHeartbeat()
     {
         _node.NodeId.Returns("B");
-        _node.GetHealthAsync(Arg.Any<CancellationToken>()).Returns(HealthyB());
+        _node.GetHealthAsync(Arg.Any<CancellationToken>()).Returns(Task.FromResult(HealthyB()));
 
         using var cts = new CancellationTokenSource(TimeSpan.FromMilliseconds(150));
         var sut = new NodeWorkerService(_node, _healthCache, _logger);
@@ -43,18 +43,16 @@ public sealed class NodeWorkerServiceTests
         _node.NodeId.Returns("B");
         _node.GetHealthAsync(Arg.Any<CancellationToken>())
             .Returns(
-                _ => throw new InvalidOperationException("transient"),
-                _ => HealthyB());
+                _ => Task.FromException<NodeHealthStatus>(new InvalidOperationException("transient")),
+                _ => Task.FromResult(HealthyB()));
 
         using var cts = new CancellationTokenSource(TimeSpan.FromMilliseconds(200));
         var sut = new NodeWorkerService(_node, _healthCache, _logger);
 
-        // Should not throw despite the first call failing
         await sut.StartAsync(cts.Token);
         await Task.Delay(150);
         await sut.StopAsync(CancellationToken.None);
 
-        // At least one heartbeat attempt was made (the one that threw)
         await _node.Received().GetHealthAsync(Arg.Any<CancellationToken>());
     }
 
@@ -62,7 +60,7 @@ public sealed class NodeWorkerServiceTests
     public async Task ExecuteAsync_StopsCleanlyOnCancellation()
     {
         _node.NodeId.Returns("B");
-        _node.GetHealthAsync(Arg.Any<CancellationToken>()).Returns(HealthyB());
+        _node.GetHealthAsync(Arg.Any<CancellationToken>()).Returns(Task.FromResult(HealthyB()));
 
         using var cts = new CancellationTokenSource();
         var sut = new NodeWorkerService(_node, _healthCache, _logger);

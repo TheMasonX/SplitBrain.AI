@@ -7,7 +7,8 @@ public enum TaskType
     Review,
     Refactor,
     TestGeneration,
-    AgentStep
+    AgentStep,
+    Embedding
 }
 
 public enum NodeStatus

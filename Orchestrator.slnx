@@ -14,11 +14,11 @@
     <File Path="docs/TESTING-NodeA-NodeC.md" />
   </Folder>
   <Folder Name="/Plans/">
-    <File Path="NexGenMasterPlan.md" />
     <File Path="Plans/DTOClasses.md" />
     <File Path="Plans/MasterPlan.md" />
-    <File Path="Plans/NexGenMasterPlan.md" />
     <File Path="Plans/ProgressPlan.md" />
+    <File Path="Plans/MasterPlanV2.md" />
+    <File Path="Plans/MasterPlanV3.md" />
     <File Path="Plans/McpToolListing.md" />
     <File Path="Plans/SuggestionsPlan.md" />
   </Folder>
@@ -35,5 +35,6 @@
     <Project Path="src/Orchestrator.Mcp/Orchestrator.Mcp.csproj" />
     <Project Path="src/Orchestrator.NodeWorker/Orchestrator.NodeWorker.csproj" />
     <Project Path="src/Orchestrator.Tests/Orchestrator.Tests.csproj" />
+    <Project Path="src/SplitBrain.Dashboard/SplitBrain.Dashboard.csproj" Id="68f8ea61-3056-4932-a387-fdb7b7d65ed1" />
   </Folder>
 </Solution>
