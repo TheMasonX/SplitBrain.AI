@@ -18,13 +18,13 @@ public sealed class NodeAInferenceNodeTests
         _sut = new NodeAInferenceNode(_client, _logger);
     }
 
-    [Fact]
+    [Test]
     public void NodeId_IsA()
     {
         _sut.NodeId.Should().Be("A");
     }
 
-    [Fact]
+    [Test]
     public void Capabilities_HasExpectedNodeId()
     {
         _sut.Capabilities.NodeId.Should().Be("A");
@@ -32,7 +32,7 @@ public sealed class NodeAInferenceNodeTests
         _sut.Capabilities.SupportsStreaming.Should().BeTrue();
     }
 
-    [Fact]
+    [Test]
     public async Task GetHealthAsync_ReturnsHealthy()
     {
         _client.IsHealthyAsync(Arg.Any<CancellationToken>()).Returns(true);
@@ -44,7 +44,7 @@ public sealed class NodeAInferenceNodeTests
         health.CheckedAt.Should().BeCloseTo(DateTimeOffset.UtcNow, TimeSpan.FromSeconds(5));
     }
 
-    [Fact]
+    [Test]
     public async Task ExecuteAsync_OverridesModelAndReturnsResult()
     {
         const string expectedText = "review result";

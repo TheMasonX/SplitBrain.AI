@@ -1,105 +1,89 @@
-using System.Net.Http.Headers;
-using System.Text;
-using System.Text.Json;
-using System.Text.Json.Serialization;
 using Microsoft.Extensions.Options;
 using Orchestrator.Core.Models;
+using SdkClient = GitHub.Copilot.SDK.CopilotClient;
+using SdkClientOptions = GitHub.Copilot.SDK.CopilotClientOptions;
 
 namespace NodeClient.Copilot;
 
 /// <summary>
-/// HTTP client for the GitHub Copilot API (OpenAI-compatible /v1/chat/completions).
-/// Authentication token is injected at construction time — never read from config files.
+/// GitHub Copilot inference client backed by <c>GitHub.Copilot.SDK</c>.
+/// Each <see cref="ExecuteAsync"/> call opens a fresh single-turn session so
+/// that concurrent requests are fully isolated.
+///
+/// Authentication priority:
+///   1. <paramref name="apiToken"/> injected at construction (from Key Vault or env var)
+///   2. GitHub CLI logged-in user (when <paramref name="apiToken"/> is null/empty)
 /// </summary>
-public sealed class CopilotClient : ICopilotClient, IDisposable
+public sealed class CopilotClient : ICopilotClient, IAsyncDisposable
 {
-    private readonly HttpClient _http;
+    private readonly SdkClient _sdk;
     private readonly string _model;
-    private readonly string _chatEndpoint;
 
-    /// <param name="http">Pre-configured <see cref="HttpClient"/> with BaseAddress and Timeout set.</param>
-    /// <param name="apiToken">GitHub token with Copilot access — sourced from Key Vault or env var.</param>
+    /// <param name="apiToken">GitHub token with Copilot access — sourced from Key Vault or env var. Pass null to use the CLI logged-in user.</param>
     /// <param name="options">Bound option values.</param>
-    public CopilotClient(HttpClient http, string apiToken, IOptions<CopilotClientOptions> options)
+    public CopilotClient(string? apiToken, IOptions<CopilotClientOptions> options)
     {
-        _http = http;
         _model = options.Value.Model;
 
-        var baseUrl = options.Value.BaseUrl.TrimEnd('/');
-        _chatEndpoint = $"{baseUrl}/v1/chat/completions";
+        var sdkOpts = new SdkClientOptions { LogLevel = "warning" };
 
-        _http.DefaultRequestHeaders.Authorization =
-            new AuthenticationHeaderValue("Bearer", apiToken);
-        _http.DefaultRequestHeaders.Add("Copilot-Integration-Id", "splitbrain-ai");
-        _http.DefaultRequestHeaders.Add("Editor-Version", "splitbrain-ai/1.0");
-        _http.DefaultRequestHeaders.Add("Copilot-Version", options.Value.CopilotVersion);
-        _http.Timeout = TimeSpan.FromSeconds(options.Value.TimeoutSeconds);
+        if (!string.IsNullOrWhiteSpace(apiToken))
+        {
+            sdkOpts.GitHubToken = apiToken;
+        }
+
+        if (!string.IsNullOrWhiteSpace(options.Value.CliPath))
+            sdkOpts.CliPath = options.Value.CliPath;
+
+        if (!string.IsNullOrWhiteSpace(options.Value.CliUrl))
+            sdkOpts.CliUrl = options.Value.CliUrl;
+
+        _sdk = new SdkClient(sdkOpts);
     }
 
     public async Task<string> ExecuteAsync(InferenceRequest request, CancellationToken cancellationToken = default)
     {
         var model = string.IsNullOrWhiteSpace(request.Model) ? _model : request.Model;
 
-        var payload = new ChatCompletionRequest
+        await using var session = await _sdk.CreateSessionAsync(new GitHub.Copilot.SDK.SessionConfig
         {
             Model = model,
-            Messages =
-            [
-                new ChatMessage { Role = "user", Content = request.Prompt }
-            ],
-            Stream = request.Stream
-        };
+            OnPermissionRequest = GitHub.Copilot.SDK.PermissionHandler.ApproveAll,
+            Streaming = request.Stream,
+            InfiniteSessions = new GitHub.Copilot.SDK.InfiniteSessionConfig { Enabled = false },
+        });
 
-        var json = JsonSerializer.Serialize(payload, CopilotJsonContext.Default.ChatCompletionRequest);
-        using var content = new StringContent(json, Encoding.UTF8, "application/json");
-        using var response = await _http.PostAsync(_chatEndpoint, content, cancellationToken);
-        response.EnsureSuccessStatusCode();
+        var tcs = new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously);
+        string? lastContent = null;
 
-        if (!request.Stream)
+        using var sub = session.On(evt =>
         {
-            var body = await response.Content.ReadAsStringAsync(cancellationToken);
-            var result = JsonSerializer.Deserialize(body, CopilotJsonContext.Default.ChatCompletionResponse);
-            return result?.Choices?.FirstOrDefault()?.Message?.Content ?? string.Empty;
-        }
+            switch (evt)
+            {
+                case GitHub.Copilot.SDK.AssistantMessageEvent msg:
+                    lastContent = msg.Data.Content;
+                    break;
+                case GitHub.Copilot.SDK.SessionIdleEvent:
+                    tcs.TrySetResult(lastContent ?? string.Empty);
+                    break;
+                case GitHub.Copilot.SDK.SessionErrorEvent err:
+                    tcs.TrySetException(new InvalidOperationException(err.Data.Message));
+                    break;
+            }
+        });
 
-        return await ReadStreamingResponseAsync(response, cancellationToken);
-    }
+        using var reg = cancellationToken.Register(() => tcs.TrySetCanceled(cancellationToken));
 
-    private static async Task<string> ReadStreamingResponseAsync(
-        HttpResponseMessage response, CancellationToken cancellationToken)
-    {
-        var sb = new StringBuilder();
-        await using var stream = await response.Content.ReadAsStreamAsync(cancellationToken);
-        using var reader = new System.IO.StreamReader(stream);
-
-        while (!reader.EndOfStream)
-        {
-            var line = await reader.ReadLineAsync(cancellationToken);
-            if (string.IsNullOrWhiteSpace(line)) continue;
-
-            // SSE format: "data: {...}" or "data: [DONE]"
-            if (!line.StartsWith("data:", StringComparison.Ordinal)) continue;
-
-            var data = line["data:".Length..].Trim();
-            if (data == "[DONE]") break;
-
-            var chunk = JsonSerializer.Deserialize(data, CopilotJsonContext.Default.ChatCompletionStreamChunk);
-            var delta = chunk?.Choices?.FirstOrDefault()?.Delta?.Content;
-            if (delta is not null)
-                sb.Append(delta);
-        }
-
-        return sb.ToString();
+        await session.SendAsync(new GitHub.Copilot.SDK.MessageOptions { Prompt = request.Prompt });
+        return await tcs.Task;
     }
 
     public async Task<bool> IsHealthyAsync(CancellationToken cancellationToken = default)
     {
         try
         {
-            // Lightweight probe: list available models
-            var baseUrl = _chatEndpoint[.._chatEndpoint.LastIndexOf('/')];
-            using var response = await _http.GetAsync($"{baseUrl}/models", cancellationToken);
-            return response.IsSuccessStatusCode;
+            var pong = await _sdk.PingAsync();
+            return pong is not null;
         }
         catch
         {
@@ -107,69 +91,9 @@ public sealed class CopilotClient : ICopilotClient, IDisposable
         }
     }
 
-    public void Dispose() => _http.Dispose();
+    public async ValueTask DisposeAsync()
+    {
+        try { await _sdk.StopAsync(); } catch { /* best-effort */ }
+        await _sdk.DisposeAsync();
+    }
 }
-
-// ---------------------------------------------------------------------------
-// Internal request / response DTOs
-// ---------------------------------------------------------------------------
-
-internal sealed class ChatCompletionRequest
-{
-    [JsonPropertyName("model")]
-    public string Model { get; set; } = default!;
-
-    [JsonPropertyName("messages")]
-    public List<ChatMessage> Messages { get; set; } = [];
-
-    [JsonPropertyName("stream")]
-    public bool Stream { get; set; }
-}
-
-internal sealed class ChatMessage
-{
-    [JsonPropertyName("role")]
-    public string Role { get; set; } = default!;
-
-    [JsonPropertyName("content")]
-    public string Content { get; set; } = default!;
-}
-
-internal sealed class ChatCompletionResponse
-{
-    [JsonPropertyName("choices")]
-    public List<ChatChoice>? Choices { get; set; }
-
-    [JsonPropertyName("usage")]
-    public ChatUsage? Usage { get; set; }
-}
-
-internal sealed class ChatChoice
-{
-    [JsonPropertyName("message")]
-    public ChatMessage? Message { get; set; }
-
-    [JsonPropertyName("delta")]
-    public ChatMessage? Delta { get; set; }
-}
-
-internal sealed class ChatCompletionStreamChunk
-{
-    [JsonPropertyName("choices")]
-    public List<ChatChoice>? Choices { get; set; }
-}
-
-internal sealed class ChatUsage
-{
-    [JsonPropertyName("prompt_tokens")]
-    public int PromptTokens { get; set; }
-
-    [JsonPropertyName("completion_tokens")]
-    public int CompletionTokens { get; set; }
-}
-
-[JsonSerializable(typeof(ChatCompletionRequest))]
-[JsonSerializable(typeof(ChatCompletionResponse))]
-[JsonSerializable(typeof(ChatCompletionStreamChunk))]
-[JsonSourceGenerationOptions(PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase)]
-internal partial class CopilotJsonContext : JsonSerializerContext { }

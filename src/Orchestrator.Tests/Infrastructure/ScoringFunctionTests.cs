@@ -39,7 +39,7 @@ public sealed class ScoringFunctionTests
     // Hard rules §6.3
     // -----------------------------------------------------------------------
 
-    [Fact]
+    [Test]
     public void SelectNode_Autocomplete_AlwaysReturnsNodeA()
     {
         var sut = BuildSut();
@@ -50,7 +50,7 @@ public sealed class ScoringFunctionTests
         node.NodeId.Should().Be("A");
     }
 
-    [Fact]
+    [Test]
     public void SelectNode_WhenNodeBUnavailableInCache_ReturnsNodeA()
     {
         var cache = new InMemoryNodeHealthCache();
@@ -71,7 +71,7 @@ public sealed class ScoringFunctionTests
         node.NodeId.Should().Be("A");
     }
 
-    [Fact]
+    [Test]
     public void SelectNode_NodeBHealthy_DeepTask_PrefersNodeB()
     {
         var cache = new InMemoryNodeHealthCache();
@@ -101,7 +101,7 @@ public sealed class ScoringFunctionTests
         node.NodeId.Should().Be("B");
     }
 
-    [Fact]
+    [Test]
     public void SelectNode_NodeBQueueOverThreshold_FallsBackToNodeA()
     {
         var nodeBQueue = new NodeQueue(32);
@@ -125,7 +125,7 @@ public sealed class ScoringFunctionTests
         node.NodeId.Should().Be("A");
     }
 
-    [Fact]
+    [Test]
     public void SelectNode_NullNodeB_AlwaysReturnsNodeA()
     {
         var sut = new RoutingService(

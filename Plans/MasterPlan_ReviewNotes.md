@@ -281,10 +281,8 @@ if (!string.IsNullOrWhiteSpace(filter)) {
 - **Impact**: Older Azure SDK versions may carry unpatched issues in TLS handling or secret caching. Enterprise security scanners will flag this alongside `Azure.Identity`.
 - **Suggested Fix**: Update to `4.10.0` in tandem with `Azure.Identity` to keep the Azure SDK family consistent.
 
-### SEC-08 · `xunit` 2.9.3 Legacy (Test-Only) — 🟢 LOW
-- **Evidence**: `Orchestrator.Tests.csproj` references `xunit` **2.9.3**, flagged as legacy by NuGet. Replacement is `xunit.v3`.
-- **Impact**: `IsPackable = false` — this package never ships in production. Zero runtime security risk. Flagged only because enterprise scanning tools may report it.
-- **Suggested Fix**: Migrate to `xunit.v3` in a future maintenance cycle.
+### SEC-08 · `xunit` 2.9.3 Legacy — ✅ RESOLVED
+- **Resolution**: Migrated to **NUnit 4.5.1** + **NUnit3TestAdapter 6.2.0**. All `[Fact]` → `[Test]`, `[Theory]`/`[InlineData]` → `[TestCase]`. Assembly-level `[FixtureLifeCycle(LifeCycle.InstancePerTestCase)]` added in `TestAssemblyInfo.cs` to preserve per-test mock isolation (NUnit default is instance-per-fixture; xUnit was instance-per-test). **54/54 tests passing.**
 
 ### What Is Secure (Confirmed)
 | Area | Status | Evidence |
@@ -312,16 +310,17 @@ The master plan is **well-executed and largely complete**. Phase 1 (Foundation),
 | Priority | Issue | Area | Action Needed |
 |----------|-------|------|---------------|
 | 🔴 Critical | SEC-01: `RunTestsTool` missing process kill on cancel | Security | Kill process in `RunProcessAsync` on cancellation |
-| 🔴 Critical | SEC-02: `Azure.Identity` deprecated (1.13.2 → 1.21.0) | Dependencies | Update package |
+| ✅ Resolved | SEC-02: `Azure.Identity` deprecated (1.13.2 → 1.21.0) | Dependencies | Updated by developer |
 | 🟠 High | SEC-03: `allowedRoot` optional in `RunTestsTool` — path check skipped | Security | Make `allowedRoot` required or default to CWD |
 | 🟠 High | SEC-04: `SearchCodebaseTool` walks any directory with no restriction | Security | Add `allowedRoot` guard matching `ApplyPatchTool` |
 | 🟡 Medium | SEC-05: `filter` arg string-interpolated into process args | Security | Use `ProcessStartInfo.ArgumentList` instead |
 | 🟡 Medium | SEC-06: `SearchCodebaseTool` reads files with no size cap | Security | Cap per-file read at e.g. 64 KB |
-| 🟡 Medium | SEC-07: `Azure.Security.KeyVault.Secrets` outdated (4.7.0 → 4.10.0) | Dependencies | Update package |
+| ✅ Resolved | SEC-07: `Azure.Security.KeyVault.Secrets` outdated (4.7.0 → 4.10.0) | Dependencies | Updated by developer |
+| ✅ Resolved | SEC-08: `xunit` 2.9.3 legacy | Dependencies | Migrated to NUnit 4.5.1 + NUnit3TestAdapter 6.2.0; 54/54 passing |
 | 🟡 Medium | ISSUE-09: Queue has no priority ordering | Correctness | Replace `Channel<T>` with `PriorityQueue<T>` in `NodeQueue` |
 | 🟡 Medium | ISSUE-05: No observability dashboard or external metrics endpoint | Observability | Add HTTP sidecar for `/health` + `/metrics` |
 | 🟡 Medium | ISSUE-10: Sync-over-async at startup for Node C | Reliability | Refactor to async initialization |
-| 🟢 Low | SEC-08: `xunit` 2.9.3 is legacy (test-only) | Dependencies | Migrate to `xunit.v3` |
+| 🟢 Low | SEC-08: `xunit` 2.9.3 legacy — **RESOLVED ✅** Migrated to NUnit 4.5.1 + NUnit3TestAdapter 6.2.0; 54/54 tests passing | Dependencies | Done |
 | 🟢 Low | ISSUE-07: No `CopilotNode` config example | DX | Add example block to `appsettings.json` |
 | 🟢 Low | ISSUE-08: Queue threshold off-by-one vs spec | Correctness | Rename constant or update spec comment |
 | 🟢 Low | ISSUE-11: No `global.json` to pin .NET preview SDK | CI Stability | Add `global.json` |

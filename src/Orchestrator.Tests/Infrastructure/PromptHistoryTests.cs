@@ -7,14 +7,14 @@ public sealed class PromptHistoryTests
 {
     private readonly PromptHistoryService _sut = new();
 
-    [Fact]
+    [Test]
     public void Add_ReturnsNonEmptyId()
     {
         var id = _sut.Add("hello", TaskType.Chat, "A");
         id.Should().NotBeNullOrEmpty();
     }
 
-    [Fact]
+    [Test]
     public void GetRecent_ReturnsAddedEntry()
     {
         _sut.Add("test prompt", TaskType.Review, "B");
@@ -24,7 +24,7 @@ public sealed class PromptHistoryTests
         recent.Should().ContainSingle(e => e.Prompt == "test prompt" && e.NodeId == "B");
     }
 
-    [Fact]
+    [Test]
     public void Complete_SetsResponseAndSuccess()
     {
         var id = _sut.Add("prompt", TaskType.Refactor, "A");
@@ -36,14 +36,14 @@ public sealed class PromptHistoryTests
         entry.Success.Should().BeTrue();
     }
 
-    [Fact]
+    [Test]
     public void Complete_WithUnknownId_DoesNotThrow()
     {
         var act = () => _sut.Complete("nonexistent-id", "response", success: false);
         act.Should().NotThrow();
     }
 
-    [Fact]
+    [Test]
     public void GetRecent_RespectsCountLimit()
     {
         for (var i = 0; i < 10; i++)
@@ -54,7 +54,7 @@ public sealed class PromptHistoryTests
         recent.Should().HaveCount(3);
     }
 
-    [Fact]
+    [Test]
     public void Add_RingBuffer_EvictsOldestWhenOverCapacity()
     {
         // Add 51 entries (capacity is 50)
@@ -68,7 +68,7 @@ public sealed class PromptHistoryTests
         recent.Should().NotContain(e => e.Prompt == "prompt 0");
     }
 
-    [Fact]
+    [Test]
     public void GetRecent_ReturnsEntriesOrderedByMostRecentFirst()
     {
         _sut.Add("first", TaskType.Chat, "A");

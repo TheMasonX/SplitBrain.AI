@@ -4,6 +4,19 @@
 
 ---
 
+# 0. Project Metadata
+
+| Field | Value |
+| ----- | ----- |
+| **Repository** | https://github.com/TheMasonX/SplitBrain.AI |
+| **Default branch** | `main` |
+| **Root path** | `C:\@Repos\Visual Studio Projects\SplitBrain.AI\` |
+| **IDE** | Visual Studio 2026 (18.5.0) |
+| **Target framework** | .NET 10 |
+| **Shell** | PowerShell |
+
+---
+
 # 1. Core Design Principles
 
 1. **Stability > raw intelligence**
@@ -61,20 +74,43 @@ Node C: **GitHub Copilot API** (cloud inference, enterprise-secure)
 **Primary Model**
 
 * GitHub Copilot API (`gpt-4o`)
-* Accessed via `https://api.githubcopilot.com` (OpenAI-compatible)
+* Accessed via **`GitHub.Copilot.SDK`** NuGet package (v0.2.2)
+  * SDK wraps the GitHub Copilot CLI via stdio/TCP — not a raw HTTP client
+  * Requires the Copilot CLI (`gh copilot`) installed and in PATH on the Node C host,
+    or `CopilotNode:CliPath` pointing to the binary, or `CopilotNode:CliUrl` targeting a pre-running server
 
 **Purpose**
 
 * Fallback when both local nodes are busy or unavailable
 * Deep review, refactor, agent steps at work (enterprise account)
 
-**API Key Security (Enterprise)**
+**SDK Session Model**
 
-* **Preferred:** Azure Key Vault — `DefaultAzureCredential` (managed identity, workload identity, Azure CLI, Visual Studio)
-  * Config key: `CopilotNode:KeyVaultUri`
-  * Secret name: `CopilotNode:KeyVaultSecretName` (default: `CopilotApiKey`)
-* **Fallback:** Environment variable `COPILOT_API_KEY`
+* Each `ExecuteAsync` call opens a fresh, single-turn `CopilotSession` (infinite sessions disabled)
+* Streaming is wired through `AssistantMessageDeltaEvent`; final content from `AssistantMessageEvent`
+* Health probe uses `PingAsync()`
+* `CopilotClient` is `IAsyncDisposable` — `StopAsync` + `DisposeAsync` called on shutdown
+
+**API Key / Auth Resolution Order**
+
+1. Azure Key Vault — `DefaultAzureCredential` (managed identity, workload identity, Azure CLI, Visual Studio)
+   * Config key: `CopilotNode:KeyVaultUri`
+   * Secret name: `CopilotNode:KeyVaultSecretName` (default: `CopilotApiKey`)
+   * Token passed to SDK as `CopilotClientOptions.GitHubToken`
+2. Environment variable `COPILOT_API_KEY` → same `GitHubToken` path
+3. GitHub CLI logged-in user (`gh auth login`) — SDK default when no token is supplied
 * Raw tokens are **never** stored in config files or source control
+
+**Config Keys (`CopilotNode` section)**
+
+| Key | Purpose | Default |
+| --- | ------- | ------- |
+| `KeyVaultUri` | Azure Key Vault URI | *(unset)* |
+| `KeyVaultSecretName` | Secret name in Key Vault | `CopilotApiKey` |
+| `Model` | Chat model identifier | `gpt-4o` |
+| `TimeoutSeconds` | Per-request timeout | `60` |
+| `CliPath` | Path to Copilot CLI binary | *(SDK default / `COPILOT_CLI_PATH`)* |
+| `CliUrl` | URL of pre-running CLI server | *(unset — SDK spawns its own)* |
 
 ---
 

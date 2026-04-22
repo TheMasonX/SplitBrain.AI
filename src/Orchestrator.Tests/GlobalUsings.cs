@@ -1,3 +1,3 @@
-global using Xunit;
+global using NUnit.Framework;
 global using FluentAssertions;
 global using NSubstitute;

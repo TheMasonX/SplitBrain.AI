@@ -21,7 +21,7 @@ public sealed class NodeWorkerServiceTests
         CheckedAt = DateTimeOffset.UtcNow
     };
 
-    [Fact]
+    [Test]
     public async Task ExecuteAsync_LogsStartupAndHeartbeat()
     {
         _node.NodeId.Returns("B");
@@ -37,7 +37,7 @@ public sealed class NodeWorkerServiceTests
         await _node.Received().GetHealthAsync(Arg.Any<CancellationToken>());
     }
 
-    [Fact]
+    [Test]
     public async Task ExecuteAsync_ContinuesAfterTransientError()
     {
         _node.NodeId.Returns("B");
@@ -58,7 +58,7 @@ public sealed class NodeWorkerServiceTests
         await _node.Received().GetHealthAsync(Arg.Any<CancellationToken>());
     }
 
-    [Fact]
+    [Test]
     public async Task ExecuteAsync_StopsCleanlyOnCancellation()
     {
         _node.NodeId.Returns("B");

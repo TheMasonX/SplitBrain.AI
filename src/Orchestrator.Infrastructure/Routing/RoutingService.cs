@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Orchestrator.Core.Enums;
 using Orchestrator.Core.Interfaces;
 using Orchestrator.Core.Models;
@@ -26,6 +27,10 @@ public sealed class RoutingService : IRoutingService
     private readonly IMetricsCollector? _metrics;
     private readonly IPromptHistory? _history;
     private readonly ILogger<RoutingService> _logger;
+    private readonly RoutingOptions _routingOptions;
+
+    /// <summary>All registered nodes keyed by NodeId for fallback chain resolution.</summary>
+    private readonly Dictionary<string, (IInferenceNode Node, IInferenceQueue Queue)> _nodeMap;
 
     public RoutingService(
         IInferenceNode nodeA,
@@ -37,7 +42,8 @@ public sealed class RoutingService : IRoutingService
         IMetricsCollector? metrics = null,
         IPromptHistory? history = null,
         IInferenceNode? nodeC = null,
-        IInferenceQueue? nodeCQueue = null)
+        IInferenceQueue? nodeCQueue = null,
+        IOptions<RoutingOptions>? routingOptions = null)
     {
         _nodeA = nodeA;
         _nodeB = nodeB;
@@ -49,6 +55,16 @@ public sealed class RoutingService : IRoutingService
         _metrics = metrics;
         _history = history;
         _logger = logger;
+        _routingOptions = routingOptions?.Value ?? new RoutingOptions();
+
+        _nodeMap = new Dictionary<string, (IInferenceNode, IInferenceQueue)>
+        {
+            [nodeA.NodeId] = (nodeA, nodeAQueue)
+        };
+        if (nodeB is not null && nodeBQueue is not null)
+            _nodeMap[nodeB.NodeId] = (nodeB, nodeBQueue);
+        if (nodeC is not null && nodeCQueue is not null)
+            _nodeMap[nodeC.NodeId] = (nodeC, nodeCQueue);
     }
 
     public async Task<InferenceResult> RouteAsync(
@@ -204,41 +220,105 @@ public sealed class RoutingService : IRoutingService
 
         return Task.Run(async () =>
         {
+            await DrainWithFallbackAsync(node, item, ct);
+        }, ct);
+    }
+
+    private async Task DrainWithFallbackAsync(IInferenceNode node, InferenceQueueItem item, CancellationToken ct)
+    {
+        // Build the ordered list of nodes to try: primary + configured fallback chain
+        var chain = new List<IInferenceNode> { node };
+        if (_routingOptions.FallbackChains.TryGetValue(node.NodeId, out var fallbackIds))
+        {
+            foreach (var id in fallbackIds)
+            {
+                if (_nodeMap.TryGetValue(id, out var entry))
+                    chain.Add(entry.Node);
+            }
+        }
+
+        Exception? lastEx = null;
+        foreach (var candidate in chain)
+        {
+            if (item.Completion.Task.IsCompleted) return;
             try
             {
-                var result = await node.ExecuteAsync(item.Request, ct);
+                var result = await candidate.ExecuteAsync(item.Request, ct);
                 item.Completion.TrySetResult(result);
 
                 _metrics?.Record(new RequestMetric
                 {
-                    TaskId     = item.TaskId,
-                    NodeId     = result.NodeId,
-                    Model      = result.Model,
-                    TaskType   = item.TaskType.ToString(),
-                    TokensIn   = result.TokensIn,
-                    TokensOut  = result.TokensOut,
-                    LatencyMs  = result.LatencyMs,
-                    Success    = true
+                    TaskId    = item.TaskId,
+                    NodeId    = result.NodeId,
+                    Model     = result.Model,
+                    TaskType  = item.TaskType.ToString(),
+                    TokensIn  = result.TokensIn,
+                    TokensOut = result.TokensOut,
+                    LatencyMs = result.LatencyMs,
+                    Success   = true
                 });
+                return;
             }
             catch (OperationCanceledException)
             {
                 item.Completion.TrySetCanceled(ct);
+                return;
             }
-            catch (Exception ex)
+            catch (Exception ex) when (candidate != chain[^1])
             {
+                lastEx = ex;
+                var reason = IsConnectivityException(ex) ? "unreachable" : "failed";
+                _logger.LogWarning(ex,
+                    "Node {NodeId} {Reason} — trying next fallback", candidate.NodeId, reason);
+
                 _metrics?.Record(new RequestMetric
                 {
                     TaskId    = item.TaskId,
-                    NodeId    = node.NodeId,
-                    Model     = node.Capabilities.Model,
+                    NodeId    = candidate.NodeId,
+                    Model     = candidate.Capabilities.Model,
+                    TaskType  = item.TaskType.ToString(),
+                    LatencyMs = 0,
+                    Success   = false
+                });
+            }
+            catch (Exception ex)
+            {
+                // All nodes in the chain exhausted — propagate the last exception
+                lastEx = ex;
+                _metrics?.Record(new RequestMetric
+                {
+                    TaskId    = item.TaskId,
+                    NodeId    = candidate.NodeId,
+                    Model     = candidate.Capabilities.Model,
                     TaskType  = item.TaskType.ToString(),
                     LatencyMs = 0,
                     Success   = false
                 });
                 item.Completion.TrySetException(ex);
+                return;
             }
-        }, ct);
+        }
+
+        // All nodes in the chain were unreachable
+        if (lastEx is not null)
+            item.Completion.TrySetException(lastEx);
+    }
+
+    /// <summary>
+    /// Returns true for network-level connectivity failures (DNS, TCP refused/timeout)
+    /// that warrant trying the next node in the fallback chain.
+    /// </summary>
+    private static bool IsConnectivityException(Exception ex)
+    {
+        if (ex is System.Net.Http.HttpRequestException httpEx)
+        {
+            if (httpEx.InnerException is System.Net.Sockets.SocketException)
+                return true;
+            // Covers TaskCanceledException wrapping a timeout inside HttpRequestException
+            if (httpEx.InnerException is TaskCanceledException)
+                return true;
+        }
+        return false;
     }
 
     /// <summary>Rough token estimate: ~4 chars per token.</summary>

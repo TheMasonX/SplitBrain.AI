@@ -16,16 +16,15 @@ public sealed class ReviewCodeRequestValidatorTests
         Focus = "bugs"
     };
 
-    [Fact]
+    [Test]
     public void ValidRequest_PassesValidation()
     {
         var result = _validator.Validate(Valid());
         result.IsValid.Should().BeTrue();
     }
 
-    [Theory]
-    [InlineData("")]
-    [InlineData("   ")]
+    [TestCase("")]
+    [TestCase("   ")]
     public void EmptyCode_FailsValidation(string code)
     {
         var request = Valid() with { Code = code };
@@ -34,9 +33,8 @@ public sealed class ReviewCodeRequestValidatorTests
         result.Errors.Should().Contain(e => e.PropertyName == nameof(ReviewCodeRequest.Code));
     }
 
-    [Theory]
-    [InlineData("")]
-    [InlineData("   ")]
+    [TestCase("")]
+    [TestCase("   ")]
     public void EmptyLanguage_FailsValidation(string language)
     {
         var request = Valid() with { Language = language };
@@ -45,10 +43,9 @@ public sealed class ReviewCodeRequestValidatorTests
         result.Errors.Should().Contain(e => e.PropertyName == nameof(ReviewCodeRequest.Language));
     }
 
-    [Theory]
-    [InlineData("invalid")]
-    [InlineData("style")]
-    [InlineData("")]
+    [TestCase("invalid")]
+    [TestCase("style")]
+    [TestCase("")]
     public void InvalidFocus_FailsValidation(string focus)
     {
         var request = Valid() with { Focus = focus };
@@ -57,12 +54,11 @@ public sealed class ReviewCodeRequestValidatorTests
         result.Errors.Should().Contain(e => e.PropertyName == nameof(ReviewCodeRequest.Focus));
     }
 
-    [Theory]
-    [InlineData("architecture")]
-    [InlineData("performance")]
-    [InlineData("bugs")]
-    [InlineData("readability")]
-    [InlineData("security")]
+    [TestCase("architecture")]
+    [TestCase("performance")]
+    [TestCase("bugs")]
+    [TestCase("readability")]
+    [TestCase("security")]
     public void ValidFocusValues_PassValidation(string focus)
     {
         var request = Valid() with { Focus = focus };
@@ -70,7 +66,7 @@ public sealed class ReviewCodeRequestValidatorTests
         result.IsValid.Should().BeTrue();
     }
 
-    [Fact]
+    [Test]
     public void ValidateOrThrow_ThrowsOnInvalidRequest()
     {
         var request = Valid() with { Code = "" };

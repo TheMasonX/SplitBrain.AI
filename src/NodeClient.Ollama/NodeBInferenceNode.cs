@@ -60,7 +60,7 @@ public sealed class NodeBInferenceNode : IInferenceNode
                 LatencyMs = (int)sw.ElapsedMilliseconds
             };
         }
-        catch (Exception ex) when (ex is not OperationCanceledException && !request.UseFallback)
+        catch (Exception ex) when (ex is not OperationCanceledException && !request.UseFallback && !IsConnectivityException(ex))
         {
             // §12: model crash → retry once with fallback model
             sw.Restart();
@@ -104,4 +104,9 @@ public sealed class NodeBInferenceNode : IInferenceNode
             CheckedAt = DateTimeOffset.UtcNow
         };
     }
+
+    private static bool IsConnectivityException(Exception ex) =>
+        ex is System.Net.Http.HttpRequestException httpEx &&
+        (httpEx.InnerException is System.Net.Sockets.SocketException ||
+         httpEx.InnerException is TaskCanceledException);
 }

@@ -18,7 +18,7 @@ public sealed class NodeBRetryTests
         _sut = new NodeBInferenceNode(_client, _logger);
     }
 
-    [Fact]
+    [Test]
     public async Task ExecuteAsync_PrimaryFails_RetiesWithFallbackModel()
     {
         var request = new InferenceRequest { Prompt = "analyse this", UseFallback = false };
@@ -41,7 +41,7 @@ public sealed class NodeBRetryTests
         result.NodeId.Should().Be("B");
     }
 
-    [Fact]
+    [Test]
     public async Task ExecuteAsync_PrimaryFails_FallbackAlsoFails_Throws()
     {
         var request = new InferenceRequest { Prompt = "analyse this", UseFallback = false };
@@ -54,7 +54,7 @@ public sealed class NodeBRetryTests
         await act.Should().ThrowAsync<InvalidOperationException>();
     }
 
-    [Fact]
+    [Test]
     public async Task ExecuteAsync_OperationCanceled_DoesNotRetry()
     {
         var request = new InferenceRequest { Prompt = "analyse this", UseFallback = false };
@@ -76,7 +76,7 @@ public sealed class NodeBRetryTests
             Arg.Any<CancellationToken>());
     }
 
-    [Fact]
+    [Test]
     public async Task ExecuteAsync_WhenUseFallbackTrue_DoesNotRetryOnFailure()
     {
         // If UseFallback is already true the request is already the retry — no second chance

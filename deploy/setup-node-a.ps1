@@ -1,7 +1,7 @@
 <#
 .SYNOPSIS
     Provisions Node A (RTX 5060 / Laptop) for SplitBrain.AI.
-    Safe to run multiple times — idempotent throughout.
+    Safe to run multiple times - idempotent throughout.
 
 .DESCRIPTION
     1. Verifies / installs .NET 10 SDK + Runtime
@@ -14,16 +14,17 @@
 .NOTES
     Run as Administrator.
     Node A role: Interactive + Orchestration (RTX 5060 8 GB, fast inference).
+    Primary model: qcoder:latest (qwen2.5-coder 7B Q4_K_M)
 #>
 
 #Requires -RunAsAdministrator
 [CmdletBinding(SupportsShouldProcess)]
 param (
-    [string]$PublishPath   = "$PSScriptRoot\..\publish\node-a",
+    [string]$PublishPath   = "$PSScriptRoot\..\src\Orchestrator.Mcp\publish\node-a",
     [string]$ServiceName   = "SplitBrainMcpServer",
     [string]$ServiceDisplay = "SplitBrain.AI MCP Server (Node A)",
     [string]$LogDir        = "C:\ProgramData\SplitBrain.AI\logs\node-a",
-    [string]$DotNetVersion = "10.0"
+    [string]$DotNetVersion = "10"
 )
 
 Set-StrictMode -Version Latest
@@ -47,7 +48,6 @@ function Set-PersistentEnv([string]$Name, [string]$Value) {
         return
     }
     [System.Environment]::SetEnvironmentVariable($Name, $Value, "Machine")
-    $env:($Name) = $Value
     Write-Ok "Env $Name = $Value"
 }
 
@@ -60,8 +60,16 @@ if (-not $sdkInstalled) {
     Write-Host "    Downloading .NET $DotNetVersion SDK installer..."
     $installerUrl = "https://dot.net/v1/dotnet-install.ps1"
     $installerPath = "$env:TEMP\dotnet-install.ps1"
-    Invoke-WebRequest -Uri $installerUrl -OutFile $installerPath -UseBasicParsing
+    Invoke-WebRequest -Uri $installerUrl -OutFile $installerPath
     & $installerPath -Channel $DotNetVersion -InstallDir "C:\Program Files\dotnet" -NoPath
+    # Add dotnet install dir to machine PATH if not already present
+    $dotnetDir = "C:\Program Files\dotnet"
+    $machinePath = [System.Environment]::GetEnvironmentVariable("PATH", "Machine")
+    if ($machinePath -notlike "*$dotnetDir*") {
+        [System.Environment]::SetEnvironmentVariable("PATH", "$machinePath;$dotnetDir", "Machine")
+        $env:PATH = "$env:PATH;$dotnetDir"
+        Write-Ok "Added $dotnetDir to machine PATH"
+    }
     Write-Ok ".NET $DotNetVersion SDK installed"
 } else {
     Write-Skip ".NET $DotNetVersion SDK already present"
@@ -74,7 +82,7 @@ Write-Step "Ollama"
 if (-not (Test-CommandExists "ollama")) {
     Write-Host "    Downloading Ollama installer..."
     $ollamaInstaller = "$env:TEMP\OllamaSetup.exe"
-    Invoke-WebRequest -Uri "https://ollama.com/download/OllamaSetup.exe" -OutFile $ollamaInstaller -UseBasicParsing
+    Invoke-WebRequest -Uri "https://ollama.com/download/OllamaSetup.exe" -OutFile $ollamaInstaller
     Start-Process -FilePath $ollamaInstaller -ArgumentList "/S" -Wait
     Write-Ok "Ollama installed"
 } else {
@@ -82,7 +90,7 @@ if (-not (Test-CommandExists "ollama")) {
 }
 
 # ---------------------------------------------------------------------------
-# 3. Node A Ollama environment variables (from spec §4.1)
+# 3. Node A Ollama environment variables (from spec section 4.1)
 # ---------------------------------------------------------------------------
 Write-Step "Ollama environment variables (Node A)"
 Set-PersistentEnv "OLLAMA_NUM_PARALLEL"      "2"
@@ -98,13 +106,18 @@ Set-PersistentEnv "OLLAMA_HOST"              "0.0.0.0"
 Write-Step "Pulling Ollama models for Node A"
 
 $models = @(
-    "qwen2.5-coder:7b-instruct-q4_K_M",   # primary inference model
-    "nomic-embed-text"                      # embeddings (CPU preferred)
+    "qwen2.5-coder:7b"   # primary inference model (qwen2.5-coder 7B Q4_K_M)
 )
 
-# Start Ollama serve in background so pull works
+# Start Ollama serve in background so pull works if not already running
 $ollamaProcess = $null
-if (-not (Test-NetConnection -ComputerName localhost -Port 11434 -InformationLevel Quiet -WarningAction SilentlyContinue)) {
+$ollamaReady = $false
+try {
+    $resp = Invoke-WebRequest -Uri "http://127.0.0.1:11434" -TimeoutSec 2 -ErrorAction Stop
+    $ollamaReady = $resp.StatusCode -eq 200
+} catch { }
+
+if (-not $ollamaReady) {
     Write-Host "    Starting Ollama serve temporarily for model pull..."
     $ollamaProcess = Start-Process "ollama" -ArgumentList "serve" -PassThru -WindowStyle Hidden
     Start-Sleep -Seconds 5
@@ -113,6 +126,9 @@ if (-not (Test-NetConnection -ComputerName localhost -Port 11434 -InformationLev
 foreach ($model in $models) {
     Write-Host "    Pulling $model ..."
     ollama pull $model
+    if ($LASTEXITCODE -ne 0) {
+        throw "Failed to pull model '$model' (exit code $LASTEXITCODE)"
+    }
     Write-Ok "Pulled $model"
 }
 
@@ -146,20 +162,17 @@ if (-not (Test-Path $exePath)) {
     $svc = Get-Service -Name $ServiceName -ErrorAction SilentlyContinue
 
     if ($svc) {
-        Write-Host "    Service already exists — stopping to update binaries..."
+        Write-Host "    Service already exists - stopping to update binaries..."
         Stop-Service -Name $ServiceName -Force -ErrorAction SilentlyContinue
         Start-Sleep -Seconds 2
         sc.exe config $ServiceName binPath= "`"$exePath`"" | Out-Null
         Write-Ok "Service binary path updated"
     } else {
-        sc.exe create $ServiceName `
-            binPath= "`"$exePath`"" `
-            DisplayName= $ServiceDisplay `
-            start= auto | Out-Null
+        sc.exe create $ServiceName binPath= "`"$exePath`"" DisplayName= $ServiceDisplay start= auto | Out-Null
         Write-Ok "Service created: $ServiceName"
     }
 
-    sc.exe description $ServiceName "SplitBrain.AI MCP Server — Node A (RTX 5060, fast inference)" | Out-Null
+    sc.exe description $ServiceName "SplitBrain.AI MCP Server - Node A (RTX 5060, fast inference)" | Out-Null
     Start-Service -Name $ServiceName
     Write-Ok "Service started"
 }

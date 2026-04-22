@@ -20,7 +20,7 @@ public sealed class RoutingServiceTests
         _sut = new RoutingService(_nodeA, _queueA, _logger);
     }
 
-    [Fact]
+    [Test]
     public async Task RouteAsync_ForwardsRequestToNodeA()
     {
         var request = new InferenceRequest { Prompt = "review this", Model = "qwen2.5-coder:7b-instruct-q4_K_M" };
@@ -34,7 +34,7 @@ public sealed class RoutingServiceTests
         await _nodeA.Received(1).ExecuteAsync(Arg.Any<InferenceRequest>(), Arg.Any<CancellationToken>());
     }
 
-    [Fact]
+    [Test]
     public async Task RouteAsync_AutocompleteTask_RoutesToNodeA()
     {
         var request = new InferenceRequest { Prompt = "complete this", Model = "qwen2.5-coder:7b-instruct-q4_K_M" };
@@ -47,7 +47,7 @@ public sealed class RoutingServiceTests
         result.Should().BeEquivalentTo(expected);
     }
 
-    [Fact]
+    [Test]
     public async Task RouteAsync_PassesCancellationTokenThrough()
     {
         using var cts = new CancellationTokenSource();
@@ -61,7 +61,7 @@ public sealed class RoutingServiceTests
         result.Should().BeEquivalentTo(expected);
     }
 
-    [Fact]
+    [Test]
     public async Task RouteAsync_LargePrompt_RoutesToNodeA_WhenNoBIsRegistered()
     {
         // No Node B registered — all traffic must go to A regardless of context size
@@ -76,7 +76,7 @@ public sealed class RoutingServiceTests
         result.Should().BeEquivalentTo(expected);
     }
 
-    [Fact]
+    [Test]
     public async Task RouteAsync_WithNodeB_LargePrompt_RoutesToNodeB()
     {
         var nodeB = Substitute.For<IInferenceNode>();

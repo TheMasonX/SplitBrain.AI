@@ -44,8 +44,14 @@ public sealed class CopilotClientOptions
     public int TimeoutSeconds { get; set; } = 60;
 
     /// <summary>
-    /// Value for the required Copilot-Version header.
-    /// Identifies this client to the Copilot API gateway.
+    /// Optional path to the GitHub Copilot CLI executable.
+    /// When null the SDK uses the COPILOT_CLI_PATH env var or the bundled CLI.
     /// </summary>
-    public string CopilotVersion { get; set; } = "2023-09-07";
+    public string? CliPath { get; set; }
+
+    /// <summary>
+    /// Optional URL of an already-running CLI server (e.g. "localhost:8080").
+    /// When set the SDK connects to that server instead of spawning a new process.
+    /// </summary>
+    public string? CliUrl { get; set; }
 }

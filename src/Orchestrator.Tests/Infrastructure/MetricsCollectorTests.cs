@@ -19,13 +19,13 @@ public sealed class MetricsCollectorTests
             Success   = success
         };
 
-    [Fact]
+    [Test]
     public void GetRecent_ReturnsEmptyWhenNoRecords()
     {
         _sut.GetRecent().Should().BeEmpty();
     }
 
-    [Fact]
+    [Test]
     public void Record_ThenGetRecent_ContainsEntry()
     {
         _sut.Record(MakeMetric("B"));
@@ -35,7 +35,7 @@ public sealed class MetricsCollectorTests
         recent.Should().ContainSingle(m => m.NodeId == "B");
     }
 
-    [Fact]
+    [Test]
     public void GetSummary_ReturnsEmptySummaryWhenNoRecords()
     {
         var summary = _sut.GetSummary();
@@ -45,7 +45,7 @@ public sealed class MetricsCollectorTests
         summary.FailureCount.Should().Be(0);
     }
 
-    [Fact]
+    [Test]
     public void GetSummary_AggregatesCorrectly()
     {
         _sut.Record(MakeMetric("A", success: true,  latencyMs: 200));
@@ -62,7 +62,7 @@ public sealed class MetricsCollectorTests
         summary.RequestsByNode["B"].Should().Be(1);
     }
 
-    [Fact]
+    [Test]
     public void GetRecent_RespectsCountParameter()
     {
         for (var i = 1; i <= 5; i++)
@@ -76,7 +76,7 @@ public sealed class MetricsCollectorTests
         recent.Select(m => m.LatencyMs).Should().OnlyContain(ms => validLatencies.Contains(ms));
     }
 
-    [Fact]
+    [Test]
     public void Record_RingBuffer_DoesNotExceedCapacity()
     {
         for (var i = 0; i < 1_100; i++)

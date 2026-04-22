@@ -101,9 +101,8 @@ public sealed class NodeCInferenceNode : IInferenceNode
     {
         var token = await ResolveApiTokenAsync(options, logger, cancellationToken);
 
-        var http = new HttpClient();
-        var client = new CopilotClient(http, token, Microsoft.Extensions.Options.Options.Create(options));
-        return new NodeCInferenceNode(client, Microsoft.Extensions.Options.Options.Create(options), logger);
+        var client = new CopilotClient(token, Options.Create(options));
+        return new NodeCInferenceNode(client, Options.Create(options), logger);
     }
 
     private static async Task<string> ResolveApiTokenAsync(
@@ -139,9 +138,50 @@ public sealed class NodeCInferenceNode : IInferenceNode
             return envToken;
         }
 
+        // 3. gh CLI OAuth token — used when the developer is logged in via `gh auth login`
+        var ghToken = TryResolveGhCliToken(logger);
+        if (!string.IsNullOrWhiteSpace(ghToken))
+            return ghToken;
+
         throw new InvalidOperationException(
             "Node C (GitHub Copilot) API token could not be resolved. " +
-            "Configure CopilotNode:KeyVaultUri (recommended for enterprise) " +
-            "or set the COPILOT_API_KEY environment variable.");
+            "Configure CopilotNode:KeyVaultUri (recommended for enterprise), " +
+            "set the COPILOT_API_KEY environment variable, " +
+            "or log in with the GitHub CLI (`gh auth login`).");
+    }
+
+    private static string? TryResolveGhCliToken(ILogger logger)
+    {
+        // gh CLI token via `gh auth token` — works if the user is logged in
+        try
+        {
+            using var process = new Process
+            {
+                StartInfo = new ProcessStartInfo
+                {
+                    FileName = "gh",
+                    Arguments = "auth token",
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true,
+                    UseShellExecute = false,
+                    CreateNoWindow = true,
+                }
+            };
+            process.Start();
+            var token = process.StandardOutput.ReadToEnd().Trim();
+            process.WaitForExit(3000);
+
+            if (process.ExitCode == 0 && !string.IsNullOrWhiteSpace(token))
+            {
+                logger.LogInformation("Node C: API token sourced from gh CLI (`gh auth token`)");
+                return token;
+            }
+        }
+        catch (Exception ex)
+        {
+            logger.LogDebug(ex, "Node C: gh CLI token resolution failed (gh not installed or not logged in)");
+        }
+
+        return null;
     }
 }

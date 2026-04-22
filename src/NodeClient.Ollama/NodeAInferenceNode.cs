@@ -8,7 +8,7 @@ namespace NodeClient.Ollama;
 
 public sealed class NodeAInferenceNode : IInferenceNode
 {
-    private const string Model = "qwen2.5-coder:7b-instruct-q4_K_M";
+    private const string Model = "qcoder:latest";
 
     private readonly IOllamaClient _client;
     private readonly ILogger<NodeAInferenceNode> _logger;

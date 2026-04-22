@@ -16,13 +16,13 @@ public sealed class NodeBInferenceNodeTests
         _sut = new NodeBInferenceNode(_client, _logger);
     }
 
-    [Fact]
+    [Test]
     public void NodeId_IsB()
     {
         _sut.NodeId.Should().Be("B");
     }
 
-    [Fact]
+    [Test]
     public void Capabilities_HasExpectedValues()
     {
         _sut.Capabilities.NodeId.Should().Be("B");
@@ -31,7 +31,7 @@ public sealed class NodeBInferenceNodeTests
         _sut.Capabilities.Model.Should().Be("qwen2.5-coder:7b-instruct-q5_K_M");
     }
 
-    [Fact]
+    [Test]
     public async Task GetHealthAsync_ReturnsHealthy()
     {
         _client.IsHealthyAsync(Arg.Any<CancellationToken>()).Returns(true);
@@ -43,7 +43,7 @@ public sealed class NodeBInferenceNodeTests
         health.CheckedAt.Should().BeCloseTo(DateTimeOffset.UtcNow, TimeSpan.FromSeconds(5));
     }
 
-    [Fact]
+    [Test]
     public async Task ExecuteAsync_UsesPrimaryModel_WhenUseFallbackIsFalse()
     {
         const string expectedText = "deep review result";
@@ -62,7 +62,7 @@ public sealed class NodeBInferenceNodeTests
         result.LatencyMs.Should().BeGreaterThanOrEqualTo(0);
     }
 
-    [Fact]
+    [Test]
     public async Task ExecuteAsync_UsesFallbackModel_WhenUseFallbackIsTrue()
     {
         const string expectedText = "fallback result";
@@ -79,7 +79,7 @@ public sealed class NodeBInferenceNodeTests
         result.Model.Should().Be("deepseek-coder:6.7b-instruct-q4_K_M");
     }
 
-    [Fact]
+    [Test]
     public async Task ExecuteAsync_PassesCancellationToken()
     {
         using var cts = new CancellationTokenSource();
