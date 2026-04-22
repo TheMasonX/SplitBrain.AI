@@ -16,6 +16,7 @@
   <Folder Name="/Plans/">
     <File Path="Plans/DTOClasses.md" />
     <File Path="Plans/MasterPlan.md" />
+    <File Path="Plans/NexGenMasterPlan.md" />
     <File Path="Plans/ProgressPlan.md" />
     <File Path="Plans/McpToolListing.md" />
     <File Path="Plans/SuggestionsPlan.md" />

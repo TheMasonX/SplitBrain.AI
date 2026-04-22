@@ -11,4 +11,6 @@ public interface ILoggingService
     Task LogErrorAsync(string operation, Exception exception, CancellationToken cancellationToken = default);
 
     Task LogInferenceAsync(string taskId, string prompt, string response, string model, string nodeId, long latencyMs, CancellationToken cancellationToken = default);
+
+    Task LogChatMessageAsync(string conversationId, string role, string senderId, string message, DateTimeOffset timestamp, CancellationToken cancellationToken = default);
 }
