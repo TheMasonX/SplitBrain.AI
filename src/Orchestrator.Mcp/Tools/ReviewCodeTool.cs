@@ -1,4 +1,5 @@
 using System.ComponentModel;
+using System.Diagnostics;
 using System.Text.Json;
 using FluentValidation;
 using ModelContextProtocol.Server;
@@ -14,10 +15,12 @@ namespace Orchestrator.Mcp.Tools;
 public sealed class ReviewCodeTool
 {
     private readonly IRoutingService _routing;
+    private readonly ILoggingService _loggingService;
 
-    public ReviewCodeTool(IRoutingService routing)
+    public ReviewCodeTool(IRoutingService routing, ILoggingService loggingService)
     {
         _routing = routing;
+        _loggingService = loggingService;
     }
 
     [McpServerTool(Name = "review_code"), Description("Reviews code for architecture, performance, bugs, readability, or security issues.")]
@@ -27,6 +30,9 @@ public sealed class ReviewCodeTool
         [Description("Review focus: architecture | performance | bugs | readability | security")] string focus,
         CancellationToken cancellationToken = default)
     {
+        var stopwatch = Stopwatch.StartNew();
+        var taskId = Guid.NewGuid().ToString();
+
         var request = new ReviewCodeRequest
         {
             Code = code,
@@ -34,35 +40,62 @@ public sealed class ReviewCodeTool
             Focus = focus
         };
 
-        request.ValidateOrThrow(new ReviewCodeRequestValidator());
-
-        var prompt = BuildPrompt(request);
-
-        var inferenceRequest = new InferenceRequest
+        try
         {
-            Prompt = prompt,
-            Model = "qwen2.5-coder:7b-instruct-q4_K_M",
-            Stream = true
-        };
+            // Log incoming request
+            await _loggingService.LogRequestAsync("review_code", request, cancellationToken);
 
-        var result = await _routing.RouteAsync(TaskType.Review, inferenceRequest, cancellationToken);
+            request.ValidateOrThrow(new ReviewCodeRequestValidator());
 
-        var response = new ReviewCodeResponse
-        {
-            Summary = result.Text,
-            Issues = [],
-            Meta = new Meta
+            var prompt = BuildPrompt(request);
+
+            var inferenceRequest = new InferenceRequest
             {
-                TaskId = Guid.NewGuid().ToString(),
-                Node = result.NodeId,
-                Model = result.Model,
-                LatencyMs = result.LatencyMs,
-                TokensIn = result.TokensIn,
-                TokensOut = result.TokensOut
-            }
-        };
+                Prompt = prompt,
+                Model = "qwen2.5-coder:7b-instruct-q4_K_M",
+                Stream = true
+            };
 
-        return JsonSerializer.Serialize(response, JsonConfig.Default);
+            var result = await _routing.RouteAsync(TaskType.Review, inferenceRequest, cancellationToken);
+
+            // Log inference details
+            await _loggingService.LogInferenceAsync(
+                taskId,
+                prompt,
+                result.Text,
+                result.Model,
+                result.NodeId,
+                result.LatencyMs,
+                cancellationToken);
+
+            var response = new ReviewCodeResponse
+            {
+                Summary = result.Text,
+                Issues = [],
+                Meta = new Meta
+                {
+                    TaskId = taskId,
+                    Node = result.NodeId,
+                    Model = result.Model,
+                    LatencyMs = result.LatencyMs,
+                    TokensIn = result.TokensIn,
+                    TokensOut = result.TokensOut
+                }
+            };
+
+            stopwatch.Stop();
+
+            // Log response
+            await _loggingService.LogResponseAsync("review_code", response, stopwatch.ElapsedMilliseconds, cancellationToken);
+
+            return JsonSerializer.Serialize(response, JsonConfig.Default);
+        }
+        catch (Exception ex)
+        {
+            stopwatch.Stop();
+            await _loggingService.LogErrorAsync("review_code", ex, cancellationToken);
+            throw;
+        }
     }
 
     private static string BuildPrompt(ReviewCodeRequest request)

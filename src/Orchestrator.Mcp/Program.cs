@@ -12,6 +12,7 @@ using Orchestrator.Core.Interfaces;
 using Orchestrator.Core.Models;
 using Orchestrator.Infrastructure.Health;
 using Orchestrator.Infrastructure.History;
+using Orchestrator.Infrastructure.Logging;
 using Orchestrator.Infrastructure.Metrics;
 using Orchestrator.Infrastructure.Queue;
 using Orchestrator.Infrastructure.Routing;
@@ -61,6 +62,10 @@ builder.Services.Configure<CopilotClientOptions>(
 builder.Services.Configure<RoutingOptions>(
     builder.Configuration.GetSection(RoutingOptions.Section));
 
+// File logging for input/output capture
+builder.Services.Configure<FileLoggingOptions>(
+    builder.Configuration.GetSection(FileLoggingOptions.Section));
+
 builder.Services.AddHttpClient<IOllamaClient, OllamaClient>();
 
 // Node A inference node (uses default IOptions<OllamaClientOptions>)
@@ -99,6 +104,7 @@ builder.Services.AddKeyedSingleton<IInferenceQueue>("nodeC", (_, _) => new NodeQ
 builder.Services.AddSingleton<INodeHealthCache, InMemoryNodeHealthCache>();
 builder.Services.AddSingleton<IMetricsCollector, InMemoryMetricsCollector>();
 builder.Services.AddSingleton<IPromptHistory, PromptHistoryService>();
+builder.Services.AddSingleton<ILoggingService, FileLoggingService>();
 
 builder.Services.AddSingleton<IRoutingService>(sp => new RoutingService(
     nodeA: sp.GetRequiredService<IInferenceNode>(),

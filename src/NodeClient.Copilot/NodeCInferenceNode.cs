@@ -114,7 +114,7 @@ public sealed class NodeCInferenceNode : IInferenceNode
         if (!string.IsNullOrWhiteSpace(options.KeyVaultUri))
         {
             logger.LogInformation(
-                "Node C: resolving API token from Key Vault {Uri}, secret={Secret}",
+                "Node C: resolving API token from Key Vault {Uri}, secret={SecretName}",
                 options.KeyVaultUri, options.KeyVaultSecretName);
             try
             {
