@@ -91,19 +91,7 @@ public sealed class FileLoggingService : ILoggingService, IDisposable
         var fileName = $"inference-{DateTimeOffset.UtcNow:yyyy-MM-dd}.jsonl";
         var filePath = Path.Combine(_options.LogDirectory, fileName);
 
-        await _semaphore.WaitAsync(cancellationToken);
-        try
-        {
-            await File.AppendAllTextAsync(filePath, json + Environment.NewLine, cancellationToken);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Failed to write inference log to {FilePath}", filePath);
-        }
-        finally
-        {
-            _semaphore.Release();
-        }
+        await AppendToFileAsync(filePath, json + Environment.NewLine, cancellationToken);
     }
 
     private async Task WriteLogEntryAsync(LogEntry entry, string category, CancellationToken cancellationToken)
@@ -111,20 +99,71 @@ public sealed class FileLoggingService : ILoggingService, IDisposable
         var json = JsonSerializer.Serialize(entry, new JsonSerializerOptions { WriteIndented = true });
         var fileName = $"{category}-{DateTimeOffset.UtcNow:yyyy-MM-dd}.jsonl";
         var filePath = Path.Combine(_options.LogDirectory, fileName);
+        await AppendToFileAsync(filePath, json + Environment.NewLine, cancellationToken);
+    }
+
+    private async Task AppendToFileAsync(string filePath, string content, CancellationToken cancellationToken)
+    {
+        // Ensure directory exists
+        Directory.CreateDirectory(_options.LogDirectory);
 
         await _semaphore.WaitAsync(cancellationToken);
         try
         {
-            await File.AppendAllTextAsync(filePath, json + Environment.NewLine, cancellationToken);
+            var existed = File.Exists(filePath);
+            await File.AppendAllTextAsync(filePath, content, cancellationToken);
+
+            // If we created a new file, write an event to the file-events log (but don't recursive-log file-events)
+            if (!existed && !Path.GetFileName(filePath).StartsWith("file-events", StringComparison.OrdinalIgnoreCase))
+            {
+                try
+                {
+                    var evt = new
+                    {
+                        Event = "FileCreated",
+                        FilePath = filePath,
+                        Timestamp = DateTimeOffset.UtcNow
+                    };
+
+                    var evtJson = JsonSerializer.Serialize(evt, new JsonSerializerOptions { WriteIndented = true });
+                    var eventsFile = Path.Combine(_options.LogDirectory, $"file-events-{DateTimeOffset.UtcNow:yyyy-MM-dd}.jsonl");
+                    await File.AppendAllTextAsync(eventsFile, evtJson + Environment.NewLine, cancellationToken);
+                    _logger.LogInformation("Created log file: {FilePath}", filePath);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Failed to write file creation event for {FilePath}", filePath);
+                }
+            }
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to write log entry to {FilePath}", filePath);
+            _logger.LogError(ex, "Failed to append to {FilePath}", filePath);
         }
         finally
         {
             _semaphore.Release();
         }
+    }
+
+    public async Task LogChatMessageAsync(string conversationId, string role, string senderId, string message, DateTimeOffset timestamp, CancellationToken cancellationToken = default)
+    {
+        if (!_options.Enabled) return;
+
+        var chatEntry = new
+        {
+            ConversationId = conversationId,
+            Role = role,
+            SenderId = senderId,
+            Message = message,
+            Timestamp = timestamp
+        };
+
+        var json = JsonSerializer.Serialize(chatEntry, new JsonSerializerOptions { WriteIndented = true });
+        var fileName = $"chats-{DateTimeOffset.UtcNow:yyyy-MM-dd}.jsonl";
+        var filePath = Path.Combine(_options.LogDirectory, fileName);
+
+        await AppendToFileAsync(filePath, json + Environment.NewLine, cancellationToken);
     }
 
     public void Dispose()

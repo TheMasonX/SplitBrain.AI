@@ -50,7 +50,7 @@ public sealed class NodeAInferenceNodeTests
         const string expectedText = "review result";
         var request = new InferenceRequest { Prompt = "review", Model = "some-other-model" };
 
-        _client.ExecuteAsync(Arg.Is<InferenceRequest>(r => r.Model == "qwen2.5-coder:7b-instruct-q4_K_M"), Arg.Any<CancellationToken>())
+        _client.ExecuteAsync(Arg.Is<InferenceRequest>(r => r.Model == "qcoder"), Arg.Any<CancellationToken>())
                .Returns(expectedText);
 
         var result = await _sut.ExecuteAsync(request);
