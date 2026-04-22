@@ -14,6 +14,7 @@
     <File Path="docs/TESTING-NodeA-NodeC.md" />
   </Folder>
   <Folder Name="/Plans/">
+    <File Path="NexGenMasterPlan.md" />
     <File Path="Plans/DTOClasses.md" />
     <File Path="Plans/MasterPlan.md" />
     <File Path="Plans/NexGenMasterPlan.md" />
