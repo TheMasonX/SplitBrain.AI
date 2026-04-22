@@ -59,6 +59,7 @@ The master plan specified a `SplitBrain.*` namespace across 9 fine-grained proje
 |------|--------|
 | `InferenceNodeChatCompletionService` | ✅ Done |
 | `Microsoft.SemanticKernel.Abstractions` 1.54.0 | ✅ Added |
+| `IKernelPlannerService` + `KernelPlannerService` | ✅ Done — sequential planner backed by `IRoutingService`; plan-then-execute loop; registered in Mcp + Dashboard |
 
 ## Phase 5 — Output Validation ✅
 
@@ -97,14 +98,17 @@ The master plan specified a `SplitBrain.*` namespace across 9 fine-grained proje
 |------|--------|
 | `DashboardHub` (SignalR strongly-typed) | ✅ Done |
 | `IDashboardClient` + all DTOs | ✅ Done |
-| `DashboardState` (singleton; OnChange + AgentTasks) | ✅ Done |
+| `DashboardState` (singleton; OnChange + AgentTasks) | ✅ Done — extended with AgentSteps, Metrics, Alerts, TokenUsage |
 | `Home.razor`, `Nodes.razor`, `Logs.razor` | ✅ Done |
 | `Models.razor` | ✅ Done — model registry table with live VRAM/availability badges |
-| `Tasks.razor` | ✅ Done — agent task status feed with log correlation |
+| `Tasks.razor` | ✅ Done — expandable rows with per-task agent step timeline |
+| `Metrics.razor` | ✅ Done — summary cards, per-node breakdown, token usage table, recent requests with node/type filters |
 | `Settings.razor` | ✅ Done — live node topology viewer + SaveTopologyAsync |
-| `MainLayout.razor` nav | ✅ Done — Models/Tasks/Settings links added |
+| `MainLayout.razor` nav | ✅ Done — Metrics link added |
 | `SignalRNodeHealthPublisher` | ✅ Fixed — now updates DashboardState |
+| `SignalRDashboardPublisher` | ✅ Done — forwards AgentStepEvent, TokenUsageRecord, MetricSnapshot, SystemAlert |
 | `IModelRegistry` in Dashboard DI | ✅ Fixed — `InMemoryModelRegistry` was missing from `SplitBrain.Dashboard/Program.cs`; `/models` page threw `InvalidOperationException` on load |
+| `app.css` design system | ✅ Done — full `sb-*` dark-theme token system; node cards, badges, tables, alerts, step timeline, metric cards |
 
 ## Phase 9 — Deploy Scripts ✅
 
@@ -139,6 +143,5 @@ The master plan specified a `SplitBrain.*` namespace across 9 fine-grained proje
 | Item | Priority | Notes |
 |------|----------|-------|
 | `Orchestrator.NodeWorker` — gRPC / orchestrator push API | Medium | Current impl has HTTP `/health` endpoint + background health heartbeat only; plan described full gRPC proxy for remote inference hardware |
-| SK ChatCompletionAgent planner integration | Low | |
-| Dashboard live-connection from MCP host (fan-out) | Low | |
+| Dashboard live-connection from MCP host (fan-out) | Low | MCP host has no SignalR publisher; agents running in Mcp won't push AgentStepEvents to Dashboard |
 | GitHub Actions CI (dotnet test + publish on PR) | Low | |

@@ -19,66 +19,103 @@
 }
 else
 {
-    <table class="sb-table">
-        <thead>
-            <tr>
-                <th>Task ID</th>
-                <th>Type</th>
-                <th>Status</th>
-                <th>Tokens</th>
-                <th>Elapsed</th>
-                <th>Logs</th>
-            </tr>
-        </thead>
-        <tbody>
-            @foreach (var task in tasks)
+    @foreach (var task in tasks)
+    {
+        var statusClass = task.Status switch
+        {
+            "Done" or "Completed" => "sb-badge-running",
+            "Failed" => "sb-badge-missing",
+            "Running" or "Plan" or "Implement" or "Review" or "Test" => "sb-badge-available",
+            _ => ""
+        };
+        var isExpanded = _expanded.Contains(task.TaskId);
+        State.AgentSteps.TryGetValue(task.TaskId, out var steps);
+
+        <div class="sb-task-block">
+            <div class="sb-task-header" @onclick="() => ToggleExpand(task.TaskId)">
+                <span class="sb-task-toggle">@(isExpanded ? "▾" : "▸")</span>
+                <code class="sb-task-id">@task.TaskId[..Math.Min(8, task.TaskId.Length)]…</code>
+                <span class="sb-task-type">@task.TaskType</span>
+                <span class="sb-badge @statusClass">@task.Status</span>
+                <span class="sb-muted">@task.TokensConsumed.ToString("N0") tok</span>
+                <span class="sb-muted">@(task.ElapsedMs > 0 ? $"{task.ElapsedMs / 1000.0:F1}s" : "—")</span>
+            </div>
+
+            @if (isExpanded)
             {
-                var statusClass = task.Status switch
-                {
-                    "Done" or "Completed" => "sb-badge-running",
-                    "Failed" => "sb-badge-missing",
-                    "Running" or "Plan" or "Implement" or "Review" or "Test" => "sb-badge-available",
-                    _ => ""
-                };
-
-                var relatedLogs = State.RecentLogs
-                    .Where(l => l.TaskId == task.TaskId)
-                    .Take(5)
-                    .ToList();
-
-                <tr>
-                    <td><code>@task.TaskId[..Math.Min(8, task.TaskId.Length)]…</code></td>
-                    <td>@task.TaskType</td>
-                    <td><span class="sb-badge @statusClass">@task.Status</span></td>
-                    <td>@task.TokensConsumed.ToString("N0")</td>
-                    <td>@(task.ElapsedMs > 0 ? $"{task.ElapsedMs / 1000.0:F1}s" : "—")</td>
-                    <td>
-                        @if (relatedLogs.Any())
-                        {
-                            <ul class="sb-task-logs">
-                                @foreach (var log in relatedLogs)
+                <div class="sb-task-body">
+                    @if (steps is { Count: > 0 })
+                    {
+                        <div class="sb-step-timeline">
+                            @foreach (var step in steps)
+                            {
+                                var stepClass = step.StepType switch
                                 {
-                                    <li class="@(log.Level is "Error" or "Fatal" ? "sb-error" : "")">
-                                        @log.Timestamp.ToLocalTime().ToString("HH:mm:ss") @log.Message
-                                    </li>
-                                }
-                            </ul>
-                        }
-                        else
-                        {
-                            <span class="sb-muted">—</span>
-                        }
-                    </td>
-                </tr>
+                                    AgentStepType.Done => "sb-step-done",
+                                    AgentStepType.Fail => "sb-step-fail",
+                                    AgentStepType.ValidationFailed => "sb-step-fail",
+                                    _ => "sb-step-active"
+                                };
+                                <div class="sb-step @stepClass">
+                                    <span class="sb-step-index">@step.StepIndex</span>
+                                    <span class="sb-step-type">@step.StepType</span>
+                                    <span class="sb-step-summary">@step.Summary</span>
+                                    @if (step.NodeId is not null)
+                                    {
+                                        <span class="sb-tag">@step.NodeId</span>
+                                    }
+                                    @if (step.TokensConsumed is > 0)
+                                    {
+                                        <span class="sb-muted">@step.TokensConsumed tok</span>
+                                    }
+                                    @if (step.LatencyMs is > 0)
+                                    {
+                                        <span class="sb-muted">@step.LatencyMs!.Value.ToString("F0") ms</span>
+                                    }
+                                    <span class="sb-step-time">@step.Timestamp.ToLocalTime().ToString("HH:mm:ss")</span>
+                                </div>
+                            }
+                        </div>
+                    }
+
+                    @{
+                        var relatedLogs = State.RecentLogs
+                            .Where(l => l.TaskId == task.TaskId)
+                            .Take(10)
+                            .ToList();
+                    }
+                    @if (relatedLogs.Any())
+                    {
+                        <ul class="sb-task-logs">
+                            @foreach (var log in relatedLogs)
+                            {
+                                <li class="@(log.Level is "Error" or "Fatal" ? "sb-error" : "")">
+                                    <span class="sb-log-time">@log.Timestamp.ToLocalTime().ToString("HH:mm:ss")</span>
+                                    <span class="sb-log-badge">@log.Level</span>
+                                    @log.Message
+                                </li>
+                            }
+                        </ul>
+                    }
+                </div>
             }
-        </tbody>
-    </table>
+        </div>
+    }
 }
 
 @code {
+    private readonly HashSet<string> _expanded = [];
+
+    private void ToggleExpand(string taskId)
+    {
+        if (!_expanded.Add(taskId))
+            _expanded.Remove(taskId);
+    }
+
     protected override void OnInitialized() =>
         State.OnChange += StateHasChanged;
 
     public void Dispose() =>
         State.OnChange -= StateHasChanged;
 }
+

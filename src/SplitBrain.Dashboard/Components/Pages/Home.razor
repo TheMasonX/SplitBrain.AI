@@ -7,6 +7,31 @@
 
 <h1>Cluster Overview</h1>
 
+@if (State.ActiveAlerts.Any())
+{
+    <div class="sb-alerts">
+        @foreach (var alert in State.ActiveAlerts)
+        {
+            var alertClass = alert.Severity switch
+            {
+                "Critical" or "Error" => "sb-alert-critical",
+                "Warning" => "sb-alert-warning",
+                _ => "sb-alert-info"
+            };
+            <div class="sb-alert @alertClass">
+                <span class="sb-alert-severity">@alert.Severity</span>
+                @if (alert.NodeId is not null)
+                {
+                    <span class="sb-tag">@alert.NodeId</span>
+                }
+                <span class="sb-alert-msg">@alert.Message</span>
+                <span class="sb-alert-time">@alert.Timestamp.ToLocalTime().ToString("HH:mm:ss")</span>
+                <button class="sb-btn-dismiss" @onclick="() => State.DismissAlert(alert.AlertId)" title="Dismiss">✕</button>
+            </div>
+        }
+    </div>
+}
+
 @if (!State.NodeHealth.Any())
 {
     <p class="sb-muted">Waiting for health data…</p>

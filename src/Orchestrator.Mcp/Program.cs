@@ -15,6 +15,7 @@ using NodeClient.Ollama;
 using NodeClient.Worker;
 using Orchestrator.Agents;
 using Orchestrator.Agents.Sandbox;
+using Orchestrator.Agents.SemanticKernel;
 using Orchestrator.Core.Configuration;
 using Orchestrator.Core.Interfaces;
 using Orchestrator.Core.Models;
@@ -259,6 +260,7 @@ builder.Services.AddSingleton<IRoutingService>(sp => new RoutingService(
 builder.Services.AddSingleton<ICodeSandbox, ProcessCodeSandbox>();
 builder.Services.AddSingleton<IAgentEventLog>(_ => new LiteDbAgentEventLog());
 builder.Services.AddSingleton<IAgentOrchestrator, AgentOrchestrator>();
+builder.Services.AddSingleton<IKernelPlannerService, KernelPlannerService>();
 
 builder.Services
     .AddMcpServer()

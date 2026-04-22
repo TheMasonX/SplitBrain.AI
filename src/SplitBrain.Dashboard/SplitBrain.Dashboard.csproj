@@ -20,6 +20,7 @@
   <ItemGroup>
     <ProjectReference Include="..\Orchestrator.Core\Orchestrator.Core.csproj" />
     <ProjectReference Include="..\Orchestrator.Infrastructure\Orchestrator.Infrastructure.csproj" />
+    <ProjectReference Include="..\Orchestrator.Agents\Orchestrator.Agents.csproj" />
     <ProjectReference Include="..\NodeClient.Worker\NodeClient.Worker.csproj" />
     <ProjectReference Include="..\NodeClient.Ollama\NodeClient.Ollama.csproj" />
     <ProjectReference Include="..\NodeClient.Copilot\NodeClient.Copilot.csproj" />

@@ -1,0 +1,173 @@
+@page "/metrics"
+@rendermode InteractiveServer
+@inject IMetricsCollector MetricsCollector
+@inject DashboardState State
+@implements IDisposable
+
+<PageTitle>Metrics — SplitBrain.AI</PageTitle>
+
+<h1>Inference Metrics</h1>
+
+@{
+    var summary = MetricsCollector.GetSummary();
+    var recent = MetricsCollector.GetRecent(200);
+    var byNode = recent.GroupBy(m => m.NodeId).OrderBy(g => g.Key).ToList();
+}
+
+<div class="sb-metric-summary">
+    <div class="sb-metric-card">
+        <div class="sb-metric-value">@summary.TotalRequests.ToString("N0")</div>
+        <div class="sb-metric-label">Total Requests</div>
+    </div>
+    <div class="sb-metric-card sb-healthy">
+        <div class="sb-metric-value">@summary.SuccessCount.ToString("N0")</div>
+        <div class="sb-metric-label">Successful</div>
+    </div>
+    <div class="sb-metric-card @(summary.FailureCount > 0 ? "sb-unavailable" : "")">
+        <div class="sb-metric-value">@summary.FailureCount.ToString("N0")</div>
+        <div class="sb-metric-label">Failed</div>
+    </div>
+    <div class="sb-metric-card">
+        <div class="sb-metric-value">@summary.AvgLatencyMs.ToString("F0") ms</div>
+        <div class="sb-metric-label">Avg Latency</div>
+    </div>
+    <div class="sb-metric-card">
+        <div class="sb-metric-value">@summary.TotalTokensIn.ToString("N0")</div>
+        <div class="sb-metric-label">Tokens In</div>
+    </div>
+    <div class="sb-metric-card">
+        <div class="sb-metric-value">@summary.TotalTokensOut.ToString("N0")</div>
+        <div class="sb-metric-label">Tokens Out</div>
+    </div>
+</div>
+
+@if (summary.RequestsByNode.Any())
+{
+    <h2>By Node</h2>
+    <div class="sb-metric-summary">
+        @foreach (var (nodeId, count) in summary.RequestsByNode.OrderBy(kv => kv.Key))
+        {
+            var nodeRecent = recent.Where(m => m.NodeId == nodeId).ToList();
+            var nodeAvgLatency = nodeRecent.Any() ? nodeRecent.Average(m => m.LatencyMs) : 0;
+            var nodeSuccessRate = nodeRecent.Any() ? (double)nodeRecent.Count(m => m.Success) / nodeRecent.Count * 100 : 0;
+            <div class="sb-metric-card">
+                <div class="sb-metric-value">@nodeId</div>
+                <div class="sb-metric-label">@count req · @nodeAvgLatency.ToString("F0") ms avg · @nodeSuccessRate.ToString("F0")% ok</div>
+            </div>
+        }
+    </div>
+}
+
+@if (State.RecentTokenUsage.Any())
+{
+    <h2>Token Usage</h2>
+    <table class="sb-table">
+        <thead>
+            <tr>
+                <th>Time</th>
+                <th>Node</th>
+                <th>Model</th>
+                <th>Prompt Tok</th>
+                <th>Completion Tok</th>
+                <th>Tok/s</th>
+                <th>Duration</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var rec in State.RecentTokenUsage.Take(50))
+            {
+                <tr>
+                    <td>@rec.Timestamp.ToLocalTime().ToString("HH:mm:ss")</td>
+                    <td><span class="sb-tag">@rec.NodeId</span></td>
+                    <td>@rec.ModelId</td>
+                    <td>@rec.PromptTokens.ToString("N0")</td>
+                    <td>@rec.CompletionTokens.ToString("N0")</td>
+                    <td>@rec.TokensPerSecond.ToString("F1")</td>
+                    <td>@rec.InferenceDuration.TotalSeconds.ToString("F2")s</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@if (recent.Any())
+{
+    <h2>Recent Requests</h2>
+    <div class="sb-log-controls">
+        <label>
+            Node:
+            <select @bind="_nodeFilter">
+                <option value="">All</option>
+                @foreach (var nodeId in recent.Select(m => m.NodeId).Distinct().OrderBy(n => n))
+                {
+                    <option value="@nodeId">@nodeId</option>
+                }
+            </select>
+        </label>
+        <label>
+            Task Type:
+            <select @bind="_taskTypeFilter">
+                <option value="">All</option>
+                @foreach (var tt in recent.Select(m => m.TaskType).Distinct().OrderBy(t => t))
+                {
+                    <option value="@tt">@tt</option>
+                }
+            </select>
+        </label>
+    </div>
+
+    <table class="sb-table">
+        <thead>
+            <tr>
+                <th>Time</th>
+                <th>Node</th>
+                <th>Model</th>
+                <th>Type</th>
+                <th>Latency</th>
+                <th>Tok In</th>
+                <th>Tok Out</th>
+                <th>Status</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var m in FilteredMetrics(recent))
+            {
+                <tr class="@(m.Success ? "" : "sb-error-row")">
+                    <td>@m.RecordedAt.ToLocalTime().ToString("HH:mm:ss")</td>
+                    <td><span class="sb-tag">@m.NodeId</span></td>
+                    <td>@m.Model</td>
+                    <td>@m.TaskType</td>
+                    <td>@m.LatencyMs ms</td>
+                    <td>@m.TokensIn.ToString("N0")</td>
+                    <td>@m.TokensOut.ToString("N0")</td>
+                    <td>
+                        <span class="sb-badge @(m.Success ? "sb-badge-running" : "sb-badge-missing")">
+                            @(m.Success ? "OK" : "ERR")
+                        </span>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+else
+{
+    <p class="sb-muted">No metrics yet. Run an inference request to see data here.</p>
+}
+
+@code {
+    private string _nodeFilter = "";
+    private string _taskTypeFilter = "";
+
+    private IEnumerable<RequestMetric> FilteredMetrics(IReadOnlyList<RequestMetric> all) =>
+        all.Where(m =>
+            (string.IsNullOrEmpty(_nodeFilter) || m.NodeId == _nodeFilter) &&
+            (string.IsNullOrEmpty(_taskTypeFilter) || m.TaskType == _taskTypeFilter))
+           .Take(100);
+
+    protected override void OnInitialized() =>
+        State.OnChange += StateHasChanged;
+
+    public void Dispose() =>
+        State.OnChange -= StateHasChanged;
+}

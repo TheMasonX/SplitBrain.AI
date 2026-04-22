@@ -4,6 +4,8 @@ using Microsoft.Extensions.Options;
 using NodeClient.Copilot;
 using NodeClient.Ollama;
 using NodeClient.Worker;
+using Orchestrator.Agents;
+using Orchestrator.Agents.SemanticKernel;
 using OpenTelemetry.Metrics;
 using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
@@ -11,6 +13,7 @@ using Orchestrator.Core.Configuration;
 using Orchestrator.Core.Interfaces;
 using Orchestrator.Core.Models;
 using Orchestrator.Infrastructure.Health;
+using Orchestrator.Infrastructure.History;
 using Orchestrator.Infrastructure.Metrics;
 using Orchestrator.Infrastructure.Queue;
 using Orchestrator.Infrastructure.Registry;
@@ -41,6 +44,7 @@ namespace SplitBrain.Dashboard
             builder.Services.AddSingleton<DashboardState>();
             builder.Services.AddSingleton<INodeHealthPublisher, SignalRNodeHealthPublisher>();
             builder.Services.AddSingleton<ILogEntryPublisher, SignalRLogEntryPublisher>();
+            builder.Services.AddSingleton<SignalRDashboardPublisher>();
 
             // Wire Serilog — pass IServiceProvider so the sink resolves ILogEntryPublisher
             // lazily on first Emit, avoiding re-entrant DI resolution during bootstrap.
@@ -177,6 +181,20 @@ namespace SplitBrain.Dashboard
 
             builder.Services.AddSingleton<INodeHealthCache, InMemoryNodeHealthCache>();
             builder.Services.AddSingleton<IMetricsCollector, InMemoryMetricsCollector>();
+            builder.Services.AddSingleton<IPromptHistory, PromptHistoryService>();
+            builder.Services.AddSingleton<IRoutingService>(sp => new RoutingService(
+                nodeA: sp.GetRequiredService<IInferenceNode>(),
+                nodeAQueue: sp.GetRequiredKeyedService<IInferenceQueue>("nodeA"),
+                logger: sp.GetRequiredService<ILogger<RoutingService>>(),
+                nodeB: sp.GetRequiredService<NodeBInferenceNode>(),
+                nodeBQueue: sp.GetRequiredKeyedService<IInferenceQueue>("nodeB"),
+                healthCache: sp.GetRequiredService<INodeHealthCache>(),
+                metrics: sp.GetRequiredService<IMetricsCollector>(),
+                history: sp.GetRequiredService<IPromptHistory>(),
+                nodeC: sp.GetRequiredService<NodeCInferenceNode>(),
+                nodeCQueue: sp.GetRequiredKeyedService<IInferenceQueue>("nodeC"),
+                routingOptions: sp.GetRequiredService<IOptions<RoutingOptions>>()));
+            builder.Services.AddSingleton<IKernelPlannerService, KernelPlannerService>();
             builder.Services.AddSingleton<IModelRegistry>(sp =>
             {
                 var registry = new InMemoryModelRegistry();
