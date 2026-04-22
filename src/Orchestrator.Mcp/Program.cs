@@ -12,6 +12,7 @@ using Serilog;
 using Serilog.Events;
 using NodeClient.Copilot;
 using NodeClient.Ollama;
+using NodeClient.Worker;
 using Orchestrator.Agents;
 using Orchestrator.Agents.Sandbox;
 using Orchestrator.Core.Configuration;
@@ -166,6 +167,34 @@ builder.Services.AddSingleton(sp =>
     return NodeCInferenceNode.CreateAsync(copilotOptions, logger).GetAwaiter().GetResult();
 });
 
+// Worker nodes — register an HttpClient + WorkerInferenceNode per Worker topology entry
+foreach (var workerNode in topologyConfig.Nodes.Where(n => n.Provider == NodeProviderType.Worker && n.Worker is not null))
+{
+    var wc = workerNode.Worker!;
+    builder.Services
+        .AddHttpClient($"worker-{workerNode.NodeId}", client =>
+        {
+            client.BaseAddress = new Uri(wc.BaseUrl);
+            client.Timeout = TimeSpan.FromSeconds(wc.TimeoutSeconds * 2);
+        });
+
+    var capturedNode = workerNode;
+    builder.Services.AddKeyedSingleton<WorkerInferenceNode>(capturedNode.NodeId, (sp, _) =>
+    {
+        var wConfig = capturedNode.Worker!;
+        var httpFactory = sp.GetRequiredService<IHttpClientFactory>();
+        var httpClient = httpFactory.CreateClient($"worker-{capturedNode.NodeId}");
+        var workerOptions = Options.Create(new WorkerClientOptions
+        {
+            BaseUrl = wConfig.BaseUrl,
+            TimeoutSeconds = wConfig.TimeoutSeconds
+        });
+        var client = new WorkerClient(httpClient, workerOptions);
+        var logger = sp.GetRequiredService<ILogger<WorkerInferenceNode>>();
+        return new WorkerInferenceNode(capturedNode.NodeId, wConfig, client, logger);
+    });
+}
+
 // Queues — Node A high priority (64), Node B normal (32), Node C normal (32)
 builder.Services.AddKeyedSingleton<IInferenceQueue>("nodeA", (_, _) => new NodeQueue(capacity: 64));
 builder.Services.AddKeyedSingleton<IInferenceQueue>("nodeB", (_, _) => new NodeQueue(capacity: 32));
@@ -191,6 +220,8 @@ builder.Services.AddSingleton<Func<NodeConfiguration, IInferenceNode>>(sp => con
         "A" => sp.GetRequiredService<NodeAInferenceNode>(),
         "B" => sp.GetRequiredService<NodeBInferenceNode>(),
         "C" => sp.GetRequiredService<NodeCInferenceNode>(),
+        _ when config.Provider == NodeProviderType.Worker =>
+            sp.GetRequiredKeyedService<WorkerInferenceNode>(config.NodeId),
         _ => throw new InvalidOperationException($"No IInferenceNode registered for NodeId '{config.NodeId}'.")
     });
 

@@ -26,6 +26,7 @@
     <ProjectReference Include="..\NodeClient.Ollama\NodeClient.Ollama.csproj" />
     <ProjectReference Include="..\Orchestrator.NodeWorker\Orchestrator.NodeWorker.csproj" />
     <ProjectReference Include="..\Orchestrator.Mcp\Orchestrator.Mcp.csproj" />
+    <ProjectReference Include="..\NodeClient.Worker\NodeClient.Worker.csproj" />
   </ItemGroup>
 
 </Project>

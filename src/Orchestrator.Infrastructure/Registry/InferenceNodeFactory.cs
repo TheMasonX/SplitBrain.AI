@@ -24,6 +24,7 @@ public sealed class InferenceNodeFactory : IInferenceNodeFactory
         {
             NodeProviderType.Ollama => CreateOllamaNode(config),
             NodeProviderType.CopilotSdk => CreateCopilotNode(config),
+            NodeProviderType.Worker => CreateWorkerNode(config),
             _ => throw new NotSupportedException(
                 $"Provider '{config.Provider}' is not registered. " +
                 $"Implement IInferenceNode and add a case to InferenceNodeFactory.")
@@ -64,5 +65,22 @@ public sealed class InferenceNodeFactory : IInferenceNodeFactory
 
         throw new InvalidOperationException(
             $"Cannot create Copilot node '{config.NodeId}' — no provider factory registered.");
+    }
+
+    private IInferenceNode CreateWorkerNode(NodeConfiguration config)
+    {
+        _ = config.Worker
+            ?? throw new InvalidOperationException(
+                $"Node '{config.NodeId}' has Provider=Worker but no Worker config section.");
+
+        var factory = (Func<NodeConfiguration, IInferenceNode>?)_services.GetService(
+            typeof(Func<NodeConfiguration, IInferenceNode>));
+
+        if (factory is not null)
+            return factory(config);
+
+        throw new InvalidOperationException(
+            $"Cannot create Worker node '{config.NodeId}' — no provider factory registered. " +
+            $"Register a Func<NodeConfiguration, IInferenceNode> in DI that handles Worker nodes.");
     }
 }

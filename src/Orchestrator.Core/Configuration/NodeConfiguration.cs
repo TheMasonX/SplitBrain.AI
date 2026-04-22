@@ -8,6 +8,11 @@ public enum NodeProviderType
 {
     Ollama,
     CopilotSdk,
+    /// <summary>
+    /// Remote Orchestrator.NodeWorker instance. Routes inference over HTTP
+    /// to a worker process running on a remote inference machine.
+    /// </summary>
+    Worker,
 }
 
 /// <summary>
@@ -39,6 +44,7 @@ public record NodeConfiguration
     public int HealthCheckIntervalMs { get; init; } = 2000;
     public OllamaProviderConfig? Ollama { get; init; }
     public CopilotProviderConfig? Copilot { get; init; }
+    public WorkerProviderConfig? Worker { get; init; }
 }
 
 /// <summary>
@@ -73,6 +79,19 @@ public record CopilotProviderConfig
     public string? KeyVaultUri { get; init; }
     public string? KeyVaultSecretName { get; init; }
     public int TimeoutSeconds { get; init; } = 30;
+}
+
+/// <summary>
+/// Settings for a remote Orchestrator.NodeWorker instance.
+/// The worker exposes HTTP endpoints for inference relay.
+/// </summary>
+public record WorkerProviderConfig
+{
+    /// <summary>Base URL of the remote worker (e.g. http://192.168.1.100:5100).</summary>
+    public required string BaseUrl { get; init; }
+    public int TimeoutSeconds { get; init; } = 30;
+    public long GpuVramTotalMB { get; init; }
+    public string DefaultModel { get; init; } = string.Empty;
 }
 
 /// <summary>Root object deserialized from nodes.json.</summary>

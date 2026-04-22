@@ -6,6 +6,7 @@
     <ProjectReference Include="..\Orchestrator.Agents\Orchestrator.Agents.csproj" />
     <ProjectReference Include="..\NodeClient.Ollama\NodeClient.Ollama.csproj" />
     <ProjectReference Include="..\NodeClient.Copilot\NodeClient.Copilot.csproj" />
+    <ProjectReference Include="..\NodeClient.Worker\NodeClient.Worker.csproj" />
   </ItemGroup>
 
   <ItemGroup>

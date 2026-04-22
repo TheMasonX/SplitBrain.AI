@@ -131,6 +131,15 @@ app.MapPost("/inference", async (HttpRequest req, IInferenceNode node, IMetricsC
 });
 
 // -------------------------------------------------------------------------
+// GET /models — list models available on this node
+// -------------------------------------------------------------------------
+app.MapGet("/models", async (IInferenceNode node, CancellationToken ct) =>
+{
+    var models = await node.ListModelsAsync(ct);
+    return Results.Ok(models);
+});
+
+// -------------------------------------------------------------------------
 // GET /metrics — aggregated request telemetry
 // -------------------------------------------------------------------------
 app.MapGet("/metrics", (IMetricsCollector metrics) =>

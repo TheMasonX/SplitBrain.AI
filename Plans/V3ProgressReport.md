@@ -1,7 +1,25 @@
 ﻿# SplitBrain.AI — Master Plan V3 Progress Report
 
-> Based on: `MasterPlanV3.md` | Branch: `next-gen` | Last Updated: 2026-04-22
+> Based on: `MasterPlanV3.md` | Branch: `next-gen` | Last Updated: 2026-04-23
 > **179 / 179 tests passing. Build: ✅ Green.**
+
+---
+
+## Structural Deviations from Plan
+
+The master plan specified a `SplitBrain.*` namespace across 9 fine-grained projects. The actual solution uses `Orchestrator.*` as the primary namespace and consolidates several planned projects:
+
+| Planned Project | Actual Location | Rationale |
+|---|---|---|
+| `SplitBrain.Core` | `Orchestrator.Core` | Renamed; same responsibilities |
+| `SplitBrain.Networking` + `SplitBrain.Routing` + `SplitBrain.Models` + `SplitBrain.Validation` | `Orchestrator.Infrastructure` | Consolidated into single library — reduces project overhead for single-team project |
+| `SplitBrain.Agents` | `Orchestrator.Agents` | Renamed |
+| `SplitBrain.MCP` | `Orchestrator.Mcp` | Renamed |
+| `SplitBrain.Observability` | `Orchestrator.Core\Observability\` | Absorbed into Core namespace |
+| `SplitBrain.Worker` | `Orchestrator.NodeWorker` | Renamed; partial implementation (see Remaining) |
+| `SplitBrain.Dashboard` | `SplitBrain.Dashboard` | Unchanged |
+
+**Architectural correction vs. plan:** Plan Section 3.6 specified `NodeHealthCheckService` depending directly on `IHubContext<DashboardHub, IDashboardClient>`, which would have created a cross-layer dependency from the infrastructure layer into the dashboard. The implementation correctly inverts this: `NodeHealthCheckService` depends only on `INodeHealthPublisher`, with `SignalRNodeHealthPublisher` wiring the SignalR dependency in the dashboard host. This is a deliberate improvement, not merely a deviation.
 
 ---
 
@@ -11,7 +29,7 @@
 |------|--------|-------|
 | `IInferenceNode` abstraction | ✅ Done | NodeA/B/C concrete impls |
 | `INodeRegistry` + `NodeRegistry` | ✅ Done | Hot-reload from nodes.json |
-| `NodeHealthCheckService` | ✅ Done | Per-node semaphore; INodeHealthPublisher |
+| `NodeHealthCheckService` | ✅ Done | Per-node semaphore; `INodeHealthPublisher` (plan prescribed `IHubContext<DashboardHub>` directly — corrected to avoid cross-layer dep) |
 | `INodeHealthPublisher` abstraction | ✅ Done | Null in MCP host; SignalR in Dashboard |
 | `NodeQueue` + `IInferenceQueue` | ✅ Done | Ring buffer; keyed DI |
 | `RoutingService` | ✅ Done | Large-ctx routing; queue-depth fallback |
@@ -52,6 +70,8 @@
 | `StructuredOutputValidator` | ✅ Done |
 | `CodeSyntaxValidator` | ✅ Done |
 
+> **Note:** Plan specified a separate `SplitBrain.Validation` project. Validation was consolidated into `Orchestrator.Core\Validation\` — no separate project was created.
+
 ## Phase 6 — Model Registry & Fallback ✅
 
 | Item | Status |
@@ -64,7 +84,7 @@
 
 | Item | Status |
 |------|--------|
-| `Telemetry.cs` (ActivitySource + Meter + 9 instruments) | ✅ Done |
+| `Telemetry.cs` (ActivitySource + Meter + 10 instruments) | ✅ Done |
 | `ILogEntryPublisher` + `NullLogEntryPublisher` | ✅ Done |
 | `SignalRLogEntryPublisher` | ✅ Done |
 | `SignalRLogSink` (Serilog) | ✅ Done |
@@ -84,13 +104,16 @@
 | `Settings.razor` | ✅ Done — live node topology viewer + SaveTopologyAsync |
 | `MainLayout.razor` nav | ✅ Done — Models/Tasks/Settings links added |
 | `SignalRNodeHealthPublisher` | ✅ Fixed — now updates DashboardState |
+| `IModelRegistry` in Dashboard DI | ✅ Fixed — `InMemoryModelRegistry` was missing from `SplitBrain.Dashboard/Program.cs`; `/models` page threw `InvalidOperationException` on load |
 
 ## Phase 9 — Deploy Scripts ✅
 
-| Script | Status |
-|--------|--------|
-| `deploy\setup-orchestrator.ps1` | ✅ Done |
-| `deploy\setup-worker.ps1` | ✅ Done |
+| Script | Status | Notes |
+|--------|--------|-------|
+| `deploy\setup-orchestrator.ps1` | ✅ Done | |
+| `deploy\setup-worker.ps1` | ✅ Done | |
+| `deploy\setup-node-a.ps1` | ✅ Done | Node-A specific deployment config |
+| `deploy\setup-node-b.ps1` | ✅ Done | Node-B specific deployment config |
 
 ---
 
@@ -113,8 +136,9 @@
 
 ## Remaining / Nice-to-Have
 
-| Item | Priority |
-|------|----------|
-| SK ChatCompletionAgent planner integration | Low |
-| Dashboard live-connection from MCP host (fan-out) | Low |
-| GitHub Actions CI (dotnet test + publish on PR) | Low |
+| Item | Priority | Notes |
+|------|----------|-------|
+| `Orchestrator.NodeWorker` — gRPC / orchestrator push API | Medium | Current impl has HTTP `/health` endpoint + background health heartbeat only; plan described full gRPC proxy for remote inference hardware |
+| SK ChatCompletionAgent planner integration | Low | |
+| Dashboard live-connection from MCP host (fan-out) | Low | |
+| GitHub Actions CI (dotnet test + publish on PR) | Low | |

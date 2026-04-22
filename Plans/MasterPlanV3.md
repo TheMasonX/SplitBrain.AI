@@ -1,4 +1,4 @@
-# SplitBrain.AI - Unified Architecture Plan v2
+# SplitBrain.AI - Unified Architecture Plan v3
 
 Distributed Home AI Orchestrator on .NET 10
 

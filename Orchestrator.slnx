@@ -21,6 +21,7 @@
     <File Path="Plans/MasterPlanV3.md" />
     <File Path="Plans/McpToolListing.md" />
     <File Path="Plans/SuggestionsPlan.md" />
+    <File Path="Plans/V3ProgressReport.md" />
   </Folder>
   <Folder Name="/Scripts/">
     <File Path="scripts/MCPClient.psm1" />
@@ -29,6 +30,7 @@
   <Folder Name="/src/">
     <Project Path="src/NodeClient.Copilot/NodeClient.Copilot.csproj" />
     <Project Path="src/NodeClient.Ollama/NodeClient.Ollama.csproj" />
+	<Project Path="src/NodeClient.Worker/NodeClient.Worker.csproj"/>
     <Project Path="src/Orchestrator.Agents/Orchestrator.Agents.csproj" />
     <Project Path="src/Orchestrator.Core/Orchestrator.Core.csproj" />
     <Project Path="src/Orchestrator.Infrastructure/Orchestrator.Infrastructure.csproj" />
