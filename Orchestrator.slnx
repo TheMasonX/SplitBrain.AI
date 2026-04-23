@@ -3,40 +3,25 @@
     <File Path="deploy/setup-node-a.ps1" />
     <File Path="deploy/setup-node-b.ps1" />
   </Folder>
-  <Folder Name="/Docs/">
-    <File Path="docs/00-START-HERE.md" />
-    <File Path="docs/INDEX.md" />
-    <File Path="docs/QUICK-START-Script.md" />
-    <File Path="docs/SCRIPT-FIX-SUMMARY.md" />
-    <File Path="docs/SETUP-CHECKLIST.md" />
-    <File Path="docs/setup.md" />
-    <File Path="docs/TEST-CASES-NodeA-NodeC.md" />
-    <File Path="docs/TESTING-NodeA-NodeC.md" />
-  </Folder>
-  <Folder Name="/Plans/">
-    <File Path="Plans/DTOClasses.md" />
-    <File Path="Plans/MasterPlan.md" />
-    <File Path="Plans/ProgressPlan.md" />
-    <File Path="Plans/MasterPlanV2.md" />
-    <File Path="Plans/MasterPlanV3.md" />
-    <File Path="Plans/McpToolListing.md" />
-    <File Path="Plans/SuggestionsPlan.md" />
-    <File Path="Plans/V3ProgressReport.md" />
-  </Folder>
-  <Folder Name="/Scripts/">
-    <File Path="scripts/MCPClient.psm1" />
-    <File Path="scripts/setup-test-nodeac.ps1" />
-  </Folder>
-  <Folder Name="/src/">
+  <Folder Name="/NodeClient/">
     <Project Path="src/NodeClient.Copilot/NodeClient.Copilot.csproj" />
     <Project Path="src/NodeClient.Ollama/NodeClient.Ollama.csproj" />
-	<Project Path="src/NodeClient.Worker/NodeClient.Worker.csproj"/>
+    <Project Path="src/NodeClient.Worker/NodeClient.Worker.csproj" />
+  </Folder>
+  <Folder Name="/Orchestrator/">
     <Project Path="src/Orchestrator.Agents/Orchestrator.Agents.csproj" />
     <Project Path="src/Orchestrator.Core/Orchestrator.Core.csproj" />
     <Project Path="src/Orchestrator.Infrastructure/Orchestrator.Infrastructure.csproj" />
     <Project Path="src/Orchestrator.Mcp/Orchestrator.Mcp.csproj" />
     <Project Path="src/Orchestrator.NodeWorker/Orchestrator.NodeWorker.csproj" />
-    <Project Path="src/Orchestrator.Tests/Orchestrator.Tests.csproj" />
     <Project Path="src/SplitBrain.Dashboard/SplitBrain.Dashboard.csproj" Id="68f8ea61-3056-4932-a387-fdb7b7d65ed1" />
   </Folder>
+  <Folder Name="/Scripts/">
+    <File Path="scripts/MCPClient.psm1" />
+    <File Path="scripts/setup-test-nodeac.ps1" />
+  </Folder>
+  <Folder Name="/Tests/">
+    <Project Path="src/Orchestrator.Tests/Orchestrator.Tests.csproj" />
+  </Folder>
+  <Project Path="src/SplitBrain.Meta/SplitBrain.Meta.csproj" />
 </Solution>
