@@ -12,11 +12,11 @@ All project knowledge is organized under `Docs/` at the repo root. The `src/Spli
 | Path | Purpose |
 |---|---|
 | `Docs/Memories/` | **Active knowledge base.** Distilled, up-to-date facts about architecture, decisions, and current state. Start here for context. |
+| `Docs/Unconsolidated/` | **Inbox for raw knowledge fragments.** Lessons learned, gotchas, one-off fixes. Periodically "dreamed on" to distill into `Docs/Memories/`. Do not treat as authoritative — these are raw material. |
 | `Docs/Plans/` | Architecture and implementation plans. `MasterPlanV4.md` is the canonical blueprint (mirrored at `Plans/MasterPlanV4.md` repo root). |
 | `Docs/Reviews/` | External and automated review reports against the plans (e.g. deep-research critiques). Cross-reference with codebase before trusting. |
 | `Docs/ProgressReports/` | Snapshot reports of implementation progress per phase. |
-| `Docs/UserDocs/` | End-user and operator documentation (setup, deployment, configuration). |
-| `Docs/*.md` (root-level) | Older operational docs (Copilot CLI fixes, node test guides). Treat as historical; canonical replacements live in subdirectories. |
+| `Docs/UserDocs/` | End-user and operator documentation (setup, deployment, configuration, testing guides). |
 
 ### Key Files to Read First
 - `Docs/Memories/` — current distilled knowledge (check this before any planning session)

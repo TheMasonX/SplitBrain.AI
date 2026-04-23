@@ -18,3 +18,10 @@ These are living documents — update them when decisions change, not just when 
 2. After making significant architectural decisions, update the relevant memory file.
 3. Do **not** add speculative or aspirational content here — that belongs in `Docs/Plans/`.
 4. If a fact here contradicts `Plans/MasterPlanV4.md`, the Plans doc wins (it's the blueprint); update this file to reflect the gap.
+
+## Relationship to Unconsolidated
+
+Raw knowledge fragments (debugging lessons, gotchas, one-off fixes) land in `Docs/Unconsolidated/` first.
+The "dreaming" practice is the periodic review that distills those fragments into new or updated files here.
+A fragment graduates to `Memories/` only when it represents a **durable, always-true fact** about the system.
+
