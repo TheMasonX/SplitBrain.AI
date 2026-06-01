@@ -1,8 +1,7 @@
 using System.Diagnostics;
-using System.Runtime.CompilerServices;
 using Microsoft.Extensions.Logging;
+using Orchestrator.Core;
 using Orchestrator.Core.Configuration;
-using Orchestrator.Core.Interfaces;
 using Orchestrator.Core.Models;
 
 namespace NodeClient.Worker;
@@ -12,22 +11,16 @@ namespace NodeClient.Worker;
 /// over HTTP. Implements the same contract as OllamaInferenceNode / CopilotInferenceNode
 /// so the routing engine treats remote workers transparently.
 /// </summary>
-public sealed class WorkerInferenceNode : IInferenceNode
+public sealed class WorkerInferenceNode : InferenceNodeBase
 {
     private readonly IWorkerClient _client;
     private readonly WorkerProviderConfig _config;
     private readonly ILogger<WorkerInferenceNode> _logger;
-    private NodeHealthStatus _health = new()
-    {
-        State = HealthState.Unavailable,
-        LastChecked = DateTimeOffset.MinValue
-    };
 
-    public string NodeId { get; }
-    public NodeProviderType Provider => NodeProviderType.Worker;
-    public NodeHealthStatus Health => _health;
+    public override string NodeId { get; }
+    public override NodeProviderType Provider => NodeProviderType.Worker;
 
-    public NodeCapabilities Capabilities { get; }
+    public override NodeCapabilities Capabilities { get; }
 
     public WorkerInferenceNode(
         string nodeId,
@@ -48,7 +41,7 @@ public sealed class WorkerInferenceNode : IInferenceNode
         };
     }
 
-    public async Task<InferenceResult> ExecuteAsync(
+    public override async Task<InferenceResult> ExecuteAsync(
         InferenceRequest request,
         CancellationToken cancellationToken = default)
     {
@@ -60,22 +53,10 @@ public sealed class WorkerInferenceNode : IInferenceNode
     }
 
     /// <summary>
-    /// Streaming not supported for Worker nodes in v1 — falls back to ExecuteAsync.
+    /// Worker health check includes latency timing, model enumeration,
+    /// and VRAM reporting — overrides the base implementation entirely.
     /// </summary>
-    public async IAsyncEnumerable<InferenceChunk> StreamAsync(
-        InferenceRequest request,
-        [EnumeratorCancellation] CancellationToken cancellationToken = default)
-    {
-        var result = await ExecuteAsync(request, cancellationToken);
-        yield return new InferenceChunk
-        {
-            Content = result.Text,
-            IsFinal = true,
-            FinalResult = result
-        };
-    }
-
-    public async Task<NodeHealthStatus> GetHealthAsync(CancellationToken cancellationToken = default)
+    public override async Task<NodeHealthStatus> GetHealthAsync(CancellationToken cancellationToken = default)
     {
         var sw = Stopwatch.StartNew();
         try
@@ -109,9 +90,10 @@ public sealed class WorkerInferenceNode : IInferenceNode
         return _health;
     }
 
-    public async Task<IReadOnlyList<ModelInfo>> ListModelsAsync(
+    protected override Task<bool> CheckHealthCoreAsync(CancellationToken cancellationToken)
+        => _client.IsHealthyAsync(cancellationToken);
+
+    public override async Task<IReadOnlyList<ModelInfo>> ListModelsAsync(
         CancellationToken cancellationToken = default) =>
         await _client.ListModelsAsync(cancellationToken);
-
-    public ValueTask DisposeAsync() => ValueTask.CompletedTask;
 }
