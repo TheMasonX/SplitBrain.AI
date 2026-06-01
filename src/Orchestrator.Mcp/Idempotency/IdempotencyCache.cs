@@ -44,6 +44,14 @@ public interface IIdempotencyCache
     /// Only succeeds if the key currently exists.
     /// </summary>
     Task UpdateAsync(IdempotencyEntry entry, CancellationToken ct = default);
+
+    /// <summary>
+    /// Removes the entry for <paramref name="key"/> if it exists.
+    /// Used to atomically clear a <see cref="IdempotencyState.Failed"/> entry
+    /// before re-reserving the slot for a retry attempt.
+    /// Returns true if the entry was present and removed.
+    /// </summary>
+    bool TryRemove(string key);
 }
 
 public sealed class InMemoryIdempotencyCache : IIdempotencyCache
@@ -129,6 +137,9 @@ public sealed class InMemoryIdempotencyCache : IIdempotencyCache
         _cache.AddOrUpdate(entry.Key, entry, (_, _) => entry);
         return Task.CompletedTask;
     }
+
+    /// <inheritdoc />
+    public bool TryRemove(string key) => _cache.TryRemove(key, out _);
 
     public Task RemoveExpiredAsync(CancellationToken ct = default)
     {
