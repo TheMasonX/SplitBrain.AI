@@ -13,6 +13,7 @@ public enum TaskType
 
 public enum NodeStatus
 {
+    Unknown,
     Healthy,
     Degraded,
     Unavailable
