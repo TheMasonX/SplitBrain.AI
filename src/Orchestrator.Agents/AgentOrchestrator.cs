@@ -4,35 +4,33 @@ using Orchestrator.Agents.Sandbox;
 using Orchestrator.Core.Enums;
 using Orchestrator.Core.Interfaces;
 using Orchestrator.Core.Models;
+using Orchestrator.Core.Utilities;
 
 namespace Orchestrator.Agents;
 
 /// <summary>
 /// Bounded agent loop per §9.
 ///
-/// State machine: INIT → PLAN → IMPLEMENT → REVIEW → TEST → DONE | FAIL
+/// State machine: INIT -> PLAN -> IMPLEMENT -> REVIEW -> TEST -> DONE | FAIL
 ///
 /// §9.3 limits
-///   • Max iterations:        4
-///   • Max tokens per loop:   12 000
-///   • Abort if:              no code diff produced
-///                            repeated failure (≥2 consecutive)
+///   * Max iterations:        4
+///   * Max tokens per loop:   12 000
+///   * Abort if:              no code diff produced
+///                            repeated failure (>=2 consecutive)
 ///                            no state change
 ///
-/// §9.4 role → node mapping
-///   Architect  → Node A  (TaskType.Chat)
-///   Coder      → Node A  (TaskType.Refactor)
-///   Reviewer   → Node B  (TaskType.Review)
-///   Tester     → Node B  (TaskType.TestGeneration)
+/// §9.4 role -> node mapping
+///   Architect  -> Node A  (TaskType.Chat)
+///   Coder      -> Node A  (TaskType.Refactor)
+///   Reviewer   -> Node B  (TaskType.Review)
+///   Tester     -> Node B  (TaskType.TestGeneration)
 /// </summary>
 public sealed class AgentOrchestrator : IAgentOrchestrator
 {
     private const int MaxIterations      = 4;
     private const int MaxTokensPerLoop   = 12_000;
     private const int MaxConsecFailures  = 2;
-
-    /// <summary>Rough estimate: 4 characters ≈ 1 token.</summary>
-    private static int EstimateTokens(string text) => text.Length / 4;
 
     private readonly IRoutingService _routing;
     private readonly ICodeSandbox    _sandbox;
@@ -59,7 +57,7 @@ public sealed class AgentOrchestrator : IAgentOrchestrator
         AgentRequest request,
         CancellationToken cancellationToken = default)
     {
-        _logger.LogInformation("Agent started — goal: {Goal}", request.Goal);
+        _logger.LogInformation("Agent started -- goal: {Goal}", request.Goal);
 
         var session = new AgentSession();
 
@@ -306,13 +304,13 @@ public sealed class AgentOrchestrator : IAgentOrchestrator
                 State           = session.State,
                 Prompt          = prompt,
                 Response        = result.Text,
-                TokensEstimated = EstimateTokens(prompt) + EstimateTokens(result.Text),
+                TokensEstimated = TokenEstimator.Estimate(prompt) + TokenEstimator.Estimate(result.Text),
                 Success         = true
             };
             session.RecordStep(step);
 
             _logger.LogDebug(
-                "Agent step {Role} completed — tokensEst={Tokens} nodeId={Node}",
+                "Agent step {Role} completed -- tokensEst={Tokens} nodeId={Node}",
                 role, step.TokensEstimated, result.NodeId);
 
             return result.Text;
@@ -327,7 +325,7 @@ public sealed class AgentOrchestrator : IAgentOrchestrator
                 State           = session.State,
                 Prompt          = prompt,
                 Response        = string.Empty,
-                TokensEstimated = EstimateTokens(prompt),
+                TokensEstimated = TokenEstimator.Estimate(prompt),
                 Success         = false
             });
             return null;
@@ -355,11 +353,11 @@ public sealed class AgentOrchestrator : IAgentOrchestrator
             && string.IsNullOrWhiteSpace(session.LastDiff))
             return "No code diff produced";
 
-        // Same diff as last iteration — no state change
+        // Same diff as last iteration -- no state change
         if (session.Iteration > 1
             && session.LastDiff == session.PreviousDiff
             && !string.IsNullOrWhiteSpace(session.LastDiff))
-            return "No state change — repeated identical diff";
+            return "No state change -- repeated identical diff";
 
         return null;
     }
