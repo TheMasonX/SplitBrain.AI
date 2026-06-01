@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Orchestrator.Core\Orchestrator.Core.csproj" />
+    <ProjectReference Include="..\Orchestrator.Infrastructure\Orchestrator.Infrastructure.csproj" />
+    <ProjectReference Include="..\Orchestrator.Agents\Orchestrator.Agents.csproj" />
+    <ProjectReference Include="..\NodeClient.Ollama\NodeClient.Ollama.csproj" />
+    <ProjectReference Include="..\NodeClient.Copilot\NodeClient.Copilot.csproj" />
+    <ProjectReference Include="..\NodeClient.Worker\NodeClient.Worker.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Http.Resilience" Version="10.5.0" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Binder" Version="10.0.7" />
+    <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" Version="10.0.7" />
+  </ItemGroup>
+
+</Project>
