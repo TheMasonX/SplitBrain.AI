@@ -61,6 +61,13 @@ public sealed class NodeHealth
     public int QueueDepth { get; init; }
     public int AvailableVramMb { get; init; }
     public DateTimeOffset CheckedAt { get; init; } = DateTimeOffset.UtcNow;
+
+    /// <summary>
+    /// Last observed probe latency in milliseconds.
+    /// Populated by NodeWorkerService from the real health-check round-trip.
+    /// Defaults to 0 when no probe has completed yet.
+    /// </summary>
+    public double LastLatencyMs { get; init; }
 }
 
 public sealed record InferenceRequest
