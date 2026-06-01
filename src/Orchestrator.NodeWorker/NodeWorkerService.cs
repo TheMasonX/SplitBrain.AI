@@ -24,8 +24,11 @@ public sealed class NodeWorkerService : BackgroundService
 
     private int _consecutiveFailures;
 
-    /// <summary>Exposes current node availability — readable by HTTP health endpoints or tests.</summary>
-    public NodeStatus CurrentStatus { get; private set; } = NodeStatus.Healthy;
+    /// <summary>
+    /// Exposes current node availability -- readable by HTTP health endpoints or tests.
+    /// Starts as Unknown; the first successful probe sets the real status.
+    /// </summary>
+    public NodeStatus CurrentStatus { get; private set; } = NodeStatus.Unknown;
 
     public NodeWorkerService(
         IInferenceNode node,
@@ -57,7 +60,8 @@ public sealed class NodeWorkerService : BackgroundService
                     AvailableVramMb = nodeHealth.VramLoadedMB.HasValue && nodeHealth.VramTotalMB.HasValue
                         ? (int)(nodeHealth.VramTotalMB.Value - nodeHealth.VramLoadedMB.Value)
                         : 0,
-                    CheckedAt = nodeHealth.LastChecked
+                    CheckedAt = nodeHealth.LastChecked,
+                    LastLatencyMs = nodeHealth.LatencyMs
                 });
 
                 if (legacyStatus != NodeStatus.Unavailable)
@@ -114,7 +118,7 @@ public sealed class NodeWorkerService : BackgroundService
         {
             CurrentStatus = NodeStatus.Degraded;
             _logger.LogWarning(
-                "Node {NodeId} degraded — consecutive failures: {Failures}/{Max}",
+                "Node {NodeId} degraded -- consecutive failures: {Failures}/{Max}",
                 _node.NodeId, _consecutiveFailures, MaxConsecutiveFailures);
         }
     }
