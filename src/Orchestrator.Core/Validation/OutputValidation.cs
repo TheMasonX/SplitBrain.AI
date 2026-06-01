@@ -1,4 +1,5 @@
 using System.Runtime.CompilerServices;
+using System.Text.RegularExpressions;
 using Orchestrator.Core.Enums;
 
 namespace Orchestrator.Core.Validation;
@@ -104,13 +105,18 @@ public sealed class LengthBoundsValidator : IOutputValidator
 
 /// <summary>
 /// Detects model refusal patterns ("I cannot", "As an AI", etc.).
-/// Error severity → triggers fallback.
+/// Uses word-boundary regex matching and scopes detection to the first
+/// 200 characters of output to avoid false positives on quoted text.
+/// Error severity -> triggers fallback.
 /// </summary>
 public sealed class RefusalDetector : IOutputValidator
 {
     public string Name => "RefusalDetector";
 
-    private static readonly string[] RefusalPhrases =
+    /// <summary>Maximum number of leading characters to inspect for refusal phrases.</summary>
+    private const int DetectionWindowChars = 200;
+
+    private static readonly (string Phrase, Regex Pattern)[] RefusalPatterns = BuildPatterns(
     [
         "i cannot", "i can't", "i am unable", "i'm unable",
         "as an ai", "as an artificial intelligence",
@@ -118,14 +124,32 @@ public sealed class RefusalDetector : IOutputValidator
         "i won't", "i will not",
         "that's not something i",
         "my guidelines", "my content policy"
-    ];
+    ]);
+
+    private static (string Phrase, Regex Pattern)[] BuildPatterns(string[] phrases)
+    {
+        var result = new (string, Regex)[phrases.Length];
+        for (var i = 0; i < phrases.Length; i++)
+        {
+            var escaped = Regex.Escape(phrases[i]);
+            result[i] = (phrases[i], new Regex(
+                $@"\b{escaped}\b",
+                RegexOptions.IgnoreCase | RegexOptions.Compiled));
+        }
+        return result;
+    }
 
     public Task<ValidationResult> ValidateAsync(string output, TaskContext context, CancellationToken ct = default)
     {
-        var lower = output.ToLowerInvariant();
-        foreach (var phrase in RefusalPhrases)
+        // Only inspect the leading portion of the output to reduce false positives
+        // from refusal-like phrases that appear in quoted or narrative content.
+        var window = output.Length <= DetectionWindowChars
+            ? output
+            : output[..DetectionWindowChars];
+
+        foreach (var (phrase, pattern) in RefusalPatterns)
         {
-            if (lower.Contains(phrase))
+            if (pattern.IsMatch(window))
                 return Task.FromResult(new ValidationResult
                 {
                     Severity = ValidationSeverity.Error,
@@ -203,7 +227,7 @@ public sealed class StructuredOutputValidator : IOutputValidator
 
 /// <summary>
 /// Applies to code-related tasks. Checks bracket balance and unclosed strings.
-/// Intentionally lightweight — no Roslyn compilation required.
+/// Intentionally lightweight -- no Roslyn compilation required.
 /// </summary>
 public sealed class CodeSyntaxValidator : IOutputValidator
 {
