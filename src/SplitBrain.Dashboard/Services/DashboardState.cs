@@ -50,8 +50,24 @@ public sealed class DashboardState
     public IReadOnlyDictionary<string, TaskStatusUpdate> AgentTasks
         => new Dictionary<string, TaskStatusUpdate>(_agentTasks);
 
-    public IReadOnlyDictionary<string, List<AgentStepEvent>> AgentSteps
-        => new Dictionary<string, List<AgentStepEvent>>(_agentSteps);
+    /// <summary>
+    /// Returns a fully independent snapshot of all agent step events.
+    /// Both the outer dictionary and each inner list are new copies taken under
+    /// <see cref="_lock"/>, so concurrent writers cannot affect the data a
+    /// caller is reading and callers cannot mutate the returned snapshot.
+    /// </summary>
+    public IReadOnlyDictionary<string, IReadOnlyList<AgentStepEvent>> AgentSteps
+    {
+        get
+        {
+            lock (_lock)
+            {
+                return _agentSteps.ToDictionary(
+                    kvp => kvp.Key,
+                    kvp => (IReadOnlyList<AgentStepEvent>)kvp.Value.ToList());
+            }
+        }
+    }
 
     public IReadOnlyList<MetricSnapshot> RecentMetrics
     {
