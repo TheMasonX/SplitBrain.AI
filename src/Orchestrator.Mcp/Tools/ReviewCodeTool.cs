@@ -96,6 +96,13 @@ public sealed class ReviewCodeTool
         }
     }
 
+    /// <summary>
+    /// Sanitize user-supplied code to prevent markdown fence escape (prompt injection).
+    /// Breaks any triple-backtick sequences so they cannot close the code fence.
+    /// </summary>
+    private static string SanitizeForFence(string input)
+        => input.Replace("```", "` ` `");
+
     private static string BuildPrompt(ReviewCodeRequest request)
     {
         var sb = new System.Text.StringBuilder();
@@ -103,7 +110,7 @@ public sealed class ReviewCodeTool
         sb.AppendLine("Provide a concise summary of your findings.");
         sb.AppendLine();
         sb.AppendLine($"```{request.Language}");
-        sb.AppendLine(request.Code);
+        sb.AppendLine(SanitizeForFence(request.Code));
         sb.AppendLine("```");
 
         if (request.Context?.Count > 0)
@@ -113,7 +120,7 @@ public sealed class ReviewCodeTool
             foreach (var file in request.Context)
             {
                 sb.AppendLine($"// {file.Path}");
-                sb.AppendLine(file.Content);
+                sb.AppendLine(SanitizeForFence(file.Content));
             }
         }
 
