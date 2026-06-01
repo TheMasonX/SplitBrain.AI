@@ -10,6 +10,20 @@ public sealed class Meta
     public int LatencyMs { get; init; }
     public int TokensIn { get; init; }
     public int TokensOut { get; init; }
+
+    /// <summary>
+    /// Creates a Meta instance from an InferenceResult, eliminating
+    /// the repeated manual property-copying across MCP tools.
+    /// </summary>
+    public static Meta FromInferenceResult(string taskId, InferenceResult result) => new()
+    {
+        TaskId = taskId,
+        Node = result.NodeId,
+        Model = result.Model,
+        LatencyMs = result.LatencyMs,
+        TokensIn = result.TokensIn,
+        TokensOut = result.TokensOut
+    };
 }
 
 public sealed class McpError
@@ -69,7 +83,7 @@ public sealed record InferenceResult
     public int TokensOut { get; init; }
 }
 
-/// <summary>A request plus its completion source — travels through the queue together.</summary>
+/// <summary>A request plus its completion source -- travels through the queue together.</summary>
 public sealed class InferenceQueueItem
 {
     public InferenceRequest Request { get; init; } = default!;
