@@ -100,7 +100,15 @@ public sealed class RoutingService : IRoutingService
             }
         }
 
-        _ = DrainAsync(target, item, cancellationToken);
+        // C1 fix: Attach a continuation so any unobserved drain exception
+        // faults the TaskCompletionSource instead of leaving the caller
+        // hanging indefinitely.
+        var drainTask = DrainAsync(target, item, cancellationToken);
+        _ = drainTask.ContinueWith(t =>
+        {
+            if (t.IsFaulted && t.Exception is { } ex)
+                item.Completion.TrySetException(ex.InnerExceptions);
+        }, TaskContinuationOptions.OnlyOnFaulted);
 
         var historyId = _history?.Add(request.Prompt, taskType, target.NodeId);
         var result = await item.Completion.Task.WaitAsync(cancellationToken);
