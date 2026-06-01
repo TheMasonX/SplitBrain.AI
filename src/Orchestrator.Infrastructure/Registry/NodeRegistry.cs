@@ -1,6 +1,7 @@
 using System.Collections.Concurrent;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Orchestrator.Core.Configuration;
 using Orchestrator.Core.Interfaces;
@@ -16,6 +17,7 @@ public sealed class NodeRegistry : INodeRegistry, IDisposable
 {
     private ConcurrentDictionary<string, NodeRegistration> _nodes = new();
     private readonly IInferenceNodeFactory _factory;
+    private readonly ILogger<NodeRegistry> _logger;
     private readonly IDisposable? _changeListener;
     private readonly string _configFilePath;
 
@@ -23,9 +25,11 @@ public sealed class NodeRegistry : INodeRegistry, IDisposable
     public NodeRegistry(
         IInferenceNodeFactory factory,
         IOptionsMonitor<NodeTopologyConfig> optionsMonitor,
+        ILogger<NodeRegistry> logger,
         string? configFilePath = null)
     {
         _factory = factory;
+        _logger = logger;
         _configFilePath = configFilePath
             ?? Path.Combine(AppContext.BaseDirectory, "nodes.json");
 
@@ -49,7 +53,7 @@ public sealed class NodeRegistry : INodeRegistry, IDisposable
             {
                 // Dispose old node if replacing
                 if (_nodes.TryGetValue(nodeConfig.NodeId, out var old))
-                    _ = old.Node.DisposeAsync();
+                    DisposeNodeSafely(old.Node);
 
                 var node = _factory.Create(nodeConfig);
                 newDict[nodeConfig.NodeId] = new NodeRegistration { Config = nodeConfig, Node = node };
@@ -63,7 +67,23 @@ public sealed class NodeRegistry : INodeRegistry, IDisposable
         foreach (var (id, reg) in oldDict)
         {
             if (!newDict.ContainsKey(id))
-                _ = reg.Node.DisposeAsync();
+                DisposeNodeSafely(reg.Node);
+        }
+    }
+
+    /// <summary>
+    /// Disposes a node asynchronously, logging any exceptions instead of silently swallowing them.
+    /// Uses async void because this is a fire-and-forget cleanup path invoked from synchronous code.
+    /// </summary>
+    private async void DisposeNodeSafely(IInferenceNode node)
+    {
+        try
+        {
+            await node.DisposeAsync();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to dispose node {NodeId}", node.NodeId);
         }
     }
 
@@ -86,14 +106,14 @@ public sealed class NodeRegistry : INodeRegistry, IDisposable
         var node = _factory.Create(config);
         var registration = new NodeRegistration { Config = config, Node = node };
         if (_nodes.TryGetValue(config.NodeId, out var old))
-            _ = old.Node.DisposeAsync();
+            DisposeNodeSafely(old.Node);
         _nodes[config.NodeId] = registration;
     }
 
     public void DeregisterNode(string nodeId)
     {
         if (_nodes.TryRemove(nodeId, out var reg))
-            _ = reg.Node.DisposeAsync();
+            DisposeNodeSafely(reg.Node);
     }
 
     public void UpdateNodeHealth(string nodeId, NodeHealthStatus status)
@@ -123,6 +143,6 @@ public sealed class NodeRegistry : INodeRegistry, IDisposable
     {
         _changeListener?.Dispose();
         foreach (var reg in _nodes.Values)
-            _ = reg.Node.DisposeAsync();
+            DisposeNodeSafely(reg.Node);
     }
 }
