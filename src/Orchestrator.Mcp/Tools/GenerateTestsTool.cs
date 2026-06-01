@@ -79,6 +79,13 @@ public sealed class GenerateTestsTool
         }
     }
 
+    /// <summary>
+    /// Sanitize user-supplied code to prevent markdown fence escape (prompt injection).
+    /// Breaks any triple-backtick sequences so they cannot close the code fence.
+    /// </summary>
+    private static string SanitizeForFence(string input)
+        => input.Replace("```", "` ` `");
+
     private static string BuildPrompt(string code, string language, string framework, string coverage)
     {
         var sb = new StringBuilder();
@@ -87,7 +94,7 @@ public sealed class GenerateTestsTool
         sb.AppendLine("Return ONLY the test file content with no explanation or extra markdown.");
         sb.AppendLine();
         sb.AppendLine($"```{language}");
-        sb.AppendLine(code);
+        sb.AppendLine(SanitizeForFence(code));
         sb.AppendLine("```");
         return sb.ToString();
     }
