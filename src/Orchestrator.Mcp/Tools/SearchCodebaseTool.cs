@@ -1,1 +1,156 @@
-dXNpbmcgU3lzdGVtLkNvbXBvbmVudE1vZGVsOwp1c2luZyBTeXN0ZW0uVGV4dDsKdXNpbmcgU3lzdGVtLlRleHQuSnNvbjsKdXNpbmcgRmx1ZW50VmFsaWRhdGlvbjsKdXNpbmcgTW9kZWxDb250ZXh0UHJvdG9jb2wuU2VydmVyOwp1c2luZyBPcmNoZXN0cmF0b3IuQ29yZS5FbnVtczsKdXNpbmcgT3JjaGVzdHJhdG9yLkNvcmUuSW50ZXJmYWNlczsKdXNpbmcgT3JjaGVzdHJhdG9yLkNvcmUuTW9kZWxzOwp1c2luZyBPcmNoZXN0cmF0b3IuQ29yZS5TZXJpYWxpemF0aW9uOwp1c2luZyBPcmNoZXN0cmF0b3IuQ29yZS5WYWxpZGF0aW9uOwp1c2luZyBPcmNoZXN0cmF0b3IuTWNwLklkZW1wb3RlbmN5OwoKbmFtZXNwYWNlIE9yY2hlc3RyYXRvci5NY3AuVG9vbHM7CgpbTWNwU2VydmVyVG9vbFR5cGVdCnB1YmxpYyBzZWFsZWQgY2xhc3MgU2VhcmNoQ29kZWJhc2VUb29sCnsKICAgIHByaXZhdGUgcmVhZG9ubHkgSVJvdXRpbmdTZXJ2aWNlIF9yb3V0aW5nOwogICAgcHJpdmF0ZSByZWFkb25seSBJSWRlbXBvdGVuY3lDYWNoZSBfaWRlbXBvdGVuY3k7CgogICAgcHVibGljIFNlYXJjaENvZGViYXNlVG9vbChJUm91dGluZ1NlcnZpY2Ugcm91dGluZywgSUlkZW1wb3RlbmN5Q2FjaGUgaWRlbXBvdGVuY3kpCiAgICB7CiAgICAgICAgX3JvdXRpbmcgPSByb3V0aW5nOwogICAgICAgIF9pZGVtcG90ZW5jeSA9IGlkZW1wb3RlbmN5OwogICAgfQoKICAgIFtNY3BTZXJ2ZXJUb29sKE5hbWUgPSAic2VhcmNoX2NvZGViYXNlIiksIERlc2NyaXB0aW9uKCJTZWFyY2hlcyB0aGUgY29kZWJhc2Ugc2VtYW50aWNhbGx5IGFuZCByZXR1cm5zIHJlbGV2YW50IHNuaXBwZXRzLiIpXQogICAgcHVibGljIFRhc2s8c3RyaW5nPiBTZWFyY2hDb2RlYmFzZUFzeW5jKAogICAgICAgIFtEZXNjcmlwdGlvbigiTmF0dXJhbCBsYW5ndWFnZSBxdWVyeSBvciBzeW1ib2wgbmFtZSB0byBzZWFyY2ggZm9yIildIHN0cmluZyBxdWVyeSwKICAgICAgICBbRGVzY3JpcHRpb24oIlJvb3QgcGF0aCBvZiB0aGUgY29kZWJhc2UgdG8gc2VhcmNoIChhYnNvbHV0ZSBvciByZWxhdGl2ZSkiKV0gc3RyaW5nIHJvb3RQYXRoLAogICAgICAgIFtEZXNjcmlwdGlvbigiRmlsZSBnbG9iIHBhdHRlcm4gdG8gbGltaXQgc2VhcmNoIHNjb3BlLCBlLmcuICoqLyouY3MiKV0gc3RyaW5nIHBhdHRlcm4gPSAiKiovKiIsCiAgICAgICAgW0Rlc2NyaXB0aW9uKCJNYXhpbXVtIG51bWJlciBvZiByZXN1bHRzIHRvIHJldHVybiAoMeKAkzIwKSIpXSBpbnQgdG9wSyA9IDEwLAogICAgICAgIFtEZXNjcmlwdGlvbigiKE9wdGlvbmFsKSBJZGVtcG90ZW5jeSBrZXkg4oCUIHNhbWUga2V5IHJldHVybnMgY2FjaGVkIHJlc3VsdCB3aXRoaW4gNSBtaW51dGVzIildIHN0cmluZz8gaWRlbXBvdGVuY3lLZXkgPSBudWxsLAogICAgICAgIENhbmNlbGxhdGlvblRva2VuIGNhbmNlbGxhdGlvblRva2VuID0gZGVmYXVsdCkKICAgICAgICA9PiBJZGVtcG90ZW5jeUhlbHBlci5FeGVjdXRlQXN5bmMoX2lkZW1wb3RlbmN5LCBpZGVtcG90ZW5jeUtleSwgKCkgPT4gRXhlY3V0ZUNvcmVBc3luYyhxdWVyeSwgcm9vdFBhdGgsIHBhdHRlcm4sIHRvcEssIGNhbmNlbGxhdGlvblRva2VuKSwgY2FuY2VsbGF0aW9uVG9rZW4pOwoKICAgIHByaXZhdGUgYXN5bmMgVGFzazxzdHJpbmc+IEV4ZWN1dGVDb3JlQXN5bmMoc3RyaW5nIHF1ZXJ5LCBzdHJpbmcgcm9vdFBhdGgsIHN0cmluZyBwYXR0ZXJuLCBpbnQgdG9wSywgQ2FuY2VsbGF0aW9uVG9rZW4gY2FuY2VsbGF0aW9uVG9rZW4pCiAgICB7CiAgICAgICAgdHJ5CiAgICAgICAgewogICAgICAgICAgICB2YXIgcmVxdWVzdCA9IG5ldyBTZWFyY2hDb2RlYmFzZVJlcXVlc3QKICAgICAgICAgICAgewogICAgICAgICAgICAgICAgUXVlcnkgPSBxdWVyeSwKICAgICAgICAgICAgICAgIFRvcEsgPSB0b3BLLAogICAgICAgICAgICAgICAgRmlsdGVycyA9IG5ldyBTZWFyY2hGaWx0ZXJzIHsgUGF0aCA9IHJvb3RQYXRoIH0KICAgICAgICAgICAgfTsKCiAgICAgICAgICAgIHJlcXVlc3QuVmFsaWRhdGVPclRocm93KG5ldyBTZWFyY2hDb2RlYmFzZVJlcXVlc3RWYWxpZGF0b3IoKSk7CgogICAgICAgICAgICB2YXIgZmlsZXMgPSBDb2xsZWN0RmlsZXMocm9vdFBhdGgsIHBhdHRlcm4sIHRvcEsgKiA1KTsKICAgICAgICAgICAgdmFyIHByb21wdCA9IEJ1aWxkUHJvbXB0KHF1ZXJ5LCBmaWxlcywgdG9wSyk7CiAgICAgICAgICAgIHZhciB0YXNrSWQgPSBHdWlkLk5ld0d1aWQoKS5Ub1N0cmluZygiTiIpOwoKICAgICAgICAgICAgdmFyIHJlc3VsdCA9IGF3YWl0IF9yb3V0aW5nLlJvdXRlQXN5bmMoCiAgICAgICAgICAgICAgICBUYXNrVHlwZS5BZ2VudFN0ZXAsCiAgICAgICAgICAgICAgICBuZXcgSW5mZXJlbmNlUmVxdWVzdCB7IFByb21wdCA9IHByb21wdCwgU3RyZWFtID0gZmFsc2UsIFByaW9yaXR5ID0gUXVldWVQcmlvcml0eS5Ob3JtYWwgfSwKICAgICAgICAgICAgICAgIGNhbmNlbGxhdGlvblRva2VuKTsKCiAgICAgICAgICAgIC8vIFRyeSB0byBwYXJzZSB0aGUgbW9kZWwncyBKU09OIGFycmF5IHJlc3BvbnNlOyBmYWxsIGJhY2sgdG8gYSBzaW5nbGUgc3VtbWFyeSByZXN1bHQKICAgICAgICAgICAgdmFyIHJlc3VsdHMgPSBUcnlQYXJzZVJlc3VsdHMocmVzdWx0LlRleHQsIHRvcEspOwoKICAgICAgICAgICAgdmFyIHJlc3BvbnNlID0gbmV3IFNlYXJjaENvZGViYXNlUmVzcG9uc2UKICAgICAgICAgICAgewogICAgICAgICAgICAgICAgUmVzdWx0cyA9IHJlc3VsdHMsCiAgICAgICAgICAgICAgICBNZXRhID0gbmV3IE1ldGEKICAgICAgICAgICAgICAgIHsKICAgICAgICAgICAgICAgICAgICBUYXNrSWQgPSB0YXNrSWQsCiAgICAgICAgICAgICAgICAgICAgTm9kZSA9IHJlc3VsdC5Ob2RlSWQsCiAgICAgICAgICAgICAgICAgICAgTW9kZWwgPSByZXN1bHQuTW9kZWwsCiAgICAgICAgICAgICAgICAgICAgTGF0ZW5jeU1zID0gcmVzdWx0LkxhdGVuY3lNcywKICAgICAgICAgICAgICAgICAgICBUb2tlbnNJbiA9IHJlc3VsdC5Ub2tlbnNJbiwKICAgICAgICAgICAgICAgICAgICBUb2tlbnNPdXQgPSByZXN1bHQuVG9rZW5zT3V0CiAgICAgICAgICAgICAgICB9CiAgICAgICAgICAgIH07CgogICAgICAgICAgICByZXR1cm4gSnNvblNlcmlhbGl6ZXIuU2VyaWFsaXplKHJlc3BvbnNlLCBKc29uQ29uZmlnLkRlZmF1bHQpOwogICAgICAgIH0KICAgICAgICBjYXRjaCAoVmFsaWRhdGlvbkV4Y2VwdGlvbiB2ZXgpCiAgICAgICAgewogICAgICAgICAgICByZXR1cm4gSnNvblNlcmlhbGl6ZXIuU2VyaWFsaXplKG5ldyB7IGVycm9yID0gbmV3IHsgY29kZSA9ICJ2YWxpZGF0aW9uX2Vycm9yIiwgbWVzc2FnZSA9IHZleC5NZXNzYWdlLCByZXRyeWFibGUgPSBmYWxzZSB9IH0sIEpzb25Db25maWcuRGVmYXVsdCk7CiAgICAgICAgfQogICAgICAgIGNhdGNoIChPcGVyYXRpb25DYW5jZWxlZEV4Y2VwdGlvbikKICAgICAgICB7CiAgICAgICAgICAgIHRocm93OyAvLyBMZXQgY2FuY2VsbGF0aW9uIHByb3BhZ2F0ZQogICAgICAgIH0KICAgICAgICBjYXRjaCAoRXhjZXB0aW9uIGV4KQogICAgICAgIHsKICAgICAgICAgICAgcmV0dXJuIEpzb25TZXJpYWxpemVyLlNlcmlhbGl6ZShuZXcgeyBlcnJvciA9IG5ldyB7IGNvZGUgPSAiaW50ZXJuYWxfZXJyb3IiLCBtZXNzYWdlID0gZXguTWVzc2FnZSwgcmV0cnlhYmxlID0gdHJ1ZSB9IH0sIEpzb25Db25maWcuRGVmYXVsdCk7CiAgICAgICAgfQogICAgfQoKICAgIC8vIC0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLQogICAgLy8gSGVscGVycwogICAgLy8gLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tCgogICAgcHJpdmF0ZSBzdGF0aWMgTGlzdDwoc3RyaW5nIFBhdGgsIHN0cmluZyBTbmlwcGV0KT4gQ29sbGVjdEZpbGVzKHN0cmluZyByb290UGF0aCwgc3RyaW5nIHBhdHRlcm4sIGludCBsaW1pdCkKICAgIHsKICAgICAgICB2YXIgcmVzdWx0cyA9IG5ldyBMaXN0PChzdHJpbmcsIHN0cmluZyk+KCk7CgogICAgICAgIGlmICghRGlyZWN0b3J5LkV4aXN0cyhyb290UGF0aCkpCiAgICAgICAgICAgIHJldHVybiByZXN1bHRzOwoKICAgICAgICB2YXIgZmlsZXMgPSBEaXJlY3RvcnkuRW51bWVyYXRlRmlsZXMocm9vdFBhdGgsICIqIiwgU2VhcmNoT3B0aW9uLkFsbERpcmVjdG9yaWVzKQogICAgICAgICAgICAuV2hlcmUoZiA9PiBNYXRjaEdsb2IoZiwgcGF0dGVybikpCiAgICAgICAgICAgIC5UYWtlKGxpbWl0KTsKCiAgICAgICAgZm9yZWFjaCAodmFyIGZpbGUgaW4gZmlsZXMpCiAgICAgICAgewogICAgICAgICAgICB0cnkKICAgICAgICAgICAgewogICAgICAgICAgICAgICAgdmFyIGNvbnRlbnQgPSBGaWxlLlJlYWRBbGxUZXh0KGZpbGUpOwogICAgICAgICAgICAgICAgdmFyIHNuaXBwZXQgPSBzdHJpbmcuSm9pbignXG4nLCBjb250ZW50LlNwbGl0KCdcbicpLlRha2UoMjAwKSk7CiAgICAgICAgICAgICAgICByZXN1bHRzLkFkZCgoZmlsZSwgc25pcHBldCkpOwogICAgICAgICAgICB9CiAgICAgICAgICAgIGNhdGNoIChJT0V4Y2VwdGlvbikgeyAvKiBza2lwIHVucmVhZGFibGUgZmlsZXMgKi8gfQogICAgICAgIH0KCiAgICAgICAgcmV0dXJuIHJlc3VsdHM7CiAgICB9CgogICAgcHJpdmF0ZSBzdGF0aWMgc3RyaW5nIEJ1aWxkUHJvbXB0KHN0cmluZyBxdWVyeSwgTGlzdDwoc3RyaW5nIFBhdGgsIHN0cmluZyBTbmlwcGV0KT4gZmlsZXMsIGludCB0b3BLKQogICAgewogICAgICAgIHZhciBzYiA9IG5ldyBTdHJpbmdCdWlsZGVyKCk7CiAgICAgICAgc2IuQXBwZW5kTGluZSgkIkZpbmQgdGhlIHRvcCB7dG9wS30gbW9zdCByZWxldmFudCBsb2NhdGlvbnMgZm9yIHRoZSBxdWVyeTogXCJ7cXVlcnl9XCIiKTsKICAgICAgICBzYi5BcHBlbmRMaW5lKCJSZXR1cm4gYSBKU09OIGFycmF5IG9mIG9iamVjdHMgd2l0aCBmaWVsZHM6IGZpbGVQYXRoLCBsaW5lU3RhcnQsIGxpbmVFbmQsIHNuaXBwZXQsIHNjb3JlICgwLjAtMS4wKS4iKTsKICAgICAgICBzYi5BcHBlbmRMaW5lKCJSZXR1cm4gT05MWSB0aGUgSlNPTiBhcnJheSB3aXRoIG5vIGV4cGxhbmF0aW9uIG9yIG1hcmtkb3duLiIpOwogICAgICAgIHNiLkFwcGVuZExpbmUoKTsKCiAgICAgICAgZm9yZWFjaCAodmFyIChwYXRoLCBzbmlwcGV0KSBpbiBmaWxlcykKICAgICAgICB7CiAgICAgICAgICAgIHNiLkFwcGVuZExpbmUoJCIjIyMgRklMRToge3BhdGh9Iik7CiAgICAgICAgICAgIHNiLkFwcGVuZExpbmUoc25pcHBldCk7CiAgICAgICAgICAgIHNiLkFwcGVuZExpbmUoKTsKICAgICAgICB9CgogICAgICAgIHJldHVybiBzYi5Ub1N0cmluZygpOwogICAgfQoKICAgIHByaXZhdGUgc3RhdGljIExpc3Q8U2VhcmNoUmVzdWx0PiBUcnlQYXJzZVJlc3VsdHMoc3RyaW5nIG1vZGVsVGV4dCwgaW50IHRvcEspCiAgICB7CiAgICAgICAgdHJ5CiAgICAgICAgewogICAgICAgICAgICAvLyBTdHJpcCBtYXJrZG93biBmZW5jZXMgaWYgcHJlc2VudAogICAgICAgICAgICB2YXIganNvbiA9IG1vZGVsVGV4dC5UcmltKCk7CiAgICAgICAgICAgIGlmIChqc29uLlN0YXJ0c1dpdGgoImBgYCIpKSBqc29uID0gc3RyaW5nLkpvaW4oJ1xuJywganNvbi5TcGxpdCgnXG4nKS5Ta2lwKDEpLlNraXBMYXN0KDEpKTsKCiAgICAgICAgICAgIHZhciBwYXJzZWQgPSBKc29uU2VyaWFsaXplci5EZXNlcmlhbGl6ZTxMaXN0PFNlYXJjaFJlc3VsdD4+KGpzb24sIEpzb25Db25maWcuRGVmYXVsdCk7CiAgICAgICAgICAgIGlmIChwYXJzZWQgaXMgeyBDb3VudDogPiAwIH0pCiAgICAgICAgICAgICAgICByZXR1cm4gcGFyc2VkLlRha2UodG9wSykuVG9MaXN0KCk7CiAgICAgICAgfQogICAgICAgIGNhdGNoIHsgLyogZmFsbCB0aHJvdWdoIHRvIHN1bW1hcnkgcmVzdWx0ICovIH0KCiAgICAgICAgcmV0dXJuIFtuZXcgU2VhcmNoUmVzdWx0IHsgRmlsZVBhdGggPSAibW9kZWxfb3V0cHV0IiwgU25pcHBldCA9IG1vZGVsVGV4dCwgU2NvcmUgPSAxLjAgfV07CiAgICB9CgogICAgcHJpdmF0ZSBzdGF0aWMgYm9vbCBNYXRjaEdsb2Ioc3RyaW5nIHBhdGgsIHN0cmluZyBwYXR0ZXJuKQogICAgewogICAgICAgIGlmIChwYXR0ZXJuIGlzICIqIiBvciAiKiovKiIpCiAgICAgICAgICAgIHJldHVybiB0cnVlOwoKICAgICAgICB2YXIgZXh0ID0gUGF0aC5HZXRFeHRlbnNpb24ocGF0dGVybikuVHJpbVN0YXJ0KCcqJyk7CiAgICAgICAgcmV0dXJuIHN0cmluZy5Jc051bGxPckVtcHR5KGV4dCkgfHwgcGF0aC5FbmRzV2l0aChleHQsIFN0cmluZ0NvbXBhcmlzb24uT3JkaW5hbElnbm9yZUNhc2UpOwogICAgfQp9Cg==
+using System.ComponentModel;
+using System.Text;
+using System.Text.Json;
+using FluentValidation;
+using ModelContextProtocol.Server;
+using Orchestrator.Core.Enums;
+using Orchestrator.Core.Interfaces;
+using Orchestrator.Core.Models;
+using Orchestrator.Core.Serialization;
+using Orchestrator.Core.Validation;
+using Orchestrator.Mcp.Idempotency;
+
+namespace Orchestrator.Mcp.Tools;
+
+[McpServerToolType]
+public sealed class SearchCodebaseTool
+{
+    private readonly IRoutingService _routing;
+    private readonly IIdempotencyCache _idempotency;
+
+    public SearchCodebaseTool(IRoutingService routing, IIdempotencyCache idempotency)
+    {
+        _routing = routing;
+        _idempotency = idempotency;
+    }
+
+    [McpServerTool(Name = "search_codebase"), Description("Searches the codebase semantically and returns relevant snippets.")]
+    public Task<string> SearchCodebaseAsync(
+        [Description("Natural language query or symbol name to search for")] string query,
+        [Description("Root path of the codebase to search (absolute or relative)")] string rootPath,
+        [Description("File glob pattern to limit search scope, e.g. **/*.cs")] string pattern = "**/*",
+        [Description("Maximum number of results to return (1–20)")] int topK = 10,
+        [Description("(Optional) Idempotency key — same key returns cached result within 5 minutes")] string? idempotencyKey = null,
+        CancellationToken cancellationToken = default)
+        => IdempotencyHelper.ExecuteAsync(_idempotency, idempotencyKey, () => ExecuteCoreAsync(query, rootPath, pattern, topK, cancellationToken), cancellationToken);
+
+    private async Task<string> ExecuteCoreAsync(string query, string rootPath, string pattern, int topK, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var request = new SearchCodebaseRequest
+            {
+                Query = query,
+                TopK = topK,
+                Filters = new SearchFilters { Path = rootPath }
+            };
+
+            request.ValidateOrThrow(new SearchCodebaseRequestValidator());
+
+            var files = CollectFiles(rootPath, pattern, topK * 5);
+            var prompt = BuildPrompt(query, files, topK);
+            var taskId = Guid.NewGuid().ToString("N");
+
+            var result = await _routing.RouteAsync(
+                TaskType.AgentStep,
+                new InferenceRequest { Prompt = prompt, Stream = false, Priority = QueuePriority.Normal },
+                cancellationToken);
+
+            // Try to parse the model's JSON array response; fall back to a single summary result
+            var results = TryParseResults(result.Text, topK);
+
+            var response = new SearchCodebaseResponse
+            {
+                Results = results,
+                Meta = Meta.FromInferenceResult(taskId, result)
+            };
+
+            return JsonSerializer.Serialize(response, JsonConfig.Default);
+        }
+        catch (ValidationException vex)
+        {
+            return JsonSerializer.Serialize(new { error = new { code = "validation_error", message = vex.Message, retryable = false } }, JsonConfig.Default);
+        }
+        catch (OperationCanceledException)
+        {
+            throw; // Let cancellation propagate
+        }
+        catch (Exception ex)
+        {
+            return JsonSerializer.Serialize(new { error = new { code = "internal_error", message = ex.Message, retryable = true } }, JsonConfig.Default);
+        }
+    }
+
+    // ---------------------------------------------------------------------------
+    // Helpers
+    // ---------------------------------------------------------------------------
+
+    private static List<(string Path, string Snippet)> CollectFiles(string rootPath, string pattern, int limit)
+    {
+        var results = new List<(string, string)>();
+
+        if (!Directory.Exists(rootPath))
+            return results;
+
+        var files = Directory.EnumerateFiles(rootPath, "*", SearchOption.AllDirectories)
+            .Where(f => MatchGlob(f, pattern))
+            .Take(limit);
+
+        foreach (var file in files)
+        {
+            try
+            {
+                var content = File.ReadAllText(file);
+                var snippet = string.Join('\n', content.Split('\n').Take(200));
+                results.Add((file, snippet));
+            }
+            catch (IOException) { /* skip unreadable files */ }
+        }
+
+        return results;
+    }
+
+    private static string BuildPrompt(string query, List<(string Path, string Snippet)> files, int topK)
+    {
+        var sb = new StringBuilder();
+        sb.AppendLine($"Find the top {topK} most relevant locations for the query: \"{query}\"");
+        sb.AppendLine("Return a JSON array of objects with fields: filePath, lineStart, lineEnd, snippet, score (0.0-1.0).");
+        sb.AppendLine("Return ONLY the JSON array with no explanation or markdown.");
+        sb.AppendLine();
+
+        foreach (var (path, snippet) in files)
+        {
+            sb.AppendLine($"### FILE: {path}");
+            sb.AppendLine(snippet);
+            sb.AppendLine();
+        }
+
+        return sb.ToString();
+    }
+
+    private static List<SearchResult> TryParseResults(string modelText, int topK)
+    {
+        try
+        {
+            // Strip markdown fences if present
+            var json = modelText.Trim();
+            if (json.StartsWith("```")) json = string.Join('\n', json.Split('\n').Skip(1).SkipLast(1));
+
+            var parsed = JsonSerializer.Deserialize<List<SearchResult>>(json, JsonConfig.Default);
+            if (parsed is { Count: > 0 })
+                return parsed.Take(topK).ToList();
+        }
+        catch { /* fall through to summary result */ }
+
+        return [new SearchResult { FilePath = "model_output", Snippet = modelText, Score = 1.0 }];
+    }
+
+    private static bool MatchGlob(string path, string pattern)
+    {
+        if (pattern is "*" or "**/*")
+            return true;
+
+        var ext = Path.GetExtension(pattern).TrimStart('*');
+        return string.IsNullOrEmpty(ext) || path.EndsWith(ext, StringComparison.OrdinalIgnoreCase);
+    }
+}
