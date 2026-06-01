@@ -1,6 +1,6 @@
 using Microsoft.Extensions.Logging;
-using Orchestrator.Core;
-using Orchestrator.Core.Configuration;
+using Orchestrator.Core.Enums;
+using Orchestrator.Core.Interfaces;
 using Orchestrator.Core.Models;
 using System.Diagnostics;
 
@@ -13,7 +13,7 @@ namespace NodeClient.Ollama;
 /// Flash attention DISABLED (Pascal instability).
 /// Single-parallel enforced via Ollama env vars.
 /// </summary>
-public sealed class NodeBInferenceNode : InferenceNodeBase
+public sealed class NodeBInferenceNode : IInferenceNode
 {
     private const string PrimaryModel  = "qwen2.5-coder:7b-instruct-q5_K_M";
     private const string FallbackModel = "deepseek-coder:6.7b-instruct-q4_K_M";
@@ -21,10 +21,9 @@ public sealed class NodeBInferenceNode : InferenceNodeBase
     private readonly IOllamaClient _client;
     private readonly ILogger<NodeBInferenceNode> _logger;
 
-    public override string NodeId => "B";
-    public override NodeProviderType Provider => NodeProviderType.Ollama;
+    public string NodeId => "B";
 
-    public override NodeCapabilities Capabilities { get; } = new()
+    public NodeCapabilities Capabilities { get; } = new()
     {
         NodeId = "B",
         Model = PrimaryModel,
@@ -38,7 +37,7 @@ public sealed class NodeBInferenceNode : InferenceNodeBase
         _logger = logger;
     }
 
-    public override async Task<InferenceResult> ExecuteAsync(InferenceRequest request, CancellationToken cancellationToken = default)
+    public async Task<InferenceResult> ExecuteAsync(InferenceRequest request, CancellationToken cancellationToken = default)
     {
         var model = request.UseFallback ? FallbackModel : PrimaryModel;
         var req = request with { Model = model };
@@ -58,11 +57,16 @@ public sealed class NodeBInferenceNode : InferenceNodeBase
                 Text      = text,
                 NodeId    = NodeId,
                 Model     = model,
-                LatencyMs = (int)sw.ElapsedMilliseconds
+                LatencyMs = (int)sw.ElapsedMilliseconds,
+                // TODO: Ollama API returns prompt_eval_count and eval_count in its response.
+                // OllamaClient currently discards these. Wire through when OllamaClient is updated.
+                TokensIn  = 0,
+                TokensOut = text.Length / 4  // rough fallback: ~4 chars per token
             };
         }
         catch (Exception ex) when (ex is not OperationCanceledException && !request.UseFallback && !IsConnectivityException(ex))
         {
+            // §12: model crash → retry once with fallback model
             sw.Restart();
             _logger.LogWarning(ex,
                 "Node B primary model {PrimaryModel} failed — retrying with fallback {FallbackModel}",
@@ -78,22 +82,35 @@ public sealed class NodeBInferenceNode : InferenceNodeBase
                 Text      = fallbackText,
                 NodeId    = NodeId,
                 Model     = FallbackModel,
-                LatencyMs = (int)sw.ElapsedMilliseconds
+                LatencyMs = (int)sw.ElapsedMilliseconds,
+                // TODO: Ollama API returns prompt_eval_count and eval_count in its response.
+                // OllamaClient currently discards these. Wire through when OllamaClient is updated.
+                TokensIn  = 0,
+                TokensOut = fallbackText.Length / 4  // rough fallback: ~4 chars per token
             };
         }
     }
 
-    protected override Task<bool> CheckHealthCoreAsync(CancellationToken cancellationToken)
-        => _client.IsHealthyAsync(cancellationToken);
-
-    public override Task<IReadOnlyList<ModelInfo>> ListModelsAsync(CancellationToken cancellationToken = default)
+    public async Task<NodeHealth> GetHealthAsync(CancellationToken cancellationToken = default)
     {
-        IReadOnlyList<ModelInfo> result =
-        [
-            new ModelInfo { ModelId = PrimaryModel },
-            new ModelInfo { ModelId = FallbackModel }
-        ];
-        return Task.FromResult(result);
+        NodeStatus status;
+        try
+        {
+            status = await _client.IsHealthyAsync(cancellationToken)
+                ? NodeStatus.Healthy
+                : NodeStatus.Degraded;
+        }
+        catch
+        {
+            status = NodeStatus.Unavailable;
+        }
+
+        return new NodeHealth
+        {
+            NodeId = NodeId,
+            Status = status,
+            CheckedAt = DateTimeOffset.UtcNow
+        };
     }
 
     private static bool IsConnectivityException(Exception ex) =>
