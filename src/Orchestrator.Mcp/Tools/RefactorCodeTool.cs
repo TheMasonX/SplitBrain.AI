@@ -75,6 +75,13 @@ public sealed class RefactorCodeTool
         }
     }
 
+    /// <summary>
+    /// Sanitize user-supplied code to prevent markdown fence escape (prompt injection).
+    /// Breaks any triple-backtick sequences so they cannot close the code fence.
+    /// </summary>
+    private static string SanitizeForFence(string input)
+        => input.Replace("```", "` ` `");
+
     private static string BuildPrompt(string code, string language, string goal)
     {
         var sb = new StringBuilder();
@@ -82,7 +89,7 @@ public sealed class RefactorCodeTool
         sb.AppendLine("Return ONLY the refactored code with no explanation or markdown fences.");
         sb.AppendLine();
         sb.AppendLine($"```{language}");
-        sb.AppendLine(code);
+        sb.AppendLine(SanitizeForFence(code));
         sb.AppendLine("```");
         return sb.ToString();
     }
