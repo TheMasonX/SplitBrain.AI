@@ -3,6 +3,7 @@ using Microsoft.Extensions.Options;
 using Orchestrator.Core.Enums;
 using Orchestrator.Core.Interfaces;
 using Orchestrator.Core.Models;
+using Orchestrator.Core.Utilities;
 
 namespace Orchestrator.Infrastructure.Routing;
 
@@ -74,7 +75,7 @@ public sealed class RoutingService : IRoutingService
     {
         var target = SelectNode(taskType, request);
         _logger.LogInformation(
-            "Routing taskType={TaskType} → node={NodeId}",
+            "Routing taskType={TaskType} -> node={NodeId}",
             taskType, target.NodeId);
 
         var item = new InferenceQueueItem
@@ -95,7 +96,7 @@ public sealed class RoutingService : IRoutingService
             target = _nodeA;
             if (!_nodeAQueue.TryEnqueue(item))
             {
-                _logger.LogError("Node A queue also full — executing inline");
+                _logger.LogError("Node A queue also full -- executing inline");
                 return await _nodeA.ExecuteAsync(request, cancellationToken);
             }
         }
@@ -129,23 +130,23 @@ public sealed class RoutingService : IRoutingService
         if (taskType == TaskType.Autocomplete)
             return _nodeA;
 
-        // Hard rule 2: No Node B registered → Node A
+        // Hard rule 2: No Node B registered -> Node A
         if (_nodeB is null)
             return _nodeA;
 
-        // Hard rule 3: Node B queue depth > threshold → fall back to Node A
+        // Hard rule 3: Node B queue depth > threshold -> fall back to Node A
         if (_nodeBQueue is not null && _nodeBQueue.Count > NodeBQueueFallbackThreshold)
         {
-            _logger.LogDebug("Node B queue depth {Depth} exceeds threshold — routing to Node A",
+            _logger.LogDebug("Node B queue depth {Depth} exceeds threshold -- routing to Node A",
                 _nodeBQueue.Count);
             return _nodeA;
         }
 
-        // Hard rule 4: Node B reported Unavailable in health cache → fall back
+        // Hard rule 4: Node B reported Unavailable in health cache -> fall back
         var healthB = _healthCache?.Get(_nodeB?.NodeId ?? "B");
         if (healthB?.Status == NodeStatus.Unavailable)
         {
-            _logger.LogDebug("Node B is Unavailable (cached) — routing to Node A");
+            _logger.LogDebug("Node B is Unavailable (cached) -- routing to Node A");
             return _nodeA;
         }
 
@@ -155,7 +156,7 @@ public sealed class RoutingService : IRoutingService
         var scoreC = _nodeC is not null ? ComputeScore(_nodeC, _nodeCQueue, taskType, request) : double.MinValue;
 
         _logger.LogDebug(
-            "Node scores — A={ScoreA:F3} B={ScoreB:F3} C={ScoreC:F3} taskType={TaskType}",
+            "Node scores -- A={ScoreA:F3} B={ScoreB:F3} C={ScoreC:F3} taskType={TaskType}",
             scoreA, scoreB, scoreC, taskType);
 
         if (scoreC >= scoreA && scoreC >= scoreB && _nodeC is not null)
@@ -168,7 +169,7 @@ public sealed class RoutingService : IRoutingService
     // §6.2 Scoring function
     //
     //   score = (0.35 * availableVramRatio)
-    //         + (0.25 * (1 / (queueDepth + 1)))   ← +1 prevents div-by-zero
+    //         + (0.25 * (1 / (queueDepth + 1)))   <- +1 prevents div-by-zero
     //         + (0.20 * modelFitScore)
     //         + (0.10 * latencyPenalty)
     //         + (0.10 * contextFitScore)
@@ -182,7 +183,7 @@ public sealed class RoutingService : IRoutingService
     {
         var health = _healthCache?.Get(node.NodeId);
 
-        // availableVramRatio: how much VRAM headroom the node has (0–1)
+        // availableVramRatio: how much VRAM headroom the node has (0-1)
         var totalVram = node.Capabilities?.VramMb > 0 ? node.Capabilities.VramMb : DefaultVramMb;
         var availableVram = health?.AvailableVramMb ?? totalVram;
         var vramRatio = Math.Clamp((double)availableVram / totalVram, 0.0, 1.0);
@@ -205,12 +206,12 @@ public sealed class RoutingService : IRoutingService
         var latencyPenalty = 1.0 - Math.Clamp(latencyMs / 10_000.0, 0.0, 1.0);
 
         // contextFitScore: Node B/C win on large contexts; Node A wins on small
-        var tokens = EstimateTokens(request.Prompt);
+        var tokens = TokenEstimator.Estimate(request.Prompt);
         var contextFit = node.NodeId is "B" or "C"
             ? Math.Clamp(tokens / (double)LargeContextTokenThreshold, 0.0, 1.0)
             : 1.0 - Math.Clamp(tokens / (double)LargeContextTokenThreshold, 0.0, 1.0);
 
-        // Node C (cloud) has no local VRAM — treat as fully available but apply a small
+        // Node C (cloud) has no local VRAM -- treat as fully available but apply a small
         // cost penalty to prefer local nodes when they are healthy.
         var adjustedVramRatio = node.NodeId == "C" ? 0.75 : vramRatio;
 
@@ -277,7 +278,7 @@ public sealed class RoutingService : IRoutingService
                 lastEx = ex;
                 var reason = IsConnectivityException(ex) ? "unreachable" : "failed";
                 _logger.LogWarning(ex,
-                    "Node {NodeId} {Reason} — trying next fallback", candidate.NodeId, reason);
+                    "Node {NodeId} {Reason} -- trying next fallback", candidate.NodeId, reason);
 
                 _metrics?.Record(new RequestMetric
                 {
@@ -291,7 +292,7 @@ public sealed class RoutingService : IRoutingService
             }
             catch (Exception ex)
             {
-                // All nodes in the chain exhausted — propagate the last exception
+                // All nodes in the chain exhausted -- propagate the last exception
                 lastEx = ex;
                 _metrics?.Record(new RequestMetric
                 {
@@ -328,7 +329,4 @@ public sealed class RoutingService : IRoutingService
         }
         return false;
     }
-
-    /// <summary>Rough token estimate: ~4 chars per token.</summary>
-    private static int EstimateTokens(string text) => text.Length / 4;
 }
