@@ -1,32 +1,15 @@
-﻿using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
-using Microsoft.Extensions.Http.Resilience;
+ï»¿using Microsoft.Extensions.Hosting;
 using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
 using OpenTelemetry.Metrics;
-using Polly;
-using Polly.Timeout;
 using Serilog;
 using Serilog.Events;
-using NodeClient.Copilot;
-using NodeClient.Ollama;
-using NodeClient.Worker;
 using Orchestrator.Agents;
 using Orchestrator.Agents.Sandbox;
-using Orchestrator.Agents.SemanticKernel;
-using Orchestrator.Core.Configuration;
 using Orchestrator.Core.Interfaces;
-using Orchestrator.Core.Models;
+using Orchestrator.Hosting.DependencyInjection;
 using Orchestrator.Infrastructure.AgentLog;
-using Orchestrator.Infrastructure.Health;
-using Orchestrator.Infrastructure.History;
 using Orchestrator.Infrastructure.Logging;
-using Orchestrator.Infrastructure.Metrics;
-using Orchestrator.Infrastructure.Queue;
-using Orchestrator.Infrastructure.Registry;
-using Orchestrator.Infrastructure.Routing;
 using Orchestrator.Mcp.Idempotency;
 using Orchestrator.Mcp.Tools;
 
@@ -66,201 +49,31 @@ Log.Logger = loggerBuilder.CreateLogger();
 builder.Logging.ClearProviders();
 builder.Logging.AddSerilog(Log.Logger, dispose: true);
 
-// Node A
-builder.Services.Configure<OllamaClientOptions>(
-    builder.Configuration.GetSection(OllamaClientOptions.Section));
+// ---------------------------------------------------------------------------
+// Shared infrastructure: options, HTTP clients, nodes, queues, routing, etc.
+// ---------------------------------------------------------------------------
+builder.Services.AddSplitBrainInfrastructure(builder.Configuration);
 
-// Node B — remote Ollama (LAN IP from OllamaNodeB config section)
-builder.Services.Configure<OllamaClientOptions>("NodeB",
-    builder.Configuration.GetSection("OllamaNodeB"));
-
-// Node C — GitHub Copilot API
-builder.Services.Configure<CopilotClientOptions>(
-    builder.Configuration.GetSection(CopilotClientOptions.Section));
-
-// Routing fallback chains
-builder.Services.Configure<RoutingOptions>(
-    builder.Configuration.GetSection(RoutingOptions.Section));
-
-// Dynamic node topology (hot-reloaded from nodes.json)
-builder.Services.Configure<NodeTopologyConfig>(
-    builder.Configuration.GetSection("NodeTopology"));
+// ---------------------------------------------------------------------------
+// MCP-host-specific services
+// ---------------------------------------------------------------------------
 
 // File logging for input/output capture
 builder.Services.Configure<FileLoggingOptions>(
     builder.Configuration.GetSection(FileLoggingOptions.Section));
-
-// Base typed client for simple use-cases (NodeA default)
-builder.Services.AddHttpClient<IOllamaClient, OllamaClient>();
-
-// Register a named, resilient HttpClient per Ollama node defined in NodeTopology config.
-// CRITICAL: OllamaApiClient (OllamaSharp) MUST receive this injected HttpClient.
-// Creating new OllamaApiClient(uri) creates its own internal HttpClient, bypassing Polly entirely.
-var topologyConfig = builder.Configuration
-    .GetSection("NodeTopology")
-    .Get<NodeTopologyConfig>() ?? new NodeTopologyConfig();
-
-foreach (var node in topologyConfig.Nodes.Where(n => n.Provider == NodeProviderType.Ollama && n.Ollama is not null))
-{
-    var ollamaConfig = node.Ollama!;
-    builder.Services
-        .AddHttpClient($"ollama-{node.NodeId}", client =>
-        {
-            client.BaseAddress = new Uri(ollamaConfig.BaseUrl);
-            client.Timeout = TimeSpan.FromSeconds(ollamaConfig.TimeoutSeconds * 2);
-        })
-        .AddResilienceHandler($"resilience-{node.NodeId}", pipeline =>
-        {
-            // 1. Retry: exponential backoff + jitter, 3 attempts
-            pipeline.AddRetry(new HttpRetryStrategyOptions
-            {
-                MaxRetryAttempts = 3,
-                Delay = TimeSpan.FromMilliseconds(500),
-                BackoffType = DelayBackoffType.Exponential,
-                UseJitter = true,
-                ShouldHandle = new PredicateBuilder<HttpResponseMessage>()
-                    .HandleResult(r => !r.IsSuccessStatusCode)
-                    .Handle<HttpRequestException>()
-                    .Handle<TimeoutRejectedException>()
-            });
-            // 2. Circuit breaker: 80% failure ratio, 10-sample window, 30s break
-            pipeline.AddCircuitBreaker(new HttpCircuitBreakerStrategyOptions
-            {
-                FailureRatio = 0.8,
-                SamplingDuration = TimeSpan.FromSeconds(30),
-                MinimumThroughput = 10,
-                BreakDuration = TimeSpan.FromSeconds(30),
-                ShouldHandle = new PredicateBuilder<HttpResponseMessage>()
-                    .HandleResult(r => !r.IsSuccessStatusCode)
-                    .Handle<HttpRequestException>()
-                    .Handle<TimeoutRejectedException>()
-            });
-            // 3. Per-node timeout
-            pipeline.AddTimeout(TimeSpan.FromSeconds(ollamaConfig.TimeoutSeconds));
-        });
-}
-
-// Node A inference node (uses default IOptions<OllamaClientOptions>)
-builder.Services.AddSingleton<NodeAInferenceNode>();
-builder.Services.AddSingleton<IInferenceNode>(sp => sp.GetRequiredService<NodeAInferenceNode>());
-
-// Node B inference node (uses a separate OllamaClient bound to OllamaNodeB config)
-builder.Services.AddSingleton<NodeBInferenceNode>(sp =>
-{
-    var optionsMonitor = sp.GetRequiredService<IOptionsMonitor<OllamaClientOptions>>();
-    var nodeBOptions = optionsMonitor.Get("NodeB");
-    var httpFactory = sp.GetRequiredService<IHttpClientFactory>();
-    var httpClient = httpFactory.CreateClient();
-    httpClient.BaseAddress = new Uri(nodeBOptions.BaseUrl);
-    httpClient.Timeout = TimeSpan.FromSeconds(nodeBOptions.TimeoutSeconds);
-    var ollamaClient = new OllamaClient(httpClient, Options.Create(nodeBOptions));
-    var logger = sp.GetRequiredService<ILogger<NodeBInferenceNode>>();
-    return new NodeBInferenceNode(ollamaClient, logger);
-});
-
-// Node C inference node — GitHub Copilot API (optional: only registered when configured)
-// API token is resolved securely from Azure Key Vault (preferred) or COPILOT_API_KEY env var.
-// No raw key is ever stored in config files.
-builder.Services.AddSingleton(sp =>
-{
-    var copilotOptions = sp.GetRequiredService<IOptions<CopilotClientOptions>>().Value;
-    var logger = sp.GetRequiredService<ILogger<NodeCInferenceNode>>();
-    return NodeCInferenceNode.CreateAsync(copilotOptions, logger).GetAwaiter().GetResult();
-});
-
-// Worker nodes — register an HttpClient + WorkerInferenceNode per Worker topology entry
-foreach (var workerNode in topologyConfig.Nodes.Where(n => n.Provider == NodeProviderType.Worker && n.Worker is not null))
-{
-    var wc = workerNode.Worker!;
-    builder.Services
-        .AddHttpClient($"worker-{workerNode.NodeId}", client =>
-        {
-            client.BaseAddress = new Uri(wc.BaseUrl);
-            client.Timeout = TimeSpan.FromSeconds(wc.TimeoutSeconds * 2);
-        });
-
-    var capturedNode = workerNode;
-    builder.Services.AddKeyedSingleton<WorkerInferenceNode>(capturedNode.NodeId, (sp, _) =>
-    {
-        var wConfig = capturedNode.Worker!;
-        var httpFactory = sp.GetRequiredService<IHttpClientFactory>();
-        var httpClient = httpFactory.CreateClient($"worker-{capturedNode.NodeId}");
-        var workerOptions = Options.Create(new WorkerClientOptions
-        {
-            BaseUrl = wConfig.BaseUrl,
-            TimeoutSeconds = wConfig.TimeoutSeconds
-        });
-        var client = new WorkerClient(httpClient, workerOptions);
-        var logger = sp.GetRequiredService<ILogger<WorkerInferenceNode>>();
-        return new WorkerInferenceNode(capturedNode.NodeId, wConfig, client, logger);
-    });
-}
-
-// Queues — Node A high priority (64), Node B normal (32), Node C normal (32)
-builder.Services.AddKeyedSingleton<IInferenceQueue>("nodeA", (_, _) => new NodeQueue(capacity: 64));
-builder.Services.AddKeyedSingleton<IInferenceQueue>("nodeB", (_, _) => new NodeQueue(capacity: 32));
-builder.Services.AddKeyedSingleton<IInferenceQueue>("nodeC", (_, _) => new NodeQueue(capacity: 32));
-
-builder.Services.AddSingleton<INodeHealthCache, InMemoryNodeHealthCache>();
-builder.Services.AddSingleton<IMetricsCollector, InMemoryMetricsCollector>();
-builder.Services.AddSingleton<IPromptHistory, PromptHistoryService>();
 builder.Services.AddSingleton<ILoggingService, FileLoggingService>();
+
 // No SignalR dashboard in MCP host — use no-op publishers
 builder.Services.AddSingleton<INodeHealthPublisher, NullNodeHealthPublisher>();
 builder.Services.AddSingleton<ILogEntryPublisher, NullLogEntryPublisher>();
 
-// Node registry — dynamic topology management with hot-reload
-builder.Services.AddSingleton<IInferenceNodeFactory, InferenceNodeFactory>();
-
-// Dispatch factory: maps NodeConfiguration → concrete singleton by NodeId.
-// This lets NodeRegistry.RebuildTopology reuse existing nodes on hot-reload
-// without constructing new instances each time.
-builder.Services.AddSingleton<Func<NodeConfiguration, IInferenceNode>>(sp => config =>
-    config.NodeId switch
-    {
-        "A" => sp.GetRequiredService<NodeAInferenceNode>(),
-        "B" => sp.GetRequiredService<NodeBInferenceNode>(),
-        "C" => sp.GetRequiredService<NodeCInferenceNode>(),
-        _ when config.Provider == NodeProviderType.Worker =>
-            sp.GetRequiredKeyedService<WorkerInferenceNode>(config.NodeId),
-        _ => throw new InvalidOperationException($"No IInferenceNode registered for NodeId '{config.NodeId}'.")
-    });
-
-builder.Services.AddSingleton<INodeRegistry, NodeRegistry>();
-builder.Services.AddHostedService<NodeHealthCheckService>();
-
 // MCP idempotency cache (TTL-based deduplication, in-process)
 builder.Services.AddSingleton<IIdempotencyCache, InMemoryIdempotencyCache>();
-
-// Model registry — seeded from appsettings SplitBrain:Models section
-builder.Services.AddSingleton<IModelRegistry>(sp =>
-{
-    var registry = new InMemoryModelRegistry();
-    var config = sp.GetRequiredService<IConfiguration>();
-    var models = config.GetSection("SplitBrain:Models").Get<List<ModelDefinition>>() ?? [];
-    foreach (var m in models)
-        registry.RegisterModel(m);
-    return registry;
-});
-
-builder.Services.AddSingleton<IRoutingService>(sp => new RoutingService(
-    nodeA: sp.GetRequiredService<IInferenceNode>(),
-    nodeAQueue: sp.GetRequiredKeyedService<IInferenceQueue>("nodeA"),
-    logger: sp.GetRequiredService<ILogger<RoutingService>>(),
-    nodeB: sp.GetRequiredService<NodeBInferenceNode>(),
-    nodeBQueue: sp.GetRequiredKeyedService<IInferenceQueue>("nodeB"),
-    healthCache: sp.GetRequiredService<INodeHealthCache>(),
-    metrics: sp.GetRequiredService<IMetricsCollector>(),
-    history: sp.GetRequiredService<IPromptHistory>(),
-    nodeC: sp.GetRequiredService<NodeCInferenceNode>(),
-    nodeCQueue: sp.GetRequiredKeyedService<IInferenceQueue>("nodeC"),
-    routingOptions: sp.GetRequiredService<IOptions<RoutingOptions>>()));
 
 // Phase 3 — Agent system
 builder.Services.AddSingleton<ICodeSandbox, ProcessCodeSandbox>();
 builder.Services.AddSingleton<IAgentEventLog>(_ => new LiteDbAgentEventLog());
 builder.Services.AddSingleton<IAgentOrchestrator, AgentOrchestrator>();
-builder.Services.AddSingleton<IKernelPlannerService, KernelPlannerService>();
 
 builder.Services
     .AddMcpServer()
@@ -291,4 +104,3 @@ var app = builder.Build();
 app.MapMcp("/mcp");
 
 await app.RunAsync();
-
