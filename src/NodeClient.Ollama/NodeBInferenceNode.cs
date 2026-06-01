@@ -64,30 +64,37 @@ public sealed class NodeBInferenceNode : IInferenceNode
                 TokensOut = text.Length / 4  // rough fallback: ~4 chars per token
             };
         }
-        catch (Exception ex) when (ex is not OperationCanceledException && !request.UseFallback && !IsConnectivityException(ex))
+        catch (Exception primaryEx) when (primaryEx is not OperationCanceledException && !request.UseFallback && !IsConnectivityException(primaryEx))
         {
-            // §12: model crash → retry once with fallback model
+            // §12: model crash → retry once with fallback model, preserving the primary exception
             sw.Restart();
-            _logger.LogWarning(ex,
+            _logger.LogWarning(primaryEx,
                 "Node B primary model {PrimaryModel} failed — retrying with fallback {FallbackModel}",
                 PrimaryModel, FallbackModel);
 
-            var fallbackReq = request with { Model = FallbackModel, UseFallback = true };
-            var fallbackText = await _client.ExecuteAsync(fallbackReq, cancellationToken);
-            sw.Stop();
-            _logger.LogInformation("Node B fallback completed latencyMs={Latency}", sw.ElapsedMilliseconds);
-
-            return new InferenceResult
+            try
             {
-                Text      = fallbackText,
-                NodeId    = NodeId,
-                Model     = FallbackModel,
-                LatencyMs = (int)sw.ElapsedMilliseconds,
-                // TODO: Ollama API returns prompt_eval_count and eval_count in its response.
-                // OllamaClient currently discards these. Wire through when OllamaClient is updated.
-                TokensIn  = 0,
-                TokensOut = fallbackText.Length / 4  // rough fallback: ~4 chars per token
-            };
+                var fallbackReq = request with { Model = FallbackModel, UseFallback = true };
+                var fallbackText = await _client.ExecuteAsync(fallbackReq, cancellationToken);
+                sw.Stop();
+                _logger.LogInformation("Node B fallback completed latencyMs={Latency}", sw.ElapsedMilliseconds);
+
+                return new InferenceResult
+                {
+                    Text      = fallbackText,
+                    NodeId    = NodeId,
+                    Model     = FallbackModel,
+                    LatencyMs = (int)sw.ElapsedMilliseconds,
+                    // TODO: Ollama API returns prompt_eval_count and eval_count in its response.
+                    // OllamaClient currently discards these. Wire through when OllamaClient is updated.
+                    TokensIn  = 0,
+                    TokensOut = fallbackText.Length / 4  // rough fallback: ~4 chars per token
+                };
+            }
+            catch (Exception fallbackEx)
+            {
+                throw new AggregateException("Both primary and fallback models failed on Node B", primaryEx, fallbackEx);
+            }
         }
     }
 
