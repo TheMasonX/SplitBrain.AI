@@ -15,8 +15,14 @@ public sealed class RoutingService : IRoutingService
     /// <summary>If Node B queue depth exceeds this, fall back to Node A (§6.3).</summary>
     private const int NodeBQueueFallbackThreshold = 2;
 
-    /// <summary>Assumed VRAM capacity per node in MB — used when health cache is cold.</summary>
+    /// <summary>Assumed VRAM capacity per node in MB -- used when health cache is cold.</summary>
     private const int DefaultVramMb = 8_192;
+
+    /// <summary>
+    /// Default latency assumption (ms) when no probe data is available yet.
+    /// Used as a conservative middle-ground until real data arrives.
+    /// </summary>
+    private const double DefaultLatencyMs = 500;
 
     private readonly IInferenceNode _nodeA;
     private readonly IInferenceNode? _nodeB;
@@ -200,9 +206,10 @@ public sealed class RoutingService : IRoutingService
             _   => taskType is TaskType.Autocomplete or TaskType.Chat ? 1.0 : 0.5
         };
 
-        // latencyPenalty: penalise based on last observed latency (0 = fast, 1 = slow)
-        // Use 10 000 ms as the "worst" reference point
-        var latencyMs = health?.Status == NodeStatus.Degraded ? 8_000 : 500;
+        // latencyPenalty: penalise based on last observed probe latency (0 = fast, 1 = slow)
+        // Use real latency from the health cache when available; fall back to DefaultLatencyMs
+        // when the cache is cold (no probe has run yet). 10 000 ms is the "worst" reference.
+        var latencyMs = health?.LastLatencyMs > 0 ? health.LastLatencyMs : DefaultLatencyMs;
         var latencyPenalty = 1.0 - Math.Clamp(latencyMs / 10_000.0, 0.0, 1.0);
 
         // contextFitScore: Node B/C win on large contexts; Node A wins on small
