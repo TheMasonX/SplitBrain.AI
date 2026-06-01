@@ -1,7 +1,7 @@
 namespace Orchestrator.Mcp.Idempotency;
 
 /// <summary>
-/// Encapsulates the Processing → Completed/Failed idempotency lifecycle
+/// Encapsulates the Processing -> Completed/Failed idempotency lifecycle
 /// so individual tool methods stay concise.
 /// </summary>
 internal static class IdempotencyHelper
@@ -10,10 +10,10 @@ internal static class IdempotencyHelper
 
     /// <summary>
     /// If <paramref name="key"/> is null, invokes <paramref name="execute"/> directly.
-    /// Otherwise implements the full idempotency lifecycle:
-    ///   Completed  → return cached result immediately
-    ///   Processing → throw InvalidOperationException (duplicate in-flight)
-    ///   Missing    → mark Processing, execute, mark Completed or Failed
+    /// Otherwise implements the full idempotency lifecycle using atomic reservation:
+    ///   Completed  -> return cached result immediately
+    ///   Processing -> throw InvalidOperationException (duplicate in-flight)
+    ///   Missing    -> atomically reserve as Processing, execute, mark Completed or Failed
     /// </summary>
     internal static async Task<string> ExecuteAsync(
         IIdempotencyCache cache,
@@ -24,24 +24,27 @@ internal static class IdempotencyHelper
         if (key is null)
             return await execute();
 
-        var existing = await cache.GetAsync(key, ct);
-        if (existing?.State == IdempotencyState.Completed)
-            return (string)existing.Result!;
-        if (existing?.State == IdempotencyState.Processing)
-            throw new InvalidOperationException($"A request with idempotency key '{key}' is already being processed.");
-
-        await cache.SetAsync(new IdempotencyEntry
+        // Atomic reservation: either we claim the slot or get the existing entry.
+        // This closes the race window where two concurrent requests could both
+        // see null from GetAsync and both proceed to execute.
+        if (!cache.TryReserve(key, DefaultTtl, out var existing))
         {
-            Key = key,
-            CreatedAt = DateTimeOffset.UtcNow,
-            Ttl = DefaultTtl,
-            State = IdempotencyState.Processing
-        }, ct);
+            // Someone else holds this key -- check what state they're in.
+            if (existing?.State == IdempotencyState.Completed)
+                return (string)existing.Result!;
+            if (existing?.State == IdempotencyState.Processing)
+                throw new InvalidOperationException($"A request with idempotency key '{key}' is already being processed.");
 
+            // Failed state: allow retry by re-attempting reservation.
+            // The failed entry may have expired or we can fall through to execute.
+            // For safety, treat as a new execution attempt.
+        }
+
+        // We own the Processing reservation -- execute and update the entry.
         try
         {
             var result = await execute();
-            await cache.SetAsync(new IdempotencyEntry
+            await cache.UpdateAsync(new IdempotencyEntry
             {
                 Key = key,
                 CreatedAt = DateTimeOffset.UtcNow,
@@ -53,7 +56,7 @@ internal static class IdempotencyHelper
         }
         catch
         {
-            await cache.SetAsync(new IdempotencyEntry
+            await cache.UpdateAsync(new IdempotencyEntry
             {
                 Key = key,
                 CreatedAt = DateTimeOffset.UtcNow,
