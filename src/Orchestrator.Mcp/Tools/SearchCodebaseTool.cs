@@ -15,6 +15,9 @@ namespace Orchestrator.Mcp.Tools;
 [McpServerToolType]
 public sealed class SearchCodebaseTool
 {
+    /// <summary>Maximum file size (bytes) to read during collection. Files larger than this are skipped.</summary>
+    private const long MaxFileSizeBytes = 512 * 1024; // 512 KB
+
     private readonly IRoutingService _routing;
     private readonly IIdempotencyCache _idempotency;
 
@@ -29,8 +32,8 @@ public sealed class SearchCodebaseTool
         [Description("Natural language query or symbol name to search for")] string query,
         [Description("Root path of the codebase to search (absolute or relative)")] string rootPath,
         [Description("File glob pattern to limit search scope, e.g. **/*.cs")] string pattern = "**/*",
-        [Description("Maximum number of results to return (1–20)")] int topK = 10,
-        [Description("(Optional) Idempotency key — same key returns cached result within 5 minutes")] string? idempotencyKey = null,
+        [Description("Maximum number of results to return (1-20)")] int topK = 10,
+        [Description("(Optional) Idempotency key -- same key returns cached result within 5 minutes")] string? idempotencyKey = null,
         CancellationToken cancellationToken = default)
         => IdempotencyHelper.ExecuteAsync(_idempotency, idempotencyKey, () => ExecuteCoreAsync(query, rootPath, pattern, topK, cancellationToken), cancellationToken);
 
@@ -100,11 +103,17 @@ public sealed class SearchCodebaseTool
         {
             try
             {
+                // Skip files that exceed the size threshold to avoid memory pressure
+                var fileInfo = new FileInfo(file);
+                if (fileInfo.Length > MaxFileSizeBytes)
+                    continue;
+
                 var content = File.ReadAllText(file);
                 var snippet = string.Join('\n', content.Split('\n').Take(200));
                 results.Add((file, snippet));
             }
             catch (IOException) { /* skip unreadable files */ }
+            catch (UnauthorizedAccessException) { /* skip permission-denied files */ }
         }
 
         return results;
