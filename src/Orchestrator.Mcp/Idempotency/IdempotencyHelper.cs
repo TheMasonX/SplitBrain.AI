@@ -13,6 +13,7 @@ internal static class IdempotencyHelper
     /// Otherwise implements the full idempotency lifecycle using atomic reservation:
     ///   Completed  -> return cached result immediately
     ///   Processing -> throw InvalidOperationException (duplicate in-flight)
+    ///   Failed     -> atomically reclaim slot and retry; throws if slot cannot be reclaimed
     ///   Missing    -> atomically reserve as Processing, execute, mark Completed or Failed
     /// </summary>
     internal static async Task<string> ExecuteAsync(
@@ -32,12 +33,25 @@ internal static class IdempotencyHelper
             // Someone else holds this key -- check what state they're in.
             if (existing?.State == IdempotencyState.Completed)
                 return (string)existing.Result!;
+
             if (existing?.State == IdempotencyState.Processing)
                 throw new InvalidOperationException($"A request with idempotency key '{key}' is already being processed.");
 
-            // Failed state: allow retry by re-attempting reservation.
-            // The failed entry may have expired or we can fall through to execute.
-            // For safety, treat as a new execution attempt.
+            if (existing?.State == IdempotencyState.Failed)
+            {
+                // Atomically remove the failed entry so we can re-reserve the slot.
+                // If another concurrent retry removed it first, TryRemove returns false
+                // and our subsequent TryReserve will see the slot the winner already
+                // claimed, causing us to throw rather than execute twice.
+                cache.TryRemove(key);
+
+                if (!cache.TryReserve(key, DefaultTtl, out _))
+                    throw new InvalidOperationException(
+                        $"Could not reclaim failed idempotency slot for key '{key}'. " +
+                        "A concurrent retry may already be in progress.");
+
+                // Fall through: we now own the Processing reservation.
+            }
         }
 
         // We own the Processing reservation -- execute and update the entry.
