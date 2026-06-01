@@ -59,7 +59,6 @@ public sealed class ReviewCodeTool
             var inferenceRequest = new InferenceRequest
             {
                 Prompt = prompt,
-                Model = "qwen2.5-coder:7b-instruct-q4_K_M",
                 Stream = true
             };
 
