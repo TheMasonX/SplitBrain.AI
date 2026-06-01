@@ -78,15 +78,7 @@ public sealed class ReviewCodeTool
             {
                 Summary = result.Text,
                 Issues = [],
-                Meta = new Meta
-                {
-                    TaskId = taskId,
-                    Node = result.NodeId,
-                    Model = result.Model,
-                    LatencyMs = result.LatencyMs,
-                    TokensIn = result.TokensIn,
-                    TokensOut = result.TokensOut
-                }
+                Meta = Meta.FromInferenceResult(taskId, result)
             };
 
             stopwatch.Stop();
