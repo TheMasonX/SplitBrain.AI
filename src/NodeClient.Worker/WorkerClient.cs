@@ -3,6 +3,7 @@ using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Orchestrator.Core.Models;
 
@@ -15,11 +16,13 @@ namespace NodeClient.Worker;
 public sealed class WorkerClient : IWorkerClient, IDisposable
 {
     private readonly HttpClient _http;
+    private readonly ILogger<WorkerClient> _logger;
     private readonly string _baseUrl;
 
-    public WorkerClient(HttpClient http, IOptions<WorkerClientOptions> options)
+    public WorkerClient(HttpClient http, IOptions<WorkerClientOptions> options, ILogger<WorkerClient> logger)
     {
         _http = http;
+        _logger = logger;
         _baseUrl = options.Value.BaseUrl.TrimEnd('/');
         _http.Timeout = TimeSpan.FromSeconds(options.Value.TimeoutSeconds);
     }
@@ -69,8 +72,19 @@ public sealed class WorkerClient : IWorkerClient, IDisposable
 
             return models ?? [];
         }
-        catch
+        catch (HttpRequestException ex)
         {
+            _logger.LogWarning(ex, "Failed to list models from worker at {BaseUrl}: HTTP error", _baseUrl);
+            return [];
+        }
+        catch (JsonException ex)
+        {
+            _logger.LogWarning(ex, "Failed to deserialize model list from worker at {BaseUrl}", _baseUrl);
+            return [];
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            _logger.LogWarning(ex, "Unexpected error listing models from worker at {BaseUrl}", _baseUrl);
             return [];
         }
     }
