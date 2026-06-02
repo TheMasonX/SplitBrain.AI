@@ -1,6 +1,7 @@
 using System.ComponentModel;
 using System.Text.Json;
 using System.Text.RegularExpressions;
+using FluentValidation;
 using ModelContextProtocol.Server;
 using Orchestrator.Core.Models;
 using Orchestrator.Core.Serialization;
@@ -14,23 +15,23 @@ public sealed class RunTestsTool
     [McpServerTool(Name = "run_tests"), Description("Runs the test suite for a project and returns pass/fail results.")]
     public async Task<string> RunTestsAsync(
         [Description("Absolute path to the .csproj or solution file to test")] string projectPath,
+        [Description("Allowed root directory -- path is rejected if outside this scope")] string allowedRoot,
         [Description("Optional test filter expression (e.g. FullyQualifiedName~MyTest)")] string filter = "",
-        [Description("Allowed root directory — path is rejected if outside this scope")] string allowedRoot = "",
-        [Description("Timeout in seconds for the full test run (1–120)")] int timeoutSeconds = 30,
+        [Description("Timeout in seconds for the full test run (1-120)")] int timeoutSeconds = 30,
         CancellationToken cancellationToken = default)
     {
-        var request = new RunTestsRequest
+        try
         {
-            ProjectPath = projectPath,
-            TestFilter = string.IsNullOrWhiteSpace(filter) ? null : filter,
-            TimeoutSeconds = timeoutSeconds
-        };
+            var request = new RunTestsRequest
+            {
+                ProjectPath = projectPath,
+                TestFilter = string.IsNullOrWhiteSpace(filter) ? null : filter,
+                TimeoutSeconds = timeoutSeconds
+            };
 
-        request.ValidateOrThrow(new RunTestsRequestValidator());
+            request.ValidateOrThrow(new RunTestsRequestValidator());
 
-        // Security: if an allowedRoot is specified, enforce it
-        if (!string.IsNullOrWhiteSpace(allowedRoot))
-        {
+            // Security: always enforce the allowed root scope
             var fullPath = Path.GetFullPath(projectPath);
             var fullRoot = Path.GetFullPath(allowedRoot).TrimEnd(Path.DirectorySeparatorChar) + Path.DirectorySeparatorChar;
             if (!fullPath.StartsWith(fullRoot, StringComparison.OrdinalIgnoreCase))
@@ -48,46 +49,58 @@ public sealed class RunTestsTool
                     Meta = new Meta { TaskId = Guid.NewGuid().ToString("N"), Node = "local" }
                 }, JsonConfig.Default);
             }
-        }
 
-        var args = $"test \"{projectPath}\" --no-build --logger console;verbosity=normal";
-        if (!string.IsNullOrWhiteSpace(filter))
-            args += $" --filter \"{filter}\"";
+            var args = $"test \"{projectPath}\" --no-build --logger console;verbosity=normal";
+            if (!string.IsNullOrWhiteSpace(filter))
+                args += $" --filter \"{filter}\"";
 
-        using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-        cts.CancelAfter(TimeSpan.FromSeconds(timeoutSeconds));
+            using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            cts.CancelAfter(TimeSpan.FromSeconds(timeoutSeconds));
 
-        var sw = System.Diagnostics.Stopwatch.StartNew();
-        var (exitCode, stdout, stderr) = await RunProcessAsync("dotnet", args, cts.Token);
-        sw.Stop();
+            var sw = System.Diagnostics.Stopwatch.StartNew();
+            var (exitCode, stdout, stderr) = await RunProcessAsync("dotnet", args, cts.Token);
+            sw.Stop();
 
-        var (summary, failures) = ParseDotnetTestOutput(stdout + "\n" + stderr, (int)sw.ElapsedMilliseconds);
+            var (summary, failures) = ParseDotnetTestOutput(stdout + "\n" + stderr, (int)sw.ElapsedMilliseconds);
 
-        McpError? error = null;
-        if (exitCode != 0 && failures.Count == 0)
-        {
-            error = new McpError
+            McpError? error = null;
+            if (exitCode != 0 && failures.Count == 0)
             {
-                Code = "TEST_RUN_FAILED",
-                Message = stderr.Length > 0 ? stderr[..Math.Min(500, stderr.Length)] : "dotnet test exited with non-zero code",
-                Retryable = false
-            };
-        }
-
-        var response = new RunTestsResponse
-        {
-            Summary = summary,
-            Failures = failures,
-            Error = error,
-            Meta = new Meta
-            {
-                TaskId = Guid.NewGuid().ToString("N"),
-                Node = "local",
-                LatencyMs = (int)sw.ElapsedMilliseconds
+                error = new McpError
+                {
+                    Code = "TEST_RUN_FAILED",
+                    Message = stderr.Length > 0 ? stderr[..Math.Min(500, stderr.Length)] : "dotnet test exited with non-zero code",
+                    Retryable = false
+                };
             }
-        };
 
-        return JsonSerializer.Serialize(response, JsonConfig.Default);
+            var response = new RunTestsResponse
+            {
+                Summary = summary,
+                Failures = failures,
+                Error = error,
+                Meta = new Meta
+                {
+                    TaskId = Guid.NewGuid().ToString("N"),
+                    Node = "local",
+                    LatencyMs = (int)sw.ElapsedMilliseconds
+                }
+            };
+
+            return JsonSerializer.Serialize(response, JsonConfig.Default);
+        }
+        catch (ValidationException vex)
+        {
+            return JsonSerializer.Serialize(new { error = new { code = "validation_error", message = vex.Message, retryable = false } }, JsonConfig.Default);
+        }
+        catch (OperationCanceledException)
+        {
+            throw; // Let cancellation propagate
+        }
+        catch (Exception ex)
+        {
+            return JsonSerializer.Serialize(new { error = new { code = "internal_error", message = ex.Message, retryable = true } }, JsonConfig.Default);
+        }
     }
 
     // ---------------------------------------------------------------------------
