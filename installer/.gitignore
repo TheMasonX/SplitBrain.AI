@@ -1,0 +1,8 @@
+# Published .NET binaries (created by build.ps1)
+output/
+
+# Compiled installer executables
+dist/
+
+# Inno Setup compiler temp files
+*.tmp
