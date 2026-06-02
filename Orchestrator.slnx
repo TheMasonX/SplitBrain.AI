@@ -5,6 +5,7 @@
   </Folder>
   <Folder Name="/NodeClient/">
     <Project Path="src/NodeClient.Copilot/NodeClient.Copilot.csproj" />
+    <Project Path="src/NodeClient.LlamaCpp/NodeClient.LlamaCpp.csproj" />
     <Project Path="src/NodeClient.Ollama/NodeClient.Ollama.csproj" />
     <Project Path="src/NodeClient.Worker/NodeClient.Worker.csproj" />
   </Folder>
