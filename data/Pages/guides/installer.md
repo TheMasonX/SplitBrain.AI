@@ -57,14 +57,20 @@ Choose based on what this machine should do:
 
 > **Orchestrator + Worker** installs automatically point the Orchestrator at `localhost:5050` — the peer IP field is ignored.
 
-### Backend Selection (Node B Only)
+### Backend Selection (Worker / Full Only)
 
-| Option | Best For |
-|--------|---------|
-| **Ollama** (recommended) | Simpler setup, ~20-45 tok/s for 7B model |
-| **llama.cpp** (advanced) | 30B MoE models, ~18-22 tok/s, requires Docker + NVIDIA Container Toolkit |
+| Option | Docker? | Best For |
+|--------|---------|---------|
+| **Ollama** | No | Simple setup, ~20-45 tok/s for 7B models |
+| **llama.cpp Native** | **No** | 30B MoE models on limited VRAM, ~18-22 tok/s, recommended for llama.cpp |
+| **llama.cpp Docker** | Yes | Same as Native, but containerized; requires Docker Desktop + NVIDIA Container Toolkit |
 
-You can switch backends later with `NODE_B_BACKEND=llamacpp` (or `ollama`).
+> **Key insight:** Docker is completely optional. `llama-server.exe` runs natively on Windows and provides identical performance and flags. All three options expose the same `http://localhost:8080` endpoint — SplitBrain.AI's NodeClient doesn't care which one started the server.
+
+- **Native** path: installer downloads `llama-server.exe` (CUDA 12.4 build) from GitHub Releases and creates `Start-LlamaCpp.ps1` / `start-llamacpp.bat` launch scripts with the pre-tuned flags for your hardware.
+- **Docker** path: creates a `Start-LlamaCpp-Docker.ps1` script wrapping the `docker run` command.
+
+Switch at any time: set `NODE_B_BACKEND=llamacpp` (or `ollama`) before starting NodeWorker.
 
 ### Optional Tasks
 
