@@ -1,0 +1,4 @@
+{
+  "SplitBrainRepo": "",
+  "_note": "Set SplitBrainRepo to the absolute path of your SplitBrain.AI checkout, e.g. C:\\\\Users\\\\you\\\\repos\\\\SplitBrain.AI\\\\ or /home/you/repos/SplitBrain.AI/. SourceLinks use %SplitBrainRepo% prefix."
+}

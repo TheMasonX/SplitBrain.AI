@@ -1,0 +1,30 @@
+{
+  "Id": "splitbrain-decision-d8-llamacpp-parallel",
+  "Title": "D8: Add llama.cpp as Parallel Inference Backend",
+  "Content": "Decision D8 (2026-06-01): Add llama.cpp server as a parallel inference backend alongside Ollama on Node B. NodeClient.LlamaCpp targets the OAI-compatible /v1/chat/completions endpoint. Backend selected by NODE_B_BACKEND env var (default: ollama, set llamacpp to switch). Key advantages over Ollama: exposes --n-cpu-moe (MoE expert offloading) enabling 30B MoE models on 8 GB VRAM, true SSE streaming, TurboQuant KV cache compression. Decision on permanent replacement vs. coexistence deferred until benchmarking on actual GTX 1080 hardware confirms throughput/quality.",
+  "Status": 2,
+  "Confidence": 0.9,
+  "Tags": [
+    "decision",
+    "llamacpp",
+    "inference",
+    "moe"
+  ],
+  "References": [
+    "splitbrain-node-topology",
+    "splitbrain-decision-d2-nodeclients-separate"
+  ],
+  "Conflicts": [],
+  "SourceLinks": [
+    {
+      "Label": "NodeClient.LlamaCpp/",
+      "Uri": "%SplitBrainRepo%src/NodeClient.LlamaCpp/"
+    },
+    {
+      "Label": "LlamaCppInferenceNode.cs",
+      "Uri": "%SplitBrainRepo%src/NodeClient.LlamaCpp/LlamaCppInferenceNode.cs"
+    }
+  ],
+  "UsageCount": 0,
+  "LastUpdated": "2026-06-02T00:00:00Z"
+}

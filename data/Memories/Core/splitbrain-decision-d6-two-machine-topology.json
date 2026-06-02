@@ -1,0 +1,25 @@
+{
+  "Id": "splitbrain-decision-d6-two-machine-topology",
+  "Title": "D6: Two-Machine Deployment Topology",
+  "Content": "Decision D6 (locked, 2026-06-01): Two-machine deployment. Machine A = local laptop running the coding agent: Orchestrator.Mcp (port 5100), SplitBrain.Dashboard, and optionally the Copilot node (Node C). Machine B = secondary inference tower: Orchestrator.NodeWorker (port 5050) + Ollama or llama.cpp server. Dashboard and MCP can merge into a single host on Machine A. NodeWorker stays as a separate deployable for Machine B. This topology enables offloading heavy inference (30B MoE models) to a dedicated GPU machine without network latency on the MCP path.",
+  "Status": 2,
+  "Confidence": 0.96,
+  "Tags": [
+    "decision",
+    "deployment",
+    "topology",
+    "locked"
+  ],
+  "References": [
+    "splitbrain-node-topology"
+  ],
+  "Conflicts": [],
+  "SourceLinks": [
+    {
+      "Label": "NodeWorker/Program.cs",
+      "Uri": "%SplitBrainRepo%src/Orchestrator.NodeWorker/Program.cs"
+    }
+  ],
+  "UsageCount": 0,
+  "LastUpdated": "2026-06-02T00:00:00Z"
+}

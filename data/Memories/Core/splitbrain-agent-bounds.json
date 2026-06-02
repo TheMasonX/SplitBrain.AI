@@ -1,0 +1,24 @@
+{
+  "Id": "splitbrain-agent-bounds",
+  "Title": "Agent Bounds (Locked)",
+  "Content": "Agent bounds are locked per spec: MaxIterations=4, MaxTokensPerLoop=12000 (budget ceiling; model context window is 8K so prompt+history+output must fit both limits), DefaultTimeout=300s. The agent is a deterministic state machine implemented in Orchestrator.Agents with strict iteration, token, and safety limits. These values do NOT change without explicit architectural review.",
+  "Status": 2,
+  "Confidence": 0.99,
+  "Tags": [
+    "agents",
+    "bounds",
+    "locked"
+  ],
+  "References": [
+    "splitbrain-project-overview"
+  ],
+  "Conflicts": [],
+  "SourceLinks": [
+    {
+      "Label": "Orchestrator.Agents/",
+      "Uri": "%SplitBrainRepo%src/Orchestrator.Agents/"
+    }
+  ],
+  "UsageCount": 0,
+  "LastUpdated": "2026-06-02T00:00:00Z"
+}

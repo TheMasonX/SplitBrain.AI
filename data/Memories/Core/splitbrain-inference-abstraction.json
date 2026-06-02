@@ -1,0 +1,29 @@
+{
+  "Id": "splitbrain-inference-abstraction",
+  "Title": "IInferenceNode \u2014 Inference Abstraction",
+  "Content": "Single IInferenceNode interface decouples all routing, agent, and MCP logic from providers. Key members: NodeId (string), Provider (NodeProviderType enum: Ollama, CopilotSdk, Worker, LlamaCpp), Health (NodeHealthStatus with HealthState: Healthy/Degraded/Unavailable), Capabilities (NodeCapabilities with VramMb, SupportsStreaming), ExecuteAsync (returns InferenceResult), StreamAsync (IAsyncEnumerable<InferenceChunk> \u2014 true SSE only in NodeClient.LlamaCpp), GetHealthAsync, ListModelsAsync, DisposeAsync. InferenceNodeFactory in Infrastructure/Registry/ creates nodes from NodeConfiguration via Func<NodeConfiguration,IInferenceNode> delegate pattern registered in DI.",
+  "Status": 2,
+  "Confidence": 0.96,
+  "Tags": [
+    "architecture",
+    "inference",
+    "abstraction",
+    "di"
+  ],
+  "References": [
+    "splitbrain-solution-layout"
+  ],
+  "Conflicts": [],
+  "SourceLinks": [
+    {
+      "Label": "IInferenceNode.cs",
+      "Uri": "%SplitBrainRepo%src/Orchestrator.Core/Interfaces/IInferenceNode.cs"
+    },
+    {
+      "Label": "InferenceNodeFactory.cs",
+      "Uri": "%SplitBrainRepo%src/Orchestrator.Infrastructure/Registry/InferenceNodeFactory.cs"
+    }
+  ],
+  "UsageCount": 0,
+  "LastUpdated": "2026-06-02T00:00:00Z"
+}

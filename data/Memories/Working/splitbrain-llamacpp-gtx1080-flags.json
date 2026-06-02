@@ -1,0 +1,30 @@
+{
+  "Id": "splitbrain-llamacpp-gtx1080-flags",
+  "Title": "GTX 1080 llama.cpp Server Launch Flags",
+  "Content": "GTX 1080 (Pascal sm_61, 8 GB VRAM) optimal llama.cpp server command via Docker: docker run --gpus all --cap-add=IPC_LOCK ghcr.io/ggml-org/llama.cpp:server-cuda --model qwen3-coder-30b-a3b.gguf --n-gpu-layers 999 --n-cpu-moe 25 --no-mmap --mlock --cache-type-k turbo4 --cache-type-v turbo3 --host 0.0.0.0 --port 8080. Notes: --flash-attn omitted (Pascal instability). --n-cpu-moe 25 = starting point; each -5 moves ~400-600 MB MoE experts to GPU (reduce until OOM then add 2-3 back). turbo4/turbo3 in mainline since 2026-03-28 (commit ca25246); on CUDA turbo4 uses 3-bit+QJL (not 4-bit PolarQuant which is Metal-only). mlock requires --cap-add=IPC_LOCK in Docker. Monitor with: watch -n1 nvidia-smi. Expected: ~18-22 tok/s for 30B MoE on 8 GB.",
+  "Status": 1,
+  "Confidence": 0.82,
+  "Tags": [
+    "llamacpp",
+    "gtx1080",
+    "performance",
+    "moe",
+    "hardware"
+  ],
+  "References": [
+    "splitbrain-decision-d8-llamacpp-parallel"
+  ],
+  "Conflicts": [],
+  "SourceLinks": [
+    {
+      "Label": "test-llamacpp-streaming.sh",
+      "Uri": "%SplitBrainRepo%scripts/test-llamacpp-streaming.sh"
+    },
+    {
+      "Label": "appsettings.NodeB.json",
+      "Uri": "%SplitBrainRepo%src/Orchestrator.NodeWorker/appsettings.NodeB.json"
+    }
+  ],
+  "UsageCount": 0,
+  "LastUpdated": "2026-06-02T00:00:00Z"
+}

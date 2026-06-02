@@ -1,0 +1,29 @@
+{
+  "Id": "splitbrain-routing-engine",
+  "Title": "Routing Engine Design",
+  "Content": "RoutingService routes by TaskType, node role (NodeRole: Fast/Deep/Hybrid/Standby), VRAM availability, queue depth, and health. Hard rules: Autocomplete always routes to Fast nodes; queues >2 pending trigger fallback. Role-based scoring with configurable weights. NodeRegistry hot-reloadable via IOptionsMonitor<NodeTopologyConfig> with atomic Interlocked.Exchange rebuild. Fallback chains per node, stored in routing.json. RoutingService primary constructor: (INodeRegistry, Func<string,IInferenceQueue>, ILogger, INodeHealthCache?, IOptions<RoutingOptions>?).",
+  "Status": 2,
+  "Confidence": 0.91,
+  "Tags": [
+    "architecture",
+    "routing",
+    "registry"
+  ],
+  "References": [
+    "splitbrain-inference-abstraction",
+    "splitbrain-node-topology"
+  ],
+  "Conflicts": [],
+  "SourceLinks": [
+    {
+      "Label": "RoutingService.cs",
+      "Uri": "%SplitBrainRepo%src/Orchestrator.Infrastructure/Routing/RoutingService.cs"
+    },
+    {
+      "Label": "NodeRegistry.cs",
+      "Uri": "%SplitBrainRepo%src/Orchestrator.Infrastructure/Registry/NodeRegistry.cs"
+    }
+  ],
+  "UsageCount": 0,
+  "LastUpdated": "2026-06-02T00:00:00Z"
+}

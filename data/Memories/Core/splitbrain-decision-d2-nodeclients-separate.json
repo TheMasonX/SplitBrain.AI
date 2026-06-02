@@ -1,0 +1,29 @@
+{
+  "Id": "splitbrain-decision-d2-nodeclients-separate",
+  "Title": "D2: Keep NodeClient Projects Separate",
+  "Content": "Decision D2 (locked, 2026-06-01): Keep NodeClient projects as independent class libraries. NodeClient.Ollama, NodeClient.Copilot, NodeClient.Worker, and NodeClient.LlamaCpp stay separate. Do NOT fold into Infrastructure. Rationale: each has distinct NuGet dependencies (Copilot pulls Azure.Identity + Key Vault SDK; LlamaCpp only needs Microsoft.Extensions.*) and not all deployments need all clients. This enables tree-shaking and keeps Machine B minimal.",
+  "Status": 2,
+  "Confidence": 0.97,
+  "Tags": [
+    "decision",
+    "architecture",
+    "nodeclients",
+    "locked"
+  ],
+  "References": [
+    "splitbrain-solution-layout"
+  ],
+  "Conflicts": [],
+  "SourceLinks": [
+    {
+      "Label": "NodeClient.LlamaCpp.csproj",
+      "Uri": "%SplitBrainRepo%src/NodeClient.LlamaCpp/NodeClient.LlamaCpp.csproj"
+    },
+    {
+      "Label": "NodeClient.Ollama.csproj",
+      "Uri": "%SplitBrainRepo%src/NodeClient.Ollama/NodeClient.Ollama.csproj"
+    }
+  ],
+  "UsageCount": 0,
+  "LastUpdated": "2026-06-02T00:00:00Z"
+}

@@ -1,0 +1,31 @@
+{
+  "Id": "splitbrain-node-topology",
+  "Title": "Node Topology \u2014 Machines A and B",
+  "Content": "Machine A (local laptop): runs Orchestrator.Mcp (port 5100), SplitBrain.Dashboard, and the Copilot node (Node C). GPU: RTX 5060. Default model: qwen2.5-coder:7b-instruct-q4_K_M via Ollama. Machine B (inference tower): runs Orchestrator.NodeWorker (port 5050). GPU: GTX 1080 8 GB (Pascal sm_61). Default model: qwen2.5-coder:7b-instruct-q5_K_M via Ollama; fallback deepseek-coder:6.7b-instruct-q4_K_M. Set NODE_B_BACKEND=llamacpp to switch Node B to llama.cpp server (port 8080) enabling MoE models like qwen3-coder-30b-a3b. Node C: GitHub Copilot SDK via CopilotClientOptions (optional). Fallback chains configurable per node in routing.json.",
+  "Status": 2,
+  "Confidence": 0.93,
+  "Tags": [
+    "architecture",
+    "node-topology",
+    "hardware",
+    "ollama",
+    "llamacpp"
+  ],
+  "References": [
+    "splitbrain-decision-d6-two-machine-topology",
+    "splitbrain-decision-d8-llamacpp-parallel"
+  ],
+  "Conflicts": [],
+  "SourceLinks": [
+    {
+      "Label": "NodeWorker appsettings.NodeB.json",
+      "Uri": "%SplitBrainRepo%src/Orchestrator.NodeWorker/appsettings.NodeB.json"
+    },
+    {
+      "Label": "NodeB InferenceNode",
+      "Uri": "%SplitBrainRepo%src/NodeClient.Ollama/NodeBInferenceNode.cs"
+    }
+  ],
+  "UsageCount": 0,
+  "LastUpdated": "2026-06-02T00:00:00Z"
+}

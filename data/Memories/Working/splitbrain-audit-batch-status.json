@@ -1,0 +1,29 @@
+{
+  "Id": "splitbrain-audit-batch-status",
+  "Title": "Audit Batch Implementation Status",
+  "Content": "Second-pass audit (2026-06-01) found 48 findings (3C/13H/19M/13L). Merged to next-gen at commit 9b4adf82: Batch 1a (IdempotencyHelper atomic Failed-slot retry, closes concurrent-retry race), Batch 1b (H10 NodeCInferenceNode \u2014 async stdout/stderr read before WaitForExit, 5s timeout, process tree kill), Batch 2 (new Routing/InferenceNodeFactory.cs with null guard), Batch 3 (M15 RunTestsTool allowedRoot required, path validation always enforced), Batch 4 (GenerateTestsTool SanitizeParam/SanitizeForFence). Still pending from batches: C1 DrainAsync hang, C2 DashboardState thread safety, C3 NodeWorker unauthenticated endpoints, H7 MCP tool error handling, Phase A (D4 rename, D3 SQLite migration). Phase A-E roadmap: 22-28 days estimated (council revised).",
+  "Status": 1,
+  "Confidence": 0.9,
+  "Tags": [
+    "audit",
+    "batch",
+    "implementation",
+    "current-state"
+  ],
+  "References": [
+    "splitbrain-decision-d3-sqlite"
+  ],
+  "Conflicts": [],
+  "SourceLinks": [
+    {
+      "Label": "IdempotencyHelper.cs",
+      "Uri": "%SplitBrainRepo%src/Orchestrator.Mcp/Idempotency/IdempotencyHelper.cs"
+    },
+    {
+      "Label": "NodeCInferenceNode.cs",
+      "Uri": "%SplitBrainRepo%src/NodeClient.Copilot/NodeCInferenceNode.cs"
+    }
+  ],
+  "UsageCount": 0,
+  "LastUpdated": "2026-06-02T00:00:00Z"
+}

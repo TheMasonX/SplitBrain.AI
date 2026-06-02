@@ -1,0 +1,29 @@
+{
+  "Id": "splitbrain-mcp-interface",
+  "Title": "MCP Interface and Tools",
+  "Content": "MCP server: Orchestrator.Mcp on port 5100 (streamable HTTP /mcp) and stdio. Uses ModelContextProtocol NuGet package (not hand-rolled per D1). Tools include: code_review, refactor_code, generate_tests, run_tests, search_codebase, apply_patch. Each tool validates via FluentValidation. Idempotency via IIdempotencyCache with atomic TryReserve/TryRemove slot lifecycle (prevents duplicate execution on concurrent retries). Prompt injection sanitization on language/framework/coverage params in GenerateTestsTool (SanitizeParam + SanitizeForFence). RunTestsTool enforces allowedRoot path scope on every call.",
+  "Status": 2,
+  "Confidence": 0.92,
+  "Tags": [
+    "mcp",
+    "tools",
+    "security",
+    "idempotency"
+  ],
+  "References": [
+    "splitbrain-decision-d1-mcp-nuget"
+  ],
+  "Conflicts": [],
+  "SourceLinks": [
+    {
+      "Label": "Orchestrator.Mcp/Tools/",
+      "Uri": "%SplitBrainRepo%src/Orchestrator.Mcp/Tools/"
+    },
+    {
+      "Label": "IdempotencyHelper.cs",
+      "Uri": "%SplitBrainRepo%src/Orchestrator.Mcp/Idempotency/IdempotencyHelper.cs"
+    }
+  ],
+  "UsageCount": 0,
+  "LastUpdated": "2026-06-02T00:00:00Z"
+}

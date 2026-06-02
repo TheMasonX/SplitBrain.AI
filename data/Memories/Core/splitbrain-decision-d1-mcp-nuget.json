@@ -1,0 +1,25 @@
+{
+  "Id": "splitbrain-decision-d1-mcp-nuget",
+  "Title": "D1: Keep ModelContextProtocol NuGet Package",
+  "Content": "Decision D1 (locked, 2026-06-01): Keep the ModelContextProtocol NuGet package. Do NOT replace with a hand-rolled McpController. Layer the tool catalog and risk model on top of the NuGet package's attribute-based system ([McpServerTool], [McpServerToolType] attributes). SplitBrainToolCatalog wraps the NuGet tools rather than replacing them. This was confirmed after comparing with MemorySmith's hand-rolled approach \u2014 the NuGet package's attribute model is simpler and more maintainable.",
+  "Status": 2,
+  "Confidence": 0.98,
+  "Tags": [
+    "decision",
+    "mcp",
+    "nuget",
+    "locked"
+  ],
+  "References": [
+    "splitbrain-mcp-interface"
+  ],
+  "Conflicts": [],
+  "SourceLinks": [
+    {
+      "Label": "Orchestrator.Mcp.csproj",
+      "Uri": "%SplitBrainRepo%src/Orchestrator.Mcp/Orchestrator.Mcp.csproj"
+    }
+  ],
+  "UsageCount": 0,
+  "LastUpdated": "2026-06-02T00:00:00Z"
+}
