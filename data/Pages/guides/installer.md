@@ -22,33 +22,40 @@ The wizard walks you through 10 steps:
 |------|-------------|
 | Welcome | Overview of SplitBrain.AI |
 | License | MIT license agreement |
-| **Node Role** | You select Node A (MCP + Dashboard) or Node B (worker) |
+| **Role** | Choose Orchestrator / Worker / Orchestrator+Worker |
 | Destination | Install path (default: `C:\Program Files\SplitBrain.AI`) |
-| **Network Config** | Peer machine IP, ports, Ollama URL, optional Copilot token |
-| **Backend (Node B)** | Choose Ollama or llama.cpp (MoE models for GTX 1080) |
-| Optional Tasks | Windows service, firewall rules, Ollama model download |
+| **Network Config** | Peer machine IP (optional for Full), ports, Ollama URL, Copilot token |
+| **Backend** (Worker/Full) | Choose Ollama or llama.cpp (MoE models for GTX 1080) |
+| Optional Tasks | Windows service per component, firewall rules, model download |
 | Ready | Summary of what will be installed |
-| Installing | Runs dotnet publish, writes config, installs service, pulls models |
+| Installing | Writes config, installs service(s), firewall, pulls models |
 | Finish | Launch MCP Server and/or Dashboard |
 
 ## Wizard Screenshots Walk-Through
 
-### Node Role Page
+### Role Page
 
-Choose based on which machine you're running the installer on:
+Choose based on what this machine should do:
 
-- **Node A** — Your laptop or primary workstation. Installs: MCP Server, Dashboard, NodeA Ollama env vars.
-- **Node B** — Your inference tower. Installs: NodeWorker, NodeB Ollama env vars (flash attention disabled for Pascal/GTX 1080).
+| Role | Installs | Best for |
+|------|---------|---------|
+| **Orchestrator** | MCP Server, Dashboard | Primary laptop/workstation that routes tasks to workers |
+| **Worker** | NodeWorker | Dedicated inference tower that provides GPU compute |
+| **Orchestrator + Worker** | Everything | Single-machine setup, or when this machine has both a good GPU and you want a self-contained install |
+
+> **Tip:** If you have two machines, install **Orchestrator** on the laptop and **Worker** on the tower. If you only have one machine (or it's powerful enough to do both), choose **Orchestrator + Worker**.
 
 ### Network Configuration Page
 
 | Field | What to Enter |
 |-------|--------------|
-| Peer machine IP | LAN IP of the *other* machine (e.g. `192.168.1.50`) |
-| MCP Server port | Port for MCP server on Node A (default: `5100`) |
-| Node Worker port | Port for NodeWorker on Node B (default: `5050`) |
+| Peer Orchestrator IP | For **Worker** installs: IP of the Orchestrator machine. For **Orchestrator** or **Full**: optional (used to reach external workers) |
+| MCP Server port | Port for MCP server (default: `5100`) |
+| Node Worker port | Port for NodeWorker (default: `5050`) |
 | Ollama URL | Ollama on *this* machine (default: `http://localhost:11434`) |
 | Copilot token | Optional GitHub token with `copilot` scope for Node C |
+
+> **Orchestrator + Worker** installs automatically point the Orchestrator at `localhost:5050` — the peer IP field is ignored.
 
 ### Backend Selection (Node B Only)
 

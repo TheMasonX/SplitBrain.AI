@@ -20,7 +20,7 @@
 #>
 #Requires -RunAsAdministrator
 param(
-    [ValidateSet("NodeA","NodeB","Both")] [string] $Role = "NodeA",
+    [ValidateSet("NodeA","NodeB","Both","Orchestrator","Worker","Full")] [string] $Role = "Orchestrator",
     [int] $McpPort       = 5100,
     [int] $DashboardPort = 5000,
     [int] $WorkerPort    = 5050
@@ -45,12 +45,12 @@ function Add-SBFirewallRule {
     Write-Host "[OK] Firewall: $Name (TCP $Port)"
 }
 
-if ($Role -in @("NodeA","Both")) {
+if ($Role -in @("NodeA","Both","Orchestrator","Full")) {
     Add-SBFirewallRule -Name "SplitBrain.AI — MCP Server"  -Port $McpPort
     Add-SBFirewallRule -Name "SplitBrain.AI — Dashboard"   -Port $DashboardPort
 }
 
-if ($Role -in @("NodeB","Both")) {
+if ($Role -in @("NodeB","Both","Worker","Full")) {
     Add-SBFirewallRule -Name "SplitBrain.AI — NodeWorker"  -Port $WorkerPort
 }
 

@@ -13,7 +13,7 @@
     "ollama" or "llamacpp" (Node B only). If llamacpp, skips Ollama model pull.
 #>
 param(
-    [ValidateSet("NodeA","NodeB")] [string] $Role    = "NodeA",
+    [ValidateSet("Orchestrator","Worker","Full","NodeA","NodeB")] [string] $Role    = "Orchestrator",
     [ValidateSet("ollama","llamacpp")] [string] $Backend = "ollama"
 )
 
@@ -22,8 +22,12 @@ $ErrorActionPreference = "Stop"
 function Write-Step { param([string]$Msg) Write-Host "`n==> $Msg" -ForegroundColor Cyan }
 function Write-Ok   { param([string]$Msg) Write-Host "    [OK] $Msg" -ForegroundColor Green }
 
-# Skip model pull if using llama.cpp backend on Node B
-if ($Role -eq "NodeB" -and $Backend -eq "llamacpp") {
+# Normalise legacy names
+if ($Role -eq "NodeA") { $Role = "Orchestrator" }
+if ($Role -eq "NodeB") { $Role = "Worker" }
+
+# Skip model pull if using llama.cpp backend (Worker or Full)
+if ($Role -in @("Worker","Full") -and $Backend -eq "llamacpp") {
     Write-Host "[--] llama.cpp backend selected — Ollama models not required."
     Write-Host "     See data\Pages\guides\llamacpp-gtx1080-setup.md for GGUF model download instructions."
     exit 0
@@ -31,12 +35,18 @@ if ($Role -eq "NodeB" -and $Backend -eq "llamacpp") {
 
 # Model sets per role
 $modelSets = @{
-    NodeA = @(
-        @{ Name = "qwen2.5-coder:7b";           Desc = "Qwen 2.5 Coder 7B (primary — Node A fast inference)" }
+    Orchestrator = @(
+        @{ Name = "qwen2.5-coder:7b";                    Desc = "Qwen 2.5 Coder 7B Q4 (Orchestrator / Node A fast inference)" }
     )
-    NodeB = @(
-        @{ Name = "qwen2.5-coder:7b-instruct-q5_K_M"; Desc = "Qwen 2.5 Coder 7B Q5 (Node B primary)" },
-        @{ Name = "deepseek-coder:6.7b-instruct-q4_K_M"; Desc = "DeepSeek Coder 6.7B Q4 (Node B fallback)" }
+    Worker = @(
+        @{ Name = "qwen2.5-coder:7b-instruct-q5_K_M";   Desc = "Qwen 2.5 Coder 7B Q5 (Worker primary)" },
+        @{ Name = "deepseek-coder:6.7b-instruct-q4_K_M"; Desc = "DeepSeek Coder 6.7B Q4 (Worker fallback)" }
+    )
+    # Full: pull both sets (union)
+    Full = @(
+        @{ Name = "qwen2.5-coder:7b";                    Desc = "Qwen 2.5 Coder 7B Q4 (Orchestrator fast inference)" },
+        @{ Name = "qwen2.5-coder:7b-instruct-q5_K_M";   Desc = "Qwen 2.5 Coder 7B Q5 (Worker primary)" },
+        @{ Name = "deepseek-coder:6.7b-instruct-q4_K_M"; Desc = "DeepSeek Coder 6.7B Q4 (Worker fallback)" }
     )
 }
 

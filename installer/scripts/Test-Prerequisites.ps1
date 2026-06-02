@@ -14,9 +14,13 @@
     Optional path to write JSON results for use by the Inno Setup [Code] section.
 #>
 param(
-    [ValidateSet("NodeA","NodeB")] [string] $Role = "NodeA",
+    [ValidateSet("Orchestrator","Worker","Full","NodeA","NodeB")] [string] $Role = "Orchestrator",
     [string] $OutputFile = ""
 )
+
+# Normalise legacy names
+if ($Role -eq "NodeA") { $Role = "Orchestrator" }
+if ($Role -eq "NodeB") { $Role = "Worker" }
 
 $results = @{
     Passed   = @()
@@ -75,8 +79,8 @@ if ($gpuInfo) {
     Warn "No dedicated GPU detected — local inference may be slow (CPU fallback)"
 }
 
-# ── NVIDIA driver (Node B — GTX 1080) ────────────────────────────────────────
-if ($Role -eq "NodeB") {
+# ── NVIDIA driver (Worker or Full — need CUDA for inference) ─────────────────
+if ($Role -in @("Worker","Full")) {
     $nvidiaInfo = Get-CimInstance Win32_VideoController -ErrorAction SilentlyContinue |
         Where-Object { $_.Name -match "NVIDIA" } | Select-Object -First 1
     if ($nvidiaInfo) {
@@ -104,8 +108,8 @@ if ($osVer.Major -ge 10) {
 
 # ── Port availability ─────────────────────────────────────────────────────────
 $portsToCheck = @()
-if ($Role -eq "NodeA") { $portsToCheck += @(5100, 5000) }
-if ($Role -eq "NodeB") { $portsToCheck += @(5050) }
+if ($Role -in @("Orchestrator","Full")) { $portsToCheck += @(5100, 5000) }
+if ($Role -in @("Worker","Full"))       { $portsToCheck += @(5050) }
 
 foreach ($port in $portsToCheck) {
     $inUse = (Get-NetTCPConnection -LocalPort $port -ErrorAction SilentlyContinue | Measure-Object).Count -gt 0

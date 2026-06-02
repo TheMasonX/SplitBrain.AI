@@ -60,20 +60,23 @@ SetupIconFile=
 Name: "english"; MessagesFile: "compiler:Default.isl"
 
 [Types]
-Name: "nodeA"; Description: "Node A — Machine A (MCP Server + Dashboard)"
-Name: "nodeB"; Description: "Node B — Machine B (Node Worker, deep inference)"
+Name: "orchestrator"; Description: "Orchestrator — MCP Server + Dashboard (routes tasks to workers)"
+Name: "worker";       Description: "Worker — Node Worker only (provides local inference)"
+Name: "full";         Description: "Orchestrator + Worker — both roles on this machine"
 
 [Components]
-Name: "mcp";       Description: "MCP Server (Orchestrator.Mcp)";         Types: nodeA; Flags: fixed
-Name: "dashboard"; Description: "SplitBrain Dashboard (Blazor UI)";       Types: nodeA
-Name: "worker";    Description: "Node Worker (Orchestrator.NodeWorker)";   Types: nodeB; Flags: fixed
-Name: "data";      Description: "Wiki / Documentation (data/)";            Types: nodeA nodeB
+Name: "mcp";       Description: "MCP Server (Orchestrator.Mcp)";         Types: orchestrator full
+Name: "dashboard"; Description: "SplitBrain Dashboard (Blazor UI)";       Types: orchestrator full
+Name: "worker";    Description: "Node Worker (Orchestrator.NodeWorker)";   Types: worker full
+Name: "data";      Description: "Wiki / Documentation (data/)";            Types: orchestrator worker full
 
 [Tasks]
-Name: "installservice";   Description: "Install as Windows &Service (auto-start on boot)";   GroupDescription: "Service options:"
-Name: "addfirewall";      Description: "Add Windows &Firewall rules for LAN access";          GroupDescription: "Network:"
-Name: "pullmodels";       Description: "Download &Ollama models now (requires internet)";     GroupDescription: "Ollama models:"
-Name: "desktopicon";      Description: "Create a &Desktop shortcut";                          GroupDescription: "Shortcuts:"; Flags: unchecked
+Name: "installservice";     Description: "Install as Windows &Service (auto-start on boot)";   GroupDescription: "Service options:"
+Name: "installservice\mcp"; Description: "MCP Server service";                                 GroupDescription: "Service options:"; Components: mcp
+Name: "installservice\wrk"; Description: "Node Worker service";                                GroupDescription: "Service options:"; Components: worker
+Name: "addfirewall";        Description: "Add Windows &Firewall rules for LAN access";         GroupDescription: "Network:"
+Name: "pullmodels";         Description: "Download &Ollama models now (requires internet)";    GroupDescription: "Ollama models:"
+Name: "desktopicon";        Description: "Create a &Desktop shortcut";                         GroupDescription: "Shortcuts:"; Flags: unchecked
 
 [Files]
 ; ── Node A binaries ───────────────────────────────────────────────────────────
@@ -118,13 +121,13 @@ Filename: "powershell.exe"; \
     Parameters: "-NonInteractive -ExecutionPolicy Bypass -Command ""& '{{app}}\deploy\setup-node-a.ps1' -PublishPath '{{app}}\node-a\mcp' -SkipDotNet -SkipOllama -SkipModels"""; \
     StatusMsg: "Installing MCP Server service..."; \
     Flags: runhidden waituntilterminated; \
-    Tasks: installservice; Components: mcp
+    Tasks: installservice\mcp; Components: mcp
 
 Filename: "powershell.exe"; \
     Parameters: "-NonInteractive -ExecutionPolicy Bypass -Command ""& '{{app}}\deploy\setup-node-b.ps1' -PublishPath '{{app}}\node-b\worker' -SkipDotNet -SkipOllama -SkipModels"""; \
     StatusMsg: "Installing Node Worker service..."; \
     Flags: runhidden waituntilterminated; \
-    Tasks: installservice; Components: worker
+    Tasks: installservice\wrk; Components: worker
 
 ; ── Add firewall rules (optional) ────────────────────────────────────────────
 Filename: "powershell.exe"; \
@@ -175,83 +178,107 @@ var
   RolePage        : TWizardPage;
   NetworkPage     : TInputQueryWizardPage;
   BackendPage     : TWizardPage;
-  SummaryPage     : TWizardPage;
 
   // Radio buttons on RolePage
-  RbNodeA         : TNewRadioButton;
-  RbNodeB         : TNewRadioButton;
+  RbOrchestrator  : TNewRadioButton;
+  RbWorker        : TNewRadioButton;
+  RbFull          : TNewRadioButton;
 
   // Radio buttons on BackendPage
   RbOllama        : TNewRadioButton;
   RbLlamaCpp      : TNewRadioButton;
   LblLlamaCppNote : TNewStaticText;
 
-  // Network page controls (created via TInputQueryWizardPage)
-  // Fields: PeerIp, McpPort / WorkerPort, OllamaUrl, CopilotToken (Node A only)
-
   // Cached values from pages
-  CRole           : String;   // "NodeA" or "NodeB"
-  CBackend        : String;   // "ollama" or "llamacpp"
+  CRole    : String;   // "Orchestrator" | "Worker" | "Full"
+  CBackend : String;   // "ollama" | "llamacpp"
 
-// ── Helper: which role is selected? ──────────────────────────────────────────
-function IsNodeA: Boolean;
+// ── Role helpers ──────────────────────────────────────────────────────────────
+
+// Has MCP Server + Dashboard
+function HasOrchestrator: Boolean;
 begin
-  Result := (CRole = 'NodeA');
+  Result := (CRole = 'Orchestrator') or (CRole = 'Full');
 end;
 
-function IsNodeB: Boolean;
+// Has NodeWorker
+function HasWorker: Boolean;
 begin
-  Result := (CRole = 'NodeB');
+  Result := (CRole = 'Worker') or (CRole = 'Full');
 end;
 
-// ── RolePage: Node A vs Node B ───────────────────────────────────────────────
+function IsFull: Boolean;
+begin
+  Result := (CRole = 'Full');
+end;
+
+// ── RolePage: Orchestrator / Worker / Full ────────────────────────────────────
 procedure CreateRolePage;
 var
-  Lbl, LblA, LblB: TNewStaticText;
+  Lbl, LblO, LblW, LblF: TNewStaticText;
 begin
   RolePage := CreateCustomPage(wpWelcome, 'Select Installation Role',
-    'Which machine are you installing on?');
+    'What role should this machine play?');
 
   Lbl := TNewStaticText.Create(RolePage);
-  Lbl.Parent := RolePage.Surface;
-  Lbl.Left   := 0;
-  Lbl.Top    := 0;
-  Lbl.Width  := RolePage.SurfaceWidth;
-  Lbl.Caption := 'SplitBrain.AI runs across two machines. Choose the role for this machine:';
+  Lbl.Parent   := RolePage.Surface;
+  Lbl.Left     := 0;
+  Lbl.Top      := 0;
+  Lbl.Width    := RolePage.SurfaceWidth;
+  Lbl.Caption  := 'SplitBrain.AI can run as an Orchestrator, a Worker, or both on the same machine:';
   Lbl.WordWrap := True;
 
-  RbNodeA := TNewRadioButton.Create(RolePage);
-  RbNodeA.Parent  := RolePage.Surface;
-  RbNodeA.Left    := 0;
-  RbNodeA.Top     := Lbl.Top + Lbl.Height + 16;
-  RbNodeA.Width   := RolePage.SurfaceWidth;
-  RbNodeA.Caption := 'Node A — Machine A (MCP Server + Dashboard + fast inference)';
-  RbNodeA.Checked := True;
-  RbNodeA.Font.Style := [fsBold];
+  // ── Orchestrator ──────────────────────────────────────────────────────────
+  RbOrchestrator := TNewRadioButton.Create(RolePage);
+  RbOrchestrator.Parent  := RolePage.Surface;
+  RbOrchestrator.Left    := 0;
+  RbOrchestrator.Top     := Lbl.Top + Lbl.Height + 16;
+  RbOrchestrator.Width   := RolePage.SurfaceWidth;
+  RbOrchestrator.Caption := 'Orchestrator — MCP Server + Dashboard only';
+  RbOrchestrator.Checked := True;
+  RbOrchestrator.Font.Style := [fsBold];
 
-  LblA := TNewStaticText.Create(RolePage);
-  LblA.Parent   := RolePage.Surface;
-  LblA.Left     := 20;
-  LblA.Top      := RbNodeA.Top + RbNodeA.Height + 2;
-  LblA.Width    := RolePage.SurfaceWidth - 20;
-  LblA.Caption  := 'Your laptop or primary workstation. Runs the MCP server, Dashboard, and Node A inference. Typically has an RTX 5060+ GPU.';
-  LblA.WordWrap := True;
+  LblO := TNewStaticText.Create(RolePage);
+  LblO.Parent   := RolePage.Surface;
+  LblO.Left     := 20;
+  LblO.Top      := RbOrchestrator.Top + RbOrchestrator.Height + 2;
+  LblO.Width    := RolePage.SurfaceWidth - 20;
+  LblO.Caption  := 'Installs the MCP Server (port 5100) and Dashboard. Routes inference tasks to remote workers. Use this on your primary laptop or workstation.';
+  LblO.WordWrap := True;
 
-  RbNodeB := TNewRadioButton.Create(RolePage);
-  RbNodeB.Parent  := RolePage.Surface;
-  RbNodeB.Left    := 0;
-  RbNodeB.Top     := LblA.Top + LblA.Height + 16;
-  RbNodeB.Width   := RolePage.SurfaceWidth;
-  RbNodeB.Caption := 'Node B — Machine B (Deep inference worker)';
-  RbNodeB.Font.Style := [fsBold];
+  // ── Worker ────────────────────────────────────────────────────────────────
+  RbWorker := TNewRadioButton.Create(RolePage);
+  RbWorker.Parent  := RolePage.Surface;
+  RbWorker.Left    := 0;
+  RbWorker.Top     := LblO.Top + LblO.Height + 16;
+  RbWorker.Width   := RolePage.SurfaceWidth;
+  RbWorker.Caption := 'Worker — Node Worker only (inference provider)';
+  RbWorker.Font.Style := [fsBold];
 
-  LblB := TNewStaticText.Create(RolePage);
-  LblB.Parent   := RolePage.Surface;
-  LblB.Left     := 20;
-  LblB.Top      := RbNodeB.Top + RbNodeB.Height + 2;
-  LblB.Width    := RolePage.SurfaceWidth - 20;
-  LblB.Caption  := 'Your inference tower or secondary machine. Runs the NodeWorker service that handles deep inference. Typically has a GTX 1080+ GPU.';
-  LblB.WordWrap := True;
+  LblW := TNewStaticText.Create(RolePage);
+  LblW.Parent   := RolePage.Surface;
+  LblW.Left     := 20;
+  LblW.Top      := RbWorker.Top + RbWorker.Height + 2;
+  LblW.Width    := RolePage.SurfaceWidth - 20;
+  LblW.Caption  := 'Installs the NodeWorker service (port 5050). Exposes local GPU inference to the Orchestrator over the network. Use this on a dedicated inference tower.';
+  LblW.WordWrap := True;
+
+  // ── Orchestrator + Worker ─────────────────────────────────────────────────
+  RbFull := TNewRadioButton.Create(RolePage);
+  RbFull.Parent  := RolePage.Surface;
+  RbFull.Left    := 0;
+  RbFull.Top     := LblW.Top + LblW.Height + 16;
+  RbFull.Width   := RolePage.SurfaceWidth;
+  RbFull.Caption := 'Orchestrator + Worker — all roles on this machine';
+  RbFull.Font.Style := [fsBold];
+
+  LblF := TNewStaticText.Create(RolePage);
+  LblF.Parent   := RolePage.Surface;
+  LblF.Left     := 20;
+  LblF.Top      := RbFull.Top + RbFull.Height + 2;
+  LblF.Width    := RolePage.SurfaceWidth - 20;
+  LblF.Caption  := 'Installs everything: MCP Server, Dashboard, and NodeWorker. The Orchestrator routes tasks to the local Worker. Ideal for single-machine setups or when this machine has a capable GPU and you want a self-contained installation.';
+  LblF.WordWrap := True;
 end;
 
 // ── Network configuration page ────────────────────────────────────────────────
@@ -259,14 +286,14 @@ procedure CreateNetworkPage;
 begin
   NetworkPage := CreateInputQueryPage(RolePage.ID,
     'Network Configuration',
-    'Configure how the two nodes connect to each other.',
+    'Configure ports and peer addresses. Leave Peer IP as-is if running Orchestrator+Worker on one machine.',
     '');
 
-  NetworkPage.Add('Peer machine IP address:', False);    // [0]
-  NetworkPage.Add('MCP Server port (Node A):', False);   // [1]
-  NetworkPage.Add('Node Worker port (Node B):', False);  // [2]
+  NetworkPage.Add('Peer Orchestrator IP (Workers only, or leave empty for local):', False); // [0]
+  NetworkPage.Add('MCP Server port:', False);    // [1]
+  NetworkPage.Add('Node Worker port:', False);   // [2]
   NetworkPage.Add('Ollama URL (this machine):', False);  // [3]
-  NetworkPage.Add('GitHub Copilot token (optional):', True);  // [4] — password
+  NetworkPage.Add('GitHub Copilot token (optional — for Node C):', True); // [4] password
 
   // Defaults
   NetworkPage.Values[0] := '192.168.1.X';
@@ -339,7 +366,7 @@ end;
 // ── Initialise wizard ─────────────────────────────────────────────────────────
 procedure InitializeWizard;
 begin
-  CRole    := 'NodeA';
+  CRole    := 'Orchestrator';
   CBackend := 'ollama';
 
   CreateRolePage;
@@ -347,29 +374,26 @@ begin
   CreateBackendPage;
 end;
 
+// ── Capture role from radio buttons ──────────────────────────────────────────
+procedure CaptureRole;
+begin
+  if      RbOrchestrator.Checked then CRole := 'Orchestrator'
+  else if RbWorker.Checked       then CRole := 'Worker'
+  else                                CRole := 'Full';
+end;
+
 // ── Capture values when leaving pages ────────────────────────────────────────
 procedure CurPageChanged(CurPageID: Integer);
 begin
-  // Capture role selection
+  // Capture role when entering the network page
   if CurPageID = NetworkPage.ID then
-  begin
-    if RbNodeA.Checked then CRole := 'NodeA'
-    else                     CRole := 'NodeB';
-  end;
+    CaptureRole;
 
-  // Capture backend selection
+  // Capture backend when entering the task page
   if CurPageID = wpSelectTasks then
   begin
     if RbOllama.Checked then CBackend := 'ollama'
     else                     CBackend := 'llamacpp';
-  end;
-
-  // Hide backend page for Node A, show for Node B
-  if CurPageID = BackendPage.ID then
-  begin
-    if IsNodeA then
-      // Skip backend page for Node A
-      WizardForm.NextButton.OnClick(WizardForm.NextButton);
   end;
 end;
 
@@ -377,18 +401,17 @@ end;
 function ShouldSkipPage(PageID: Integer): Boolean;
 begin
   Result := False;
-  // Skip backend selection page for Node A
-  if (PageID = BackendPage.ID) and IsNodeA then
+  // Backend selection only relevant when a Worker is installed
+  if (PageID = BackendPage.ID) and not HasWorker then
     Result := True;
 end;
 
-// ── Component selection based on role ────────────────────────────────────────
+// ── Capture final values before install ───────────────────────────────────────
 procedure CurStepChanged(CurStep: TSetupStep);
 begin
   if CurStep = ssInstall then
   begin
-    // Capture final values
-    if RbNodeA.Checked then CRole := 'NodeA' else CRole := 'NodeB';
+    CaptureRole;
     if RbOllama.Checked then CBackend := 'ollama' else CBackend := 'llamacpp';
   end;
 end;
@@ -403,10 +426,13 @@ begin
 
   if CurPageID = NetworkPage.ID then
   begin
+    // Peer IP is required for Worker-only installs (Orchestrator must know where to connect).
+    // For Orchestrator-only or Full, it's optional (Full routes to localhost).
+    CaptureRole;
     PeerIp := Trim(NetworkPage.Values[0]);
-    if (PeerIp = '') or (PeerIp = '192.168.1.X') then
+    if (CRole = 'Worker') and ((PeerIp = '') or (PeerIp = '192.168.1.X')) then
     begin
-      MsgBox('Please enter the IP address of the peer machine (e.g. 192.168.1.50).', mbError, MB_OK);
+      MsgBox('For a Worker installation, please enter the IP address of the Orchestrator machine (e.g. 192.168.1.10). This is the machine running the MCP Server.' + #13#10 + #13#10 + 'Tip: for Orchestrator+Worker on one machine, choose the "Orchestrator + Worker" role instead.', mbError, MB_OK);
       Result := False;
       Exit;
     end;
@@ -424,7 +450,7 @@ end;
 // ── Build argument strings for [Run] scripts ──────────────────────────────────
 function GetWriteConfigArgs(Param: String): String;
 var
-  PeerIp, McpPort, WorkerPort, OllamaUrl, CopilotToken: String;
+  PeerIp, McpPort, WorkerPort, OllamaUrl, CopilotToken, EffectivePeerIp: String;
 begin
   PeerIp       := Trim(NetworkPage.Values[0]);
   McpPort      := Trim(NetworkPage.Values[1]);
@@ -432,26 +458,44 @@ begin
   OllamaUrl    := Trim(NetworkPage.Values[3]);
   CopilotToken := Trim(NetworkPage.Values[4]);
 
+  // Full mode: Orchestrator connects to the local Worker, ignore peer IP
+  if IsFull then EffectivePeerIp := 'localhost'
+  else           EffectivePeerIp := PeerIp;
+
   Result := Format('-InstallDir "%s" -Role "%s" -PeerIp "%s" -McpPort %s -WorkerPort %s -OllamaUrl "%s"',
-    [ExpandConstant('{app}'), CRole, PeerIp, McpPort, WorkerPort, OllamaUrl]);
+    [ExpandConstant('{app}'), CRole, EffectivePeerIp, McpPort, WorkerPort, OllamaUrl]);
 
   if CopilotToken <> '' then
     Result := Result + Format(' -CopilotToken "%s"', [CopilotToken]);
 
-  if (CRole = 'NodeB') and (CBackend = 'llamacpp') then
+  if HasWorker and (CBackend = 'llamacpp') then
     Result := Result + ' -NodeBBackend llamacpp';
 end;
 
 function GetFirewallArgs(Param: String): String;
+var
+  McpPort, WorkerPort: String;
 begin
-  if IsNodeA then Result := '-Role NodeA -McpPort ' + Trim(NetworkPage.Values[1]) + ' -DashboardPort 5000'
-  else            Result := '-Role NodeB -WorkerPort ' + Trim(NetworkPage.Values[2]);
+  McpPort    := Trim(NetworkPage.Values[1]);
+  WorkerPort := Trim(NetworkPage.Values[2]);
+
+  if HasOrchestrator and HasWorker then
+    // Full: open both MCP+Dashboard ports and Worker port
+    Result := '-Role Both -McpPort ' + McpPort + ' -DashboardPort 5000 -WorkerPort ' + WorkerPort
+  else if HasOrchestrator then
+    Result := '-Role NodeA -McpPort ' + McpPort + ' -DashboardPort 5000'
+  else
+    Result := '-Role NodeB -WorkerPort ' + WorkerPort;
 end;
 
 function GetPullModelsArgs(Param: String): String;
 begin
-  if IsNodeA then Result := '-Role NodeA'
-  else            Result := '-Role NodeB -Backend ' + CBackend;
+  if HasWorker then
+    // Worker or Full: pull worker models for selected backend
+    Result := '-Role NodeB -Backend ' + CBackend
+  else
+    // Orchestrator only: pull Node A model
+    Result := '-Role NodeA';
 end;
 
 // ── Pre-install prereq check ─────────────────────────────────────────────────
@@ -459,18 +503,23 @@ function PrepareToInstall(var NeedsRestart: Boolean): String;
 var
   ResultCode : Integer;
   TempFile   : String;
+  CheckRole  : String;
 begin
   Result := '';
   TempFile := ExpandConstant('{tmp}\prereq-results.json');
 
-  // Run prerequisite check script
+  // For Full installs, check as NodeB (stricter GPU / driver requirements)
+  if IsFull or HasWorker then CheckRole := 'NodeB'
+  else                        CheckRole := 'NodeA';
+
+  // Run prerequisite check script using {tmp} — {app} doesn't exist yet at this point
   if not Exec('powershell.exe',
-    Format('-NonInteractive -ExecutionPolicy Bypass -File "%s\installer-scripts\Test-Prerequisites.ps1" -Role %s -OutputFile "%s"',
-      [ExpandConstant('{app}'), CRole, TempFile]),
+    Format('-NonInteractive -ExecutionPolicy Bypass -File "%s" -Role %s -OutputFile "%s"',
+      [ExpandConstant('{tmp}\installer-scripts\Test-Prerequisites.ps1'), CheckRole, TempFile]),
     '', SW_HIDE, ewWaitUntilTerminated, ResultCode) then
     Exit;  // Exec failed — skip, let installer proceed
 
-  // ResultCode 1 = hard fail; show warning but allow user to continue
+  // ResultCode 1 = hard fail; warn but allow continuation
   if ResultCode = 1 then
-    MsgBox('One or more prerequisite checks failed. The installation will continue, but SplitBrain.AI may not work correctly. Check the setup guide at data\Pages\guides\getting-started.md after installation.', mbError, MB_OK);
+    MsgBox('One or more prerequisite checks failed. The installation will continue, but SplitBrain.AI may not work correctly.' + #13#10 + #13#10 + 'Check the setup guide at data\Pages\guides\getting-started.md after installation.', mbError, MB_OK);
 end;
