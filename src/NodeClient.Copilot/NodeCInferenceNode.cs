@@ -1,1 +1,227 @@
-dXNpbmcgQXp1cmUuSWRlbnRpdHk7CnVzaW5nIEF6dXJlLlNlY3VyaXR5LktleVZhdWx0LlNlY3JldHM7CnVzaW5nIE1pY3Jvc29mdC5FeHRlbnNpb25zLkxvZ2dpbmc7CnVzaW5nIE1pY3Jvc29mdC5FeHRlbnNpb25zLk9wdGlvbnM7CnVzaW5nIE9yY2hlc3RyYXRvci5Db3JlLkNvbmZpZ3VyYXRpb247CnVzaW5nIE9yY2hlc3RyYXRvci5Db3JlLkVudW1zOwp1c2luZyBPcmNoZXN0cmF0b3IuQ29yZS5JbnRlcmZhY2VzOwp1c2luZyBPcmNoZXN0cmF0b3IuQ29yZS5Nb2RlbHM7CnVzaW5nIFN5c3RlbS5EaWFnbm9zdGljczsKdXNpbmcgU3lzdGVtLlJ1bnRpbWUuQ29tcGlsZXJTZXJ2aWNlczsKCm5hbWVzcGFjZSBOb2RlQ2xpZW50LkNvcGlsb3Q7CgovLy8gPHN1bW1hcnk+Ci8vLyBOb2RlIEMg4oCUIEdpdEh1YiBDb3BpbG90IEFQSSBpbmZlcmVuY2Ugbm9kZS4KLy8vIDwvc3VtbWFyeT4KcHVibGljIHNlYWxlZCBjbGFzcyBOb2RlQ0luZmVyZW5jZU5vZGUgOiBJSW5mZXJlbmNlTm9kZQp7CiAgICBwcml2YXRlIHJlYWRvbmx5IElDb3BpbG90Q2xpZW50IF9jbGllbnQ7CiAgICBwcml2YXRlIHJlYWRvbmx5IHN0cmluZyBfbW9kZWw7CiAgICBwcml2YXRlIHJlYWRvbmx5IElMb2dnZXI8Tm9kZUNJbmZlcmVuY2VOb2RlPiBfbG9nZ2VyOwogICAgcHJpdmF0ZSBOb2RlSGVhbHRoU3RhdHVzIF9oZWFsdGggPSBuZXcoKSB7IFN0YXRlID0gSGVhbHRoU3RhdGUuVW5hdmFpbGFibGUsIExhc3RDaGVja2VkID0gRGF0ZVRpbWVPZmZzZXQuTWluVmFsdWUgfTsKCiAgICBwdWJsaWMgc3RyaW5nIE5vZGVJZCA9PiAiQyI7CiAgICBwdWJsaWMgTm9kZVByb3ZpZGVyVHlwZSBQcm92aWRlciA9PiBOb2RlUHJvdmlkZXJUeXBlLkNvcGlsb3RTZGs7CiAgICBwdWJsaWMgTm9kZUhlYWx0aFN0YXR1cyBIZWFsdGggPT4gX2hlYWx0aDsKCiAgICBwdWJsaWMgTm9kZUNhcGFiaWxpdGllcyBDYXBhYmlsaXRpZXMgeyBnZXQ7IH0KCiAgICBwdWJsaWMgTm9kZUNJbmZlcmVuY2VOb2RlKElDb3BpbG90Q2xpZW50IGNsaWVudCwgSU9wdGlvbnM8Q29waWxvdENsaWVudE9wdGlvbnM+IG9wdGlvbnMsIElMb2dnZXI8Tm9kZUNJbmZlcmVuY2VOb2RlPiBsb2dnZXIpCiAgICB7CiAgICAgICAgX2NsaWVudCA9IGNsaWVudDsKICAgICAgICBfbW9kZWwgPSBvcHRpb25zLlZhbHVlLk1vZGVsOwogICAgICAgIF9sb2dnZXIgPSBsb2dnZXI7CgogICAgICAgIENhcGFiaWxpdGllcyA9IG5ldyBOb2RlQ2FwYWJpbGl0aWVzCiAgICAgICAgewogICAgICAgICAgICBOb2RlSWQgPSAiQyIsCiAgICAgICAgICAgIE1vZGVsID0gX21vZGVsLAogICAgICAgICAgICBWcmFtTWIgPSAwLAogICAgICAgICAgICBTdXBwb3J0c1N0cmVhbWluZyA9IHRydWUKICAgICAgICB9OwogICAgfQoKICAgIHB1YmxpYyBhc3luYyBUYXNrPEluZmVyZW5jZVJlc3VsdD4gRXhlY3V0ZUFzeW5jKEluZmVyZW5jZVJlcXVlc3QgcmVxdWVzdCwgQ2FuY2VsbGF0aW9uVG9rZW4gY2FuY2VsbGF0aW9uVG9rZW4gPSBkZWZhdWx0KQogICAgewogICAgICAgIHZhciByZXEgPSByZXF1ZXN0IHdpdGggeyBNb2RlbCA9IF9tb2RlbCB9OwogICAgICAgIF9sb2dnZXIuTG9nRGVidWcoIk5vZGUgQyBleGVjdXRpbmcgbW9kZWw9e01vZGVsfSBwcm9tcHRMZW49e0xlbn0iLCBfbW9kZWwsIHJlcXVlc3QuUHJvbXB0Lkxlbmd0aCk7CiAgICAgICAgdmFyIHN3ID0gU3RvcHdhdGNoLlN0YXJ0TmV3KCk7CiAgICAgICAgdmFyIHRleHQgPSBhd2FpdCBfY2xpZW50LkV4ZWN1dGVBc3luYyhyZXEsIGNhbmNlbGxhdGlvblRva2VuKTsKICAgICAgICBzdy5TdG9wKCk7CiAgICAgICAgX2xvZ2dlci5Mb2dJbmZvcm1hdGlvbigiTm9kZSBDIGNvbXBsZXRlZCBsYXRlbmN5TXM9e0xhdGVuY3l9IHRva2Vuc091dD17VG9rZW5zfSIsIHN3LkVsYXBzZWRNaWxsaXNlY29uZHMsIHRleHQuTGVuZ3RoIC8gNCk7CgogICAgICAgIHJldHVybiBuZXcgSW5mZXJlbmNlUmVzdWx0CiAgICAgICAgewogICAgICAgICAgICBUZXh0ID0gdGV4dCwKICAgICAgICAgICAgTm9kZUlkID0gTm9kZUlkLAogICAgICAgICAgICBNb2RlbCA9IF9tb2RlbCwKICAgICAgICAgICAgTGF0ZW5jeU1zID0gKGludClzdy5FbGFwc2VkTWlsbGlzZWNvbmRzCiAgICAgICAgfTsKICAgIH0KCiAgICBwdWJsaWMgYXN5bmMgSUFzeW5jRW51bWVyYWJsZTxJbmZlcmVuY2VDaHVuaz4gU3RyZWFtQXN5bmMoCiAgICAgICAgSW5mZXJlbmNlUmVxdWVzdCByZXF1ZXN0LAogICAgICAgIFtFbnVtZXJhdG9yQ2FuY2VsbGF0aW9uXSBDYW5jZWxsYXRpb25Ub2tlbiBjYW5jZWxsYXRpb25Ub2tlbiA9IGRlZmF1bHQpCiAgICB7CiAgICAgICAgdmFyIHJlc3VsdCA9IGF3YWl0IEV4ZWN1dGVBc3luYyhyZXF1ZXN0LCBjYW5jZWxsYXRpb25Ub2tlbik7CiAgICAgICAgeWllbGQgcmV0dXJuIG5ldyBJbmZlcmVuY2VDaHVuawogICAgICAgIHsKICAgICAgICAgICAgQ29udGVudCA9IHJlc3VsdC5UZXh0LAogICAgICAgICAgICBJc0ZpbmFsID0gdHJ1ZSwKICAgICAgICAgICAgRmluYWxSZXN1bHQgPSBuZXcgT3JjaGVzdHJhdG9yLkNvcmUuTW9kZWxzLkluZmVyZW5jZVJlc3VsdAogICAgICAgICAgICB7CiAgICAgICAgICAgICAgICBUZXh0ID0gcmVzdWx0LlRleHQsCiAgICAgICAgICAgICAgICBOb2RlSWQgPSByZXN1bHQuTm9kZUlkLAogICAgICAgICAgICAgICAgTW9kZWwgPSByZXN1bHQuTW9kZWwsCiAgICAgICAgICAgICAgICBMYXRlbmN5TXMgPSByZXN1bHQuTGF0ZW5jeU1zCiAgICAgICAgICAgIH0KICAgICAgICB9OwogICAgfQoKICAgIHB1YmxpYyBhc3luYyBUYXNrPE5vZGVIZWFsdGhTdGF0dXM+IEdldEhlYWx0aEFzeW5jKENhbmNlbGxhdGlvblRva2VuIGNhbmNlbGxhdGlvblRva2VuID0gZGVmYXVsdCkKICAgIHsKICAgICAgICBOb2RlSGVhbHRoU3RhdHVzIHN0YXR1czsKICAgICAgICB0cnkKICAgICAgICB7CiAgICAgICAgICAgIHZhciBpc0hlYWx0aHkgPSBhd2FpdCBfY2xpZW50LklzSGVhbHRoeUFzeW5jKGNhbmNlbGxhdGlvblRva2VuKTsKICAgICAgICAgICAgc3RhdHVzID0gbmV3IE5vZGVIZWFsdGhTdGF0dXMKICAgICAgICAgICAgewogICAgICAgICAgICAgICAgU3RhdGUgPSBpc0hlYWx0aHkgPyBIZWFsdGhTdGF0ZS5IZWFsdGh5IDogSGVhbHRoU3RhdGUuRGVncmFkZWQsCiAgICAgICAgICAgICAgICBMYXN0Q2hlY2tlZCA9IERhdGVUaW1lT2Zmc2V0LlV0Y05vdywKICAgICAgICAgICAgICAgIEF2YWlsYWJsZU1vZGVscyA9IFtfbW9kZWxdCiAgICAgICAgICAgIH07CiAgICAgICAgfQogICAgICAgIGNhdGNoIChFeGNlcHRpb24gZXgpCiAgICAgICAgewogICAgICAgICAgICBzdGF0dXMgPSBuZXcgTm9kZUhlYWx0aFN0YXR1cwogICAgICAgICAgICB7CiAgICAgICAgICAgICAgICBTdGF0ZSA9IEhlYWx0aFN0YXRlLlVuYXZhaWxhYmxlLAogICAgICAgICAgICAgICAgTGFzdENoZWNrZWQgPSBEYXRlVGltZU9mZnNldC5VdGNOb3csCiAgICAgICAgICAgICAgICBFcnJvck1lc3NhZ2UgPSBleC5NZXNzYWdlCiAgICAgICAgICAgIH07CiAgICAgICAgfQogICAgICAgIF9oZWFsdGggPSBzdGF0dXM7CiAgICAgICAgcmV0dXJuIHN0YXR1czsKICAgIH0KCiAgICBwdWJsaWMgVGFzazxJUmVhZE9ubHlMaXN0PE1vZGVsSW5mbz4+IExpc3RNb2RlbHNBc3luYyhDYW5jZWxsYXRpb25Ub2tlbiBjYW5jZWxsYXRpb25Ub2tlbiA9IGRlZmF1bHQpCiAgICB7CiAgICAgICAgSVJlYWRPbmx5TGlzdDxNb2RlbEluZm8+IHJlc3VsdCA9IFtuZXcgTW9kZWxJbmZvIHsgTW9kZWxJZCA9IF9tb2RlbCB9XTsKICAgICAgICByZXR1cm4gVGFzay5Gcm9tUmVzdWx0KHJlc3VsdCk7CiAgICB9CgogICAgcHVibGljIFZhbHVlVGFzayBEaXNwb3NlQXN5bmMoKSA9PiBWYWx1ZVRhc2suQ29tcGxldGVkVGFzazsKCiAgICAvLyAtLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0KICAgIC8vIEZhY3RvcnkgaGVscGVyCiAgICAvLyAtLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0KCiAgICBwdWJsaWMgc3RhdGljIGFzeW5jIFRhc2s8Tm9kZUNJbmZlcmVuY2VOb2RlPiBDcmVhdGVBc3luYygKICAgICAgICBDb3BpbG90Q2xpZW50T3B0aW9ucyBvcHRpb25zLAogICAgICAgIElMb2dnZXI8Tm9kZUNJbmZlcmVuY2VOb2RlPiBsb2dnZXIsCiAgICAgICAgQ2FuY2VsbGF0aW9uVG9rZW4gY2FuY2VsbGF0aW9uVG9rZW4gPSBkZWZhdWx0KQogICAgewogICAgICAgIHZhciB0b2tlbiA9IGF3YWl0IFJlc29sdmVBcGlUb2tlbkFzeW5jKG9wdGlvbnMsIGxvZ2dlciwgY2FuY2VsbGF0aW9uVG9rZW4pOwogICAgICAgIHZhciBjbGllbnQgPSBuZXcgQ29waWxvdENsaWVudCh0b2tlbiwgT3B0aW9ucy5DcmVhdGUob3B0aW9ucykpOwogICAgICAgIHJldHVybiBuZXcgTm9kZUNJbmZlcmVuY2VOb2RlKGNsaWVudCwgT3B0aW9ucy5DcmVhdGUob3B0aW9ucyksIGxvZ2dlcik7CiAgICB9CgogICAgcHJpdmF0ZSBzdGF0aWMgYXN5bmMgVGFzazxzdHJpbmc+IFJlc29sdmVBcGlUb2tlbkFzeW5jKAogICAgICAgIENvcGlsb3RDbGllbnRPcHRpb25zIG9wdGlvbnMsCiAgICAgICAgSUxvZ2dlciBsb2dnZXIsCiAgICAgICAgQ2FuY2VsbGF0aW9uVG9rZW4gY2FuY2VsbGF0aW9uVG9rZW4pCiAgICB7CiAgICAgICAgaWYgKCFzdHJpbmcuSXNOdWxsT3JXaGl0ZVNwYWNlKG9wdGlvbnMuS2V5VmF1bHRVcmkpKQogICAgICAgIHsKICAgICAgICAgICAgbG9nZ2VyLkxvZ0luZm9ybWF0aW9uKCJOb2RlIEM6IHJlc29sdmluZyBBUEkgdG9rZW4gZnJvbSBLZXkgVmF1bHQge1VyaX0iLCBvcHRpb25zLktleVZhdWx0VXJpKTsKICAgICAgICAgICAgdHJ5CiAgICAgICAgICAgIHsKICAgICAgICAgICAgICAgIHZhciBjcmVkZW50aWFsID0gbmV3IERlZmF1bHRBenVyZUNyZWRlbnRpYWwoKTsKICAgICAgICAgICAgICAgIHZhciBrdkNsaWVudCA9IG5ldyBTZWNyZXRDbGllbnQobmV3IFVyaShvcHRpb25zLktleVZhdWx0VXJpKSwgY3JlZGVudGlhbCk7CiAgICAgICAgICAgICAgICB2YXIgc2VjcmV0ID0gYXdhaXQga3ZDbGllbnQuR2V0U2VjcmV0QXN5bmMob3B0aW9ucy5LZXlWYXVsdFNlY3JldE5hbWUsIGNhbmNlbGxhdGlvblRva2VuOiBjYW5jZWxsYXRpb25Ub2tlbik7CiAgICAgICAgICAgICAgICBsb2dnZXIuTG9nSW5mb3JtYXRpb24oIk5vZGUgQzogQVBJIHRva2VuIHJldHJpZXZlZCBmcm9tIEtleSBWYXVsdCIpOwogICAgICAgICAgICAgICAgcmV0dXJuIHNlY3JldC5WYWx1ZS5WYWx1ZTsKICAgICAgICAgICAgfQogICAgICAgICAgICBjYXRjaCAoRXhjZXB0aW9uIGV4KQogICAgICAgICAgICB7CiAgICAgICAgICAgICAgICBsb2dnZXIuTG9nV2FybmluZyhleCwgIk5vZGUgQzogS2V5IFZhdWx0IHJldHJpZXZhbCBmYWlsZWQg4oCUIGZhbGxpbmcgYmFjayB0byBlbnZpcm9ubWVudCB2YXJpYWJsZSIpOwogICAgICAgICAgICB9CiAgICAgICAgfQoKICAgICAgICB2YXIgZW52VG9rZW4gPSBFbnZpcm9ubWVudC5HZXRFbnZpcm9ubWVudFZhcmlhYmxlKCJDT1BJTE9UX0FQSV9LRVkiKTsKICAgICAgICBpZiAoIXN0cmluZy5Jc051bGxPcldoaXRlU3BhY2UoZW52VG9rZW4pKQogICAgICAgIHsKICAgICAgICAgICAgbG9nZ2VyLkxvZ0luZm9ybWF0aW9uKCJOb2RlIEM6IEFQSSB0b2tlbiBzb3VyY2VkIGZyb20gQ09QSUxPVF9BUElfS0VZIGVudmlyb25tZW50IHZhcmlhYmxlIik7CiAgICAgICAgICAgIHJldHVybiBlbnZUb2tlbjsKICAgICAgICB9CgogICAgICAgIHZhciBnaFRva2VuID0gVHJ5UmVzb2x2ZUdoQ2xpVG9rZW4obG9nZ2VyKTsKICAgICAgICBpZiAoIXN0cmluZy5Jc051bGxPcldoaXRlU3BhY2UoZ2hUb2tlbikpCiAgICAgICAgICAgIHJldHVybiBnaFRva2VuOwoKICAgICAgICB0aHJvdyBuZXcgSW52YWxpZE9wZXJhdGlvbkV4Y2VwdGlvbigKICAgICAgICAgICAgIk5vZGUgQyAoR2l0SHViIENvcGlsb3QpIEFQSSB0b2tlbiBjb3VsZCBub3QgYmUgcmVzb2x2ZWQuICIgKwogICAgICAgICAgICAiQ29uZmlndXJlIENvcGlsb3ROb2RlOktleVZhdWx0VXJpLCBzZXQgQ09QSUxPVF9BUElfS0VZLCBvciBydW4gYGdoIGF1dGggbG9naW5gLiIpOwogICAgfQoKICAgIHByaXZhdGUgc3RhdGljIHN0cmluZz8gVHJ5UmVzb2x2ZUdoQ2xpVG9rZW4oSUxvZ2dlciBsb2dnZXIpCiAgICB7CiAgICAgICAgdHJ5CiAgICAgICAgewogICAgICAgICAgICB1c2luZyB2YXIgcHJvY2VzcyA9IG5ldyBQcm9jZXNzCiAgICAgICAgICAgIHsKICAgICAgICAgICAgICAgIFN0YXJ0SW5mbyA9IG5ldyBQcm9jZXNzU3RhcnRJbmZvCiAgICAgICAgICAgICAgICB7CiAgICAgICAgICAgICAgICAgICAgRmlsZU5hbWUgPSAiZ2giLAogICAgICAgICAgICAgICAgICAgIEFyZ3VtZW50cyA9ICJhdXRoIHRva2VuIiwKICAgICAgICAgICAgICAgICAgICBSZWRpcmVjdFN0YW5kYXJkT3V0cHV0ID0gdHJ1ZSwKICAgICAgICAgICAgICAgICAgICBSZWRpcmVjdFN0YW5kYXJkRXJyb3IgPSB0cnVlLAogICAgICAgICAgICAgICAgICAgIFVzZVNoZWxsRXhlY3V0ZSA9IGZhbHNlLAogICAgICAgICAgICAgICAgICAgIENyZWF0ZU5vV2luZG93ID0gdHJ1ZSwKICAgICAgICAgICAgICAgIH0KICAgICAgICAgICAgfTsKCiAgICAgICAgICAgIGlmICghcHJvY2Vzcy5TdGFydCgpKQogICAgICAgICAgICB7CiAgICAgICAgICAgICAgICBsb2dnZXIuTG9nV2FybmluZygiTm9kZSBDOiBnaCBDTEkgcHJvY2VzcyBmYWlsZWQgdG8gc3RhcnQg4oCUIGlzIEdpdEh1YiBDTEkgaW5zdGFsbGVkPyIpOwogICAgICAgICAgICAgICAgcmV0dXJuIG51bGw7CiAgICAgICAgICAgIH0KCiAgICAgICAgICAgIC8vIFJlYWQgc3Rkb3V0L3N0ZGVyciBhc3luY2hyb25vdXNseSBCRUZPUkUgV2FpdEZvckV4aXQgdG8gYXZvaWQgZGVhZGxvY2tzCiAgICAgICAgICAgIC8vIHdoZW4gdGhlIE9TIHBpcGUgYnVmZmVyIGZpbGxzIHVwIG9uIGVpdGhlciBzdHJlYW0uCiAgICAgICAgICAgIHZhciBzdGRvdXRUYXNrID0gcHJvY2Vzcy5TdGFuZGFyZE91dHB1dC5SZWFkVG9FbmRBc3luYygpOwogICAgICAgICAgICB2YXIgc3RkZXJyVGFzayA9IHByb2Nlc3MuU3RhbmRhcmRFcnJvci5SZWFkVG9FbmRBc3luYygpOwoKICAgICAgICAgICAgaWYgKCFwcm9jZXNzLldhaXRGb3JFeGl0KDUwMDApKQogICAgICAgICAgICB7CiAgICAgICAgICAgICAgICBsb2dnZXIuTG9nV2FybmluZygiTm9kZSBDOiBnaCBDTEkgdGltZWQgb3V0IGFmdGVyIDUgc2Vjb25kcyDigJQga2lsbGluZyBwcm9jZXNzIik7CiAgICAgICAgICAgICAgICB0cnkgeyBwcm9jZXNzLktpbGwoZW50aXJlUHJvY2Vzc1RyZWU6IHRydWUpOyB9IGNhdGNoIHsgLyogYmVzdC1lZmZvcnQgKi8gfQogICAgICAgICAgICAgICAgcmV0dXJuIG51bGw7CiAgICAgICAgICAgIH0KCiAgICAgICAgICAgIHZhciB0b2tlbiA9IHN0ZG91dFRhc2suR2V0QXdhaXRlcigpLkdldFJlc3VsdCgpLlRyaW0oKTsKICAgICAgICAgICAgdmFyIHN0ZGVyciA9IHN0ZGVyclRhc2suR2V0QXdhaXRlcigpLkdldFJlc3VsdCgpOwoKICAgICAgICAgICAgaWYgKHByb2Nlc3MuRXhpdENvZGUgPT0gMCAmJiAhc3RyaW5nLklzTnVsbE9yV2hpdGVTcGFjZSh0b2tlbikpCiAgICAgICAgICAgIHsKICAgICAgICAgICAgICAgIGxvZ2dlci5Mb2dJbmZvcm1hdGlvbigiTm9kZSBDOiBBUEkgdG9rZW4gc291cmNlZCBmcm9tIGdoIENMSSIpOwogICAgICAgICAgICAgICAgcmV0dXJuIHRva2VuOwogICAgICAgICAgICB9CgogICAgICAgICAgICBpZiAoIXN0cmluZy5Jc051bGxPcldoaXRlU3BhY2Uoc3RkZXJyKSkKICAgICAgICAgICAgICAgIGxvZ2dlci5Mb2dXYXJuaW5nKCJOb2RlIEM6IGdoIGF1dGggdG9rZW4gZmFpbGVkIChleGl0PXtFeGl0Q29kZX0pOiB7U3RkRXJyfSIsIHByb2Nlc3MuRXhpdENvZGUsIHN0ZGVyci5UcmltKCkpOwogICAgICAgIH0KICAgICAgICBjYXRjaCAoU3lzdGVtLkNvbXBvbmVudE1vZGVsLldpbjMyRXhjZXB0aW9uKQogICAgICAgIHsKICAgICAgICAgICAgbG9nZ2VyLkxvZ1dhcm5pbmcoIk5vZGUgQzogZ2ggQ0xJIG5vdCBmb3VuZCBvbiBQQVRIIOKAlCBpbnN0YWxsIEdpdEh1YiBDTEkgb3Igc2V0IENPUElMT1RfQVBJX0tFWSIpOwogICAgICAgIH0KICAgICAgICBjYXRjaCAoRXhjZXB0aW9uIGV4KQogICAgICAgIHsKICAgICAgICAgICAgbG9nZ2VyLkxvZ0RlYnVnKGV4LCAiTm9kZSBDOiBnaCBDTEkgdG9rZW4gcmVzb2x1dGlvbiBmYWlsZWQiKTsKICAgICAgICB9CgogICAgICAgIHJldHVybiBudWxsOwogICAgfQp9Cg==
+using Azure.Identity;
+using Azure.Security.KeyVault.Secrets;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
+using Orchestrator.Core.Configuration;
+using Orchestrator.Core.Enums;
+using Orchestrator.Core.Interfaces;
+using Orchestrator.Core.Models;
+using System.ComponentModel;
+using System.Diagnostics;
+using System.Runtime.CompilerServices;
+
+namespace NodeClient.Copilot;
+
+/// <summary>
+/// Node C — GitHub Copilot API inference node.
+/// </summary>
+public sealed class NodeCInferenceNode : IInferenceNode
+{
+    private readonly ICopilotClient _client;
+    private readonly string _model;
+    private readonly ILogger<NodeCInferenceNode> _logger;
+    private NodeHealthStatus _health = new() { State = HealthState.Unavailable, LastChecked = DateTimeOffset.MinValue };
+
+    public string NodeId => "C";
+    public NodeProviderType Provider => NodeProviderType.CopilotSdk;
+    public NodeHealthStatus Health => _health;
+
+    public NodeCapabilities Capabilities { get; }
+
+    public NodeCInferenceNode(ICopilotClient client, IOptions<CopilotClientOptions> options, ILogger<NodeCInferenceNode> logger)
+    {
+        _client = client;
+        _model = options.Value.Model;
+        _logger = logger;
+
+        Capabilities = new NodeCapabilities
+        {
+            NodeId = "C",
+            Model = _model,
+            VramMb = 0,
+            SupportsStreaming = true
+        };
+    }
+
+    public async Task<InferenceResult> ExecuteAsync(InferenceRequest request, CancellationToken cancellationToken = default)
+    {
+        var req = request with { Model = _model };
+        _logger.LogDebug("Node C executing model={Model} promptLen={Len}", _model, request.Prompt.Length);
+        var sw = Stopwatch.StartNew();
+        var text = await _client.ExecuteAsync(req, cancellationToken);
+        sw.Stop();
+        _logger.LogInformation("Node C completed latencyMs={Latency} tokensOut={Tokens}", sw.ElapsedMilliseconds, text.Length / 4);
+
+        return new InferenceResult
+        {
+            Text = text,
+            NodeId = NodeId,
+            Model = _model,
+            LatencyMs = (int)sw.ElapsedMilliseconds
+        };
+    }
+
+    public async IAsyncEnumerable<InferenceChunk> StreamAsync(
+        InferenceRequest request,
+        [EnumeratorCancellation] CancellationToken cancellationToken = default)
+    {
+        var result = await ExecuteAsync(request, cancellationToken);
+        yield return new InferenceChunk
+        {
+            Content = result.Text,
+            IsFinal = true,
+            FinalResult = new Orchestrator.Core.Models.InferenceResult
+            {
+                Text = result.Text,
+                NodeId = result.NodeId,
+                Model = result.Model,
+                LatencyMs = result.LatencyMs
+            }
+        };
+    }
+
+    public async Task<NodeHealthStatus> GetHealthAsync(CancellationToken cancellationToken = default)
+    {
+        NodeHealthStatus status;
+        try
+        {
+            var isHealthy = await _client.IsHealthyAsync(cancellationToken);
+            status = new NodeHealthStatus
+            {
+                State = isHealthy ? HealthState.Healthy : HealthState.Degraded,
+                LastChecked = DateTimeOffset.UtcNow,
+                AvailableModels = [_model]
+            };
+        }
+        catch (Exception ex)
+        {
+            status = new NodeHealthStatus
+            {
+                State = HealthState.Unavailable,
+                LastChecked = DateTimeOffset.UtcNow,
+                ErrorMessage = ex.Message
+            };
+        }
+        _health = status;
+        return status;
+    }
+
+    public Task<IReadOnlyList<ModelInfo>> ListModelsAsync(CancellationToken cancellationToken = default)
+    {
+        IReadOnlyList<ModelInfo> result = [new ModelInfo { ModelId = _model }];
+        return Task.FromResult(result);
+    }
+
+    public ValueTask DisposeAsync() => ValueTask.CompletedTask;
+
+    // ---------------------------------------------------------------------------
+    // Factory helper
+    // ---------------------------------------------------------------------------
+
+    public static async Task<NodeCInferenceNode> CreateAsync(
+        CopilotClientOptions options,
+        ILogger<NodeCInferenceNode> logger,
+        CancellationToken cancellationToken = default)
+    {
+        var token = await ResolveApiTokenAsync(options, logger, cancellationToken);
+        var client = new CopilotClient(token, Options.Create(options));
+        return new NodeCInferenceNode(client, Options.Create(options), logger);
+    }
+
+    private static async Task<string> ResolveApiTokenAsync(
+        CopilotClientOptions options,
+        ILogger logger,
+        CancellationToken cancellationToken)
+    {
+        if (!string.IsNullOrWhiteSpace(options.KeyVaultUri))
+        {
+            logger.LogInformation("Node C: resolving API token from Key Vault {Uri}", options.KeyVaultUri);
+            try
+            {
+                var credential = new DefaultAzureCredential();
+                var kvClient = new SecretClient(new Uri(options.KeyVaultUri), credential);
+                var secret = await kvClient.GetSecretAsync(options.KeyVaultSecretName, cancellationToken: cancellationToken);
+                logger.LogInformation("Node C: API token retrieved from Key Vault");
+                return secret.Value.Value;
+            }
+            catch (Exception ex)
+            {
+                logger.LogWarning(ex, "Node C: Key Vault retrieval failed — falling back to environment variable");
+            }
+        }
+
+        var envToken = Environment.GetEnvironmentVariable("COPILOT_API_KEY");
+        if (!string.IsNullOrWhiteSpace(envToken))
+        {
+            logger.LogInformation("Node C: API token sourced from COPILOT_API_KEY environment variable");
+            return envToken;
+        }
+
+        var ghToken = TryResolveGhCliToken(logger);
+        if (!string.IsNullOrWhiteSpace(ghToken))
+            return ghToken;
+
+        throw new InvalidOperationException(
+            "Node C (GitHub Copilot) API token could not be resolved. " +
+            "Configure CopilotNode:KeyVaultUri, set COPILOT_API_KEY, or run `gh auth login`.");
+    }
+
+    private static string? TryResolveGhCliToken(ILogger logger)
+    {
+        try
+        {
+            using var process = new Process
+            {
+                StartInfo = new ProcessStartInfo
+                {
+                    FileName = "gh",
+                    Arguments = "auth token",
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true,
+                    UseShellExecute = false,
+                    CreateNoWindow = true,
+                }
+            };
+
+            if (!process.Start())
+            {
+                logger.LogWarning("Node C: gh CLI process failed to start — is GitHub CLI installed?");
+                return null;
+            }
+
+            // Read stdout/stderr asynchronously BEFORE WaitForExit to avoid deadlocks
+            // when the OS pipe buffer fills up on either stream.
+            var stdoutTask = process.StandardOutput.ReadToEndAsync();
+            var stderrTask = process.StandardError.ReadToEndAsync();
+
+            if (!process.WaitForExit(5000))
+            {
+                logger.LogWarning("Node C: gh CLI timed out after 5 seconds — killing process");
+                try { process.Kill(entireProcessTree: true); } catch { /* best-effort */ }
+                return null;
+            }
+
+            var token = stdoutTask.GetAwaiter().GetResult().Trim();
+            var stderr = stderrTask.GetAwaiter().GetResult();
+
+            if (process.ExitCode == 0 && !string.IsNullOrWhiteSpace(token))
+            {
+                logger.LogInformation("Node C: API token sourced from gh CLI");
+                return token;
+            }
+
+            if (!string.IsNullOrWhiteSpace(stderr))
+                logger.LogWarning("Node C: gh auth token failed (exit={ExitCode}): {StdErr}", process.ExitCode, stderr.Trim());
+        }
+        catch (Win32Exception)
+        {
+            logger.LogWarning("Node C: gh CLI not found on PATH — install GitHub CLI or set COPILOT_API_KEY");
+        }
+        catch (Exception ex)
+        {
+            logger.LogDebug(ex, "Node C: gh CLI token resolution failed");
+        }
+
+        return null;
+    }
+}
