@@ -82,13 +82,27 @@ public sealed class RefactorCodeTool
     private static string SanitizeForFence(string input)
         => input.Replace("```", "` ` `");
 
+    /// <summary>
+    /// Strip control characters (including newlines) from a short metadata parameter and
+    /// truncate to <paramref name="maxLength"/> to prevent prompt-injection via
+    /// language/goal-style fields.
+    /// </summary>
+    private static string SanitizeParam(string value, int maxLength = 50)
+    {
+        var clean = new string(value.Where(c => !char.IsControl(c)).ToArray());
+        return clean.Length > maxLength ? clean[..maxLength] : clean;
+    }
+
     private static string BuildPrompt(string code, string language, string goal)
     {
+        var safeLanguage = SanitizeParam(language);
+        var safeGoal = SanitizeParam(goal);
+
         var sb = new StringBuilder();
-        sb.AppendLine($"You are an expert {language} developer. Refactor the following code for: {goal}.");
+        sb.AppendLine($"You are an expert {safeLanguage} developer. Refactor the following code for: {safeGoal}.");
         sb.AppendLine("Return ONLY the refactored code with no explanation or markdown fences.");
         sb.AppendLine();
-        sb.AppendLine($"```{language}");
+        sb.AppendLine($"```{safeLanguage}");
         sb.AppendLine(SanitizeForFence(code));
         sb.AppendLine("```");
         return sb.ToString();
