@@ -86,14 +86,29 @@ public sealed class GenerateTestsTool
     private static string SanitizeForFence(string input)
         => input.Replace("```", "` ` `");
 
+    /// <summary>
+    /// Strip control characters (including newlines) from a short metadata parameter and
+    /// truncate to <paramref name="maxLength"/> to prevent prompt-injection via
+    /// language/framework/coverage-style fields.
+    /// </summary>
+    private static string SanitizeParam(string value, int maxLength = 50)
+    {
+        var clean = new string(value.Where(c => !char.IsControl(c)).ToArray());
+        return clean.Length > maxLength ? clean[..maxLength] : clean;
+    }
+
     private static string BuildPrompt(string code, string language, string framework, string coverage)
     {
+        var safeLanguage = SanitizeParam(language);
+        var safeFramework = SanitizeParam(framework);
+        var safeCoverage = SanitizeParam(coverage);
+
         var sb = new StringBuilder();
-        sb.AppendLine($"You are an expert {language} developer specialising in test-driven development.");
-        sb.AppendLine($"Generate {coverage} unit tests using {framework} for the following code.");
+        sb.AppendLine($"You are an expert {safeLanguage} developer specialising in test-driven development.");
+        sb.AppendLine($"Generate {safeCoverage} unit tests using {safeFramework} for the following code.");
         sb.AppendLine("Return ONLY the test file content with no explanation or extra markdown.");
         sb.AppendLine();
-        sb.AppendLine($"```{language}");
+        sb.AppendLine($"```{safeLanguage}");
         sb.AppendLine(SanitizeForFence(code));
         sb.AppendLine("```");
         return sb.ToString();
