@@ -1,9 +1,10 @@
-﻿@page "/"
+@page "/"
 @rendermode InteractiveServer
 @inject DashboardState State
 @implements IDisposable
+@using ApexCharts
 
-<PageTitle>Overview — SplitBrain.AI</PageTitle>
+<PageTitle>Overview � SplitBrain.AI</PageTitle>
 
 <h1>Cluster Overview</h1>
 
@@ -26,7 +27,7 @@
                 }
                 <span class="sb-alert-msg">@alert.Message</span>
                 <span class="sb-alert-time">@alert.Timestamp.ToLocalTime().ToString("HH:mm:ss")</span>
-                <button class="sb-btn-dismiss" @onclick="() => State.DismissAlert(alert.AlertId)" title="Dismiss">✕</button>
+                <button class="sb-btn-dismiss" @onclick="() => State.DismissAlert(alert.AlertId)" title="Dismiss">?</button>
             </div>
         }
     </div>
@@ -34,7 +35,7 @@
 
 @if (!State.NodeHealth.Any())
 {
-    <p class="sb-muted">Waiting for health data…</p>
+    <p class="sb-muted">Waiting for health data�</p>
 }
 else
 {
@@ -58,11 +59,26 @@ else
                     <div>Active: <b>@snapshot.Health.ActiveRequests</b></div>
                     @if (snapshot.Health.VramTotalMB is > 0)
                     {
-                        var used = snapshot.Health.VramLoadedMB ?? 0;
+                        var used  = snapshot.Health.VramLoadedMB ?? 0;
                         var total = snapshot.Health.VramTotalMB!.Value;
-                        var pct = total > 0 ? (double)used / total * 100 : 0;
-                        <div>VRAM: <b>@used / @total MB (@pct.ToString("F0")%)</b></div>
-                        <progress value="@pct" max="100" class="sb-vram-bar @(pct > 90 ? "sb-critical" : "")"></progress>
+                        var pct   = total > 0 ? Math.Round((double)used / total * 100, 1) : 0.0;
+                        var gaugeColor = pct > 90 ? "#ef4444" : pct > 70 ? "#eab308" : "#22c55e";
+                        var gaugeOpts = BuildVramGaugeOptions(gaugeColor);
+                        var gaugeData = new List<VramGaugePoint> { new((decimal)pct) };
+
+                        <div class="sb-vram-gauge-wrap">
+                            <ApexChart TItem="VramGaugePoint"
+                                       Options="gaugeOpts"
+                                       Height="110"
+                                       Width="130">
+                                <ApexPointSeries TItem="VramGaugePoint"
+                                                 Items="gaugeData"
+                                                 SeriesType="SeriesType.RadialBar"
+                                                 Name="VRAM"
+                                                 YValue="@(p => p.Pct)" />
+                            </ApexChart>
+                            <div class="sb-vram-label">@used / @total MB</div>
+                        </div>
                     }
                     @if (snapshot.Health.RunningModels.Any())
                     {
@@ -90,4 +106,41 @@ else
 
     public void Dispose() =>
         State.OnChange -= StateHasChanged;
+
+    private static ApexChartOptions<VramGaugePoint> BuildVramGaugeOptions(string color) => new()
+    {
+        Theme = new Theme { Mode = Mode.Dark },
+        Chart = new Chart
+        {
+            Background = "transparent",
+            Toolbar   = new Toolbar { Show = false },
+            Sparkline = new ChartSparkline { Enabled = true },
+            Animations = new Animations { Enabled = false }
+        },
+        PlotOptions = new PlotOptions
+        {
+            RadialBar = new PlotOptionsRadialBar
+            {
+                StartAngle = -120,
+                EndAngle   = 120,
+                Hollow     = new Hollow { Size = "60%" },
+                Track      = new Track { Background = "#2e3148", Width = 100 },
+                DataLabels = new RadialBarDataLabels
+                {
+                    Show  = true,
+                    Name  = new RadialBarDataLabelsName  { Show = false },
+                    Value = new RadialBarDataLabelsValue
+                    {
+                        Show      = true,
+                        FontSize  = "14px",
+                        FontWeight = "700",
+                        Color     = "#e2e8f0",
+                        Formatter = "function(v){return v.toFixed(0)+'%'}"
+                    }
+                }
+            }
+        },
+        Colors = [color],
+        Tooltip = new Tooltip { Enabled = false }
+    };
 }

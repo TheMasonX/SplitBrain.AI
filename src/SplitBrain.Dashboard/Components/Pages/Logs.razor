@@ -26,25 +26,30 @@
 </div>
 
 <div class="sb-log-list">
-    @foreach (var entry in FilteredLogs)
-    {
-        <div class="sb-log-row sb-level-@entry.Level.ToLowerInvariant()">
-            <span class="sb-log-time">@entry.Timestamp.ToLocalTime().ToString("HH:mm:ss.fff")</span>
-            <span class="sb-log-badge">@entry.Level</span>
-            @if (entry.NodeId is not null)
-            {
-                <span class="sb-tag">@entry.NodeId</span>
-            }
-            <span class="sb-log-msg">@entry.Message</span>
-            @if (entry.Exception is not null)
-            {
-                <details class="sb-log-ex"><summary>Exception</summary><pre>@entry.Exception</pre></details>
-            }
-        </div>
+    @{
+        var visibleLogs = FilteredLogs.ToList();
     }
-    @if (!FilteredLogs.Any())
+    @if (!visibleLogs.Any())
     {
         <p class="sb-muted">No log entries match current filters.</p>
+    }
+    else
+    {
+        <Virtualize Items="visibleLogs" Context="entry" OverscanCount="20">
+            <div class="sb-log-row sb-level-@entry.Level.ToLowerInvariant()">
+                <span class="sb-log-time">@entry.Timestamp.ToLocalTime().ToString("HH:mm:ss.fff")</span>
+                <span class="sb-log-badge">@entry.Level</span>
+                @if (entry.NodeId is not null)
+                {
+                    <span class="sb-tag">@entry.NodeId</span>
+                }
+                <span class="sb-log-msg">@entry.Message</span>
+                @if (entry.Exception is not null)
+                {
+                    <details class="sb-log-ex"><summary>Exception</summary><pre>@entry.Exception</pre></details>
+                }
+            </div>
+        </Virtualize>
     }
 </div>
 

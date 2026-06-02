@@ -5,6 +5,7 @@ using Microsoft.Extensions.Options;
 using Orchestrator.Core.Configuration;
 using Orchestrator.Core.Interfaces;
 using Orchestrator.Core.Models;
+using Orchestrator.Infrastructure.Configuration;
 
 namespace Orchestrator.Infrastructure.Registry;
 
@@ -104,18 +105,23 @@ public sealed class NodeRegistry : INodeRegistry, IDisposable
 
     public async Task SaveTopologyAsync(CancellationToken ct = default)
     {
-        var config = new NodeTopologyConfig
+        var topology = new NodeTopologyConfig
         {
             Nodes = _nodes.Values.Select(r => r.Config).ToList()
         };
 
-        var json = JsonSerializer.Serialize(config, new JsonSerializerOptions
+        var payload = new Dictionary<string, NodeTopologyConfig>
+        {
+            ["NodeTopology"] = topology
+        };
+
+        var json = JsonSerializer.Serialize(payload, new JsonSerializerOptions
         {
             WriteIndented = true,
             Converters = { new JsonStringEnumConverter() }
         });
 
-        await File.WriteAllTextAsync(_configFilePath, json, ct);
+        await AtomicJsonFileWriter.WriteAsync(_configFilePath, json, ct).ConfigureAwait(false);
         // IOptionsMonitor picks up the change via reloadOnChange: true
     }
 

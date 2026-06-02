@@ -1,3 +1,4 @@
+using ApexCharts;
 using Microsoft.Extensions.Http.Resilience;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -12,6 +13,7 @@ using OpenTelemetry.Trace;
 using Orchestrator.Core.Configuration;
 using Orchestrator.Core.Interfaces;
 using Orchestrator.Core.Models;
+using Orchestrator.Infrastructure.Configuration;
 using Orchestrator.Infrastructure.Health;
 using Orchestrator.Infrastructure.History;
 using Orchestrator.Infrastructure.Metrics;
@@ -39,6 +41,7 @@ namespace SplitBrain.Dashboard
                 .AddInteractiveServerComponents();
 
             builder.Services.AddSignalR();
+            builder.Services.AddApexCharts();
 
             // Dashboard services
             builder.Services.AddSingleton<DashboardState>();
@@ -74,6 +77,12 @@ namespace SplitBrain.Dashboard
                 optional: true, reloadOnChange: true);
             builder.Configuration.AddJsonFile("nodes.json", optional: true, reloadOnChange: true);
 
+            // Routing options (hot-reload from routing.json)
+            builder.Configuration.AddJsonFile(
+                Path.Combine(AppContext.BaseDirectory, "routing.json"),
+                optional: true, reloadOnChange: true);
+            builder.Configuration.AddJsonFile("routing.json", optional: true, reloadOnChange: true);
+
             builder.Services.Configure<NodeTopologyConfig>(
                 builder.Configuration.GetSection("NodeTopology"));
             builder.Services.Configure<OllamaClientOptions>(
@@ -82,6 +91,9 @@ namespace SplitBrain.Dashboard
                 builder.Configuration.GetSection(CopilotClientOptions.Section));
             builder.Services.Configure<RoutingOptions>(
                 builder.Configuration.GetSection(RoutingOptions.Section));
+            builder.Services.AddSingleton<IRoutingOptionsPersistence>(sp =>
+                new RoutingOptionsPersistence(Path.Combine(AppContext.BaseDirectory, "routing.json")));
+            builder.Services.AddSingleton<TopologyRoutingSaveCoordinator>();
 
             var topologyConfig = builder.Configuration
                 .GetSection("NodeTopology")
@@ -153,21 +165,30 @@ namespace SplitBrain.Dashboard
                 });
             }
 
-            builder.Services.AddHttpClient<IOllamaClient, OllamaClient>();
-            builder.Services.AddSingleton<NodeAInferenceNode>();
-            builder.Services.AddSingleton<IInferenceNode>(sp => sp.GetRequiredService<NodeAInferenceNode>());
-            builder.Services.AddSingleton<NodeBInferenceNode>(sp =>
+            // Keyed OllamaInferenceNode per topology node (config-driven).
+            // NodeA/B legacy singletons are still registered below for RoutingService compat.
+            foreach (var ollamaNode in topologyConfig.Nodes.Where(n => n.Provider == NodeProviderType.Ollama && n.Ollama is not null))
             {
-                var optionsMonitor = sp.GetRequiredService<IOptionsMonitor<OllamaClientOptions>>();
-                var nodeBOptions = optionsMonitor.Get("NodeB");
-                var httpFactory = sp.GetRequiredService<IHttpClientFactory>();
-                var httpClient = httpFactory.CreateClient();
-                httpClient.BaseAddress = new Uri(nodeBOptions.BaseUrl);
-                httpClient.Timeout = TimeSpan.FromSeconds(nodeBOptions.TimeoutSeconds);
-                var ollamaClient = new OllamaClient(httpClient, Options.Create(nodeBOptions));
-                var logger = sp.GetRequiredService<ILogger<NodeBInferenceNode>>();
-                return new NodeBInferenceNode(ollamaClient, logger);
-            });
+                var capturedOllama = ollamaNode;
+                builder.Services.AddKeyedSingleton<OllamaInferenceNode>(capturedOllama.NodeId, (sp, _) =>
+                {
+                    var oConfig = capturedOllama.Ollama!;
+                    var httpFactory = sp.GetRequiredService<IHttpClientFactory>();
+                    var httpClient = httpFactory.CreateClient($"ollama-{capturedOllama.NodeId}");
+                    var ollamaOptions = Options.Create(new OllamaClientOptions
+                    {
+                        BaseUrl = oConfig.BaseUrl,
+                        TimeoutSeconds = oConfig.TimeoutSeconds
+                    });
+                    var client = new OllamaClient(httpClient, ollamaOptions);
+                    var logger = sp.GetRequiredService<ILogger<OllamaInferenceNode>>();
+                    return new OllamaInferenceNode(capturedOllama.NodeId, oConfig, client, logger);
+                });
+            }
+
+            builder.Services.AddHttpClient<IOllamaClient, OllamaClient>();
+
+            // Node C (GitHub Copilot) — singleton for CopilotSdk factory dispatch.
             builder.Services.AddSingleton(sp =>
             {
                 var copilotOptions = sp.GetRequiredService<IOptions<CopilotClientOptions>>().Value;
@@ -175,24 +196,16 @@ namespace SplitBrain.Dashboard
                 return NodeCInferenceNode.CreateAsync(copilotOptions, logger).GetAwaiter().GetResult();
             });
 
-            builder.Services.AddKeyedSingleton<IInferenceQueue>("nodeA", (_, _) => new NodeQueue(capacity: 64));
-            builder.Services.AddKeyedSingleton<IInferenceQueue>("nodeB", (_, _) => new NodeQueue(capacity: 32));
-            builder.Services.AddKeyedSingleton<IInferenceQueue>("nodeC", (_, _) => new NodeQueue(capacity: 32));
-
             builder.Services.AddSingleton<INodeHealthCache, InMemoryNodeHealthCache>();
             builder.Services.AddSingleton<IMetricsCollector, InMemoryMetricsCollector>();
             builder.Services.AddSingleton<IPromptHistory, PromptHistoryService>();
             builder.Services.AddSingleton<IRoutingService>(sp => new RoutingService(
-                nodeA: sp.GetRequiredService<IInferenceNode>(),
-                nodeAQueue: sp.GetRequiredKeyedService<IInferenceQueue>("nodeA"),
+                registry: sp.GetRequiredService<INodeRegistry>(),
+                queueFactory: nodeId => new NodeQueue(capacity: nodeId == "A" ? 64 : 32),
                 logger: sp.GetRequiredService<ILogger<RoutingService>>(),
-                nodeB: sp.GetRequiredService<NodeBInferenceNode>(),
-                nodeBQueue: sp.GetRequiredKeyedService<IInferenceQueue>("nodeB"),
                 healthCache: sp.GetRequiredService<INodeHealthCache>(),
                 metrics: sp.GetRequiredService<IMetricsCollector>(),
                 history: sp.GetRequiredService<IPromptHistory>(),
-                nodeC: sp.GetRequiredService<NodeCInferenceNode>(),
-                nodeCQueue: sp.GetRequiredKeyedService<IInferenceQueue>("nodeC"),
                 routingOptions: sp.GetRequiredService<IOptions<RoutingOptions>>()));
             builder.Services.AddSingleton<IKernelPlannerService, KernelPlannerService>();
             builder.Services.AddSingleton<IModelRegistry>(sp =>
@@ -205,16 +218,20 @@ namespace SplitBrain.Dashboard
                 return registry;
             });
 
-            builder.Services.AddSingleton<IInferenceNodeFactory, InferenceNodeFactory>();
+            builder.Services.AddSingleton<IInferenceNodeFactory, Orchestrator.Infrastructure.Registry.InferenceNodeFactory>();
             builder.Services.AddSingleton<Func<NodeConfiguration, IInferenceNode>>(sp => config =>
-                config.NodeId switch
+                config.Provider switch
                 {
-                    "A" => sp.GetRequiredService<NodeAInferenceNode>(),
-                    "B" => sp.GetRequiredService<NodeBInferenceNode>(),
-                    "C" => sp.GetRequiredService<NodeCInferenceNode>(),
-                    _ when config.Provider == NodeProviderType.Worker =>
+                    NodeProviderType.Worker =>
                         sp.GetRequiredKeyedService<WorkerInferenceNode>(config.NodeId),
-                    _ => throw new InvalidOperationException($"No IInferenceNode registered for NodeId '{config.NodeId}'.")
+                    NodeProviderType.Ollama =>
+                        sp.GetRequiredKeyedService<OllamaInferenceNode>(config.NodeId),
+                    NodeProviderType.CopilotSdk when config.NodeId == "C" =>
+                        sp.GetRequiredService<NodeCInferenceNode>(),
+                    NodeProviderType.CopilotSdk =>
+                        sp.GetRequiredService<NodeCInferenceNode>(),
+                    _ => throw new InvalidOperationException(
+                        $"No IInferenceNode registered for NodeId '{config.NodeId}' provider '{config.Provider}'.")
                 });
             builder.Services.AddSingleton<INodeRegistry, NodeRegistry>();
             builder.Services.AddHostedService<NodeHealthCheckService>();

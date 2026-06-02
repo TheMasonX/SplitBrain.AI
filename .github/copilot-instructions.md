@@ -2,6 +2,7 @@
 
 ## Project Guidelines
 - User prefers NUnit over xUnit for test projects.
+- User prefers autonomous execution: continue implementing as far as safely possible between prompts, avoid pausing for user input when work can continue, include a markdown progress report file named `{PlanName}_Progress_{TimeStamp}`, summarize completion percentage, and explicitly report issues with `%CONTINUE%`/%`END%` status.
 
 ## Knowledge Hub — Where to Find Things
 
@@ -12,7 +13,7 @@ All project knowledge is organized under `Docs/` at the repo root. The `src/Spli
 | Path | Purpose |
 |---|---|
 | `Docs/Memories/` | **Active knowledge base.** Distilled, up-to-date facts about architecture, decisions, and current state. Start here for context. |
-| `Docs/Unconsolidated/` | **Inbox for raw knowledge fragments.** Lessons learned, gotchas, one-off fixes. Periodically "dreamed on" to distill into `Docs/Memories/`. Do not treat as authoritative — these are raw material. |
+| `Docs/Unconsolidated/` | **Unconsolidated memories inbox.** Raw knowledge fragments (gotchas, fixes, lessons) land here before being distilled. Do not treat Unconsolidated/ as authoritative — these are raw material. Periodic "dreaming" sessions consolidate them into `Docs/Memories/`. |
 | `Docs/Plans/` | Architecture and implementation plans. `MasterPlanV4.md` is the canonical blueprint (mirrored at `Plans/MasterPlanV4.md` repo root). |
 | `Docs/Reviews/` | External and automated review reports against the plans (e.g. deep-research critiques). Cross-reference with codebase before trusting. |
 | `Docs/ProgressReports/` | Snapshot reports of implementation progress per phase. |

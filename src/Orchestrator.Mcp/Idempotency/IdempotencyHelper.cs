@@ -17,29 +17,32 @@ internal static class IdempotencyHelper
         if (key is null)
             return await execute();
 
-        if (!cache.TryReserve(key, DefaultTtl, out var existing))
+        // Read existing entry (if any)
+        var existing = await cache.GetAsync(key, ct);
+        if (existing is not null)
         {
-            if (existing?.State == IdempotencyState.Completed)
+            if (existing.State == IdempotencyState.Completed)
                 return (string)existing.Result!;
 
-            if (existing?.State == IdempotencyState.Processing)
+            if (existing.State == IdempotencyState.Processing)
                 throw new InvalidOperationException($"A request with idempotency key '{key}' is already being processed.");
 
-            if (existing?.State == IdempotencyState.Failed)
-            {
-                cache.TryRemove(key);
-
-                if (!cache.TryReserve(key, DefaultTtl, out _))
-                    throw new InvalidOperationException(
-                        $"Could not reclaim failed idempotency slot for key '{key}'. " +
-                        "A concurrent retry may already be in progress.");
-            }
+            // If previous attempt failed, we'll attempt to reclaim the key by overwriting it below.
         }
+
+        // Reserve slot by marking as Processing
+        await cache.SetAsync(new IdempotencyEntry
+        {
+            Key = key,
+            CreatedAt = DateTimeOffset.UtcNow,
+            Ttl = DefaultTtl,
+            State = IdempotencyState.Processing
+        }, ct);
 
         try
         {
             var result = await execute();
-            await cache.UpdateAsync(new IdempotencyEntry
+            await cache.SetAsync(new IdempotencyEntry
             {
                 Key = key,
                 CreatedAt = DateTimeOffset.UtcNow,
@@ -51,7 +54,7 @@ internal static class IdempotencyHelper
         }
         catch
         {
-            await cache.UpdateAsync(new IdempotencyEntry
+            await cache.SetAsync(new IdempotencyEntry
             {
                 Key = key,
                 CreatedAt = DateTimeOffset.UtcNow,

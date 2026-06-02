@@ -60,6 +60,42 @@
 
 @if (State.RecentTokenUsage.Any())
 {
+    <h2>Latency Over Time</h2>
+    <ApexChart TItem="LatencyPoint"
+               Title=""
+               Options="_chartOptions"
+               @ref="_latencyChart"
+               Height="260">
+        @foreach (var series in _latencySeries)
+        {
+            <ApexPointSeries TItem="LatencyPoint"
+                             Items="series.Points"
+                             SeriesType="SeriesType.Line"
+                             Name="@series.NodeId"
+                             XValue="@(p => p.Time.ToLocalTime().ToString("HH:mm:ss"))"
+                             YValue="@(p => (decimal)p.LatencyMs)"
+                             OrderBy="x => x.X" />
+        }
+    </ApexChart>
+
+    <h2>Tokens / Second Over Time</h2>
+    <ApexChart TItem="ThroughputPoint"
+               Title=""
+               Options="_throughputOptions"
+               @ref="_throughputChart"
+               Height="220">
+        @foreach (var series in _throughputSeries)
+        {
+            <ApexPointSeries TItem="ThroughputPoint"
+                             Items="series.Points"
+                             SeriesType="SeriesType.Bar"
+                             Name="@series.NodeId"
+                             XValue="@(p => p.Time.ToLocalTime().ToString("HH:mm:ss"))"
+                             YValue="@(p => (decimal)p.TokensPerSecond)"
+                             OrderBy="x => x.X" />
+        }
+    </ApexChart>
+
     <h2>Token Usage</h2>
     <table class="sb-table">
         <thead>
@@ -159,15 +195,83 @@ else
     private string _nodeFilter = "";
     private string _taskTypeFilter = "";
 
+    private ApexChart<LatencyPoint>? _latencyChart;
+    private ApexChart<ThroughputPoint>? _throughputChart;
+    private List<NodeSeries<LatencyPoint>> _latencySeries = [];
+    private List<NodeSeries<ThroughputPoint>> _throughputSeries = [];
+    private ApexChartOptions<LatencyPoint>? _chartOptions;
+    private ApexChartOptions<ThroughputPoint>? _throughputOptions;
+
     private IEnumerable<RequestMetric> FilteredMetrics(IReadOnlyList<RequestMetric> all) =>
         all.Where(m =>
             (string.IsNullOrEmpty(_nodeFilter) || m.NodeId == _nodeFilter) &&
             (string.IsNullOrEmpty(_taskTypeFilter) || m.TaskType == _taskTypeFilter))
            .Take(100);
 
-    protected override void OnInitialized() =>
-        State.OnChange += StateHasChanged;
+    protected override void OnInitialized()
+    {
+        _chartOptions = new ApexChartOptions<LatencyPoint>
+        {
+            Theme = new Theme { Mode = Mode.Dark, Palette = PaletteType.Palette1 },
+            Chart = new Chart { Background = "transparent", Toolbar = new Toolbar { Show = false }, Animations = new Animations { Enabled = false } },
+            Stroke = new Stroke { Curve = Curve.Smooth, Width = [2] },
+            Grid = new Grid { BorderColor = "#2e3148" },
+            Xaxis = new XAxis { Labels = new XAxisLabels { Style = new AxisLabelStyle { Colors = "#6b7280", FontSize = "11px" } } },
+            Yaxis = [new YAxis { Labels = new YAxisLabels { Formatter = "function(v){return v.toFixed(0)+' ms'}", Style = new AxisLabelStyle { Colors = "#6b7280", FontSize = "11px" } } }],
+            Tooltip = new Tooltip { Theme = Mode.Dark }
+        };
+
+        _throughputOptions = new ApexChartOptions<ThroughputPoint>
+        {
+            Theme = new Theme { Mode = Mode.Dark, Palette = PaletteType.Palette1 },
+            Chart = new Chart { Background = "transparent", Toolbar = new Toolbar { Show = false }, Animations = new Animations { Enabled = false } },
+            Grid = new Grid { BorderColor = "#2e3148" },
+            Xaxis = new XAxis { Labels = new XAxisLabels { Style = new AxisLabelStyle { Colors = "#6b7280", FontSize = "11px" } } },
+            Yaxis = [new YAxis { Labels = new YAxisLabels { Formatter = "function(v){return v.toFixed(1)+' tok/s'}", Style = new AxisLabelStyle { Colors = "#6b7280", FontSize = "11px" } } }],
+            Tooltip = new Tooltip { Theme = Mode.Dark }
+        };
+
+        RebuildChartData();
+        State.OnChange += OnStateChanged;
+    }
+
+    private void OnStateChanged()
+    {
+        RebuildChartData();
+        InvokeAsync(StateHasChanged);
+    }
+
+    private void RebuildChartData()
+    {
+        var tokenRecords = State.RecentTokenUsage.ToList();
+
+        _latencySeries = tokenRecords
+            .GroupBy(r => r.NodeId)
+            .OrderBy(g => g.Key)
+            .Select(g => new NodeSeries<LatencyPoint>
+            {
+                NodeId = g.Key,
+                Points = g.OrderBy(r => r.Timestamp)
+                          .TakeLast(50)
+                          .Select(r => new LatencyPoint(r.Timestamp, r.InferenceDuration.TotalMilliseconds))
+                          .ToList()
+            })
+            .ToList();
+
+        _throughputSeries = tokenRecords
+            .GroupBy(r => r.NodeId)
+            .OrderBy(g => g.Key)
+            .Select(g => new NodeSeries<ThroughputPoint>
+            {
+                NodeId = g.Key,
+                Points = g.OrderBy(r => r.Timestamp)
+                          .TakeLast(50)
+                          .Select(r => new ThroughputPoint(r.Timestamp, r.TokensPerSecond))
+                          .ToList()
+            })
+            .ToList();
+    }
 
     public void Dispose() =>
-        State.OnChange -= StateHasChanged;
+        State.OnChange -= OnStateChanged;
 }

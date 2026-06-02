@@ -3,6 +3,7 @@ using System.Text;
 using System.Text.Json;
 using FluentValidation;
 using ModelContextProtocol.Server;
+using Orchestrator.Core.Models;
 using Orchestrator.Core.Enums;
 using Orchestrator.Core.Interfaces;
 using Orchestrator.Core.Models;
@@ -52,15 +53,23 @@ public sealed class GenerateTestsTool
 
             var response = new GenerateTestsResponse
             {
-                Files =
-                [
+                Files = new List<GeneratedTestFile>
+                {
                     new GeneratedTestFile
                     {
                         Path = $"Tests.{language}",
                         Content = result.Text
                     }
-                ],
-                Meta = Meta.FromInferenceResult(taskId, result)
+                },
+                Meta = new Meta
+                {
+                    TaskId = taskId,
+                    Node = result.NodeId,
+                    Model = result.Model,
+                    LatencyMs = result.LatencyMs,
+                    TokensIn = result.TokensIn,
+                    TokensOut = result.TokensOut
+                }
             };
 
             return JsonSerializer.Serialize(response, JsonConfig.Default);

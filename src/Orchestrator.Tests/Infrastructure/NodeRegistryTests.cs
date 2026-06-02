@@ -24,7 +24,8 @@ public sealed class NodeRegistryTests
         new() { Nodes = [.. configs] };
 
     private static (NodeRegistry registry, IInferenceNodeFactory factory, IOptionsMonitor<NodeTopologyConfig> monitor) CreateRegistry(
-        NodeTopologyConfig? initialConfig = null)
+        NodeTopologyConfig? initialConfig = null,
+        string? configFilePath = null)
     {
         initialConfig ??= TopologyWith(MakeConfig("A"));
 
@@ -40,7 +41,7 @@ public sealed class NodeRegistryTests
         monitor.OnChange(Arg.Do<Action<NodeTopologyConfig, string?>>(cb => changeCallback = cb))
                .Returns(Substitute.For<IDisposable>());
 
-        var registry = new NodeRegistry(factory, monitor);
+        var registry = new NodeRegistry(factory, monitor, configFilePath);
         return (registry, factory, monitor);
     }
 
@@ -176,5 +177,56 @@ public sealed class NodeRegistryTests
         var act = () => registry.Dispose();
 
         act.Should().NotThrow();
+    }
+
+    [Test]
+    public async Task SaveTopologyAsync_WhenCalledTwice_ReplacesPreviousContent()
+    {
+        var filePath = Path.Combine(Path.GetTempPath(), $"nodes-{Guid.NewGuid():N}.json");
+
+        var initialConfig = TopologyWith(MakeConfig("A"));
+        var (registry, _, _) = CreateRegistry(initialConfig, filePath);
+
+        await registry.SaveTopologyAsync();
+
+        registry.DeregisterNode("A");
+        registry.RegisterNode(MakeConfig("B"));
+        await registry.SaveTopologyAsync();
+
+        var json = await File.ReadAllTextAsync(filePath);
+        using var doc = System.Text.Json.JsonDocument.Parse(json);
+
+        var nodes = doc.RootElement
+            .GetProperty("NodeTopology")
+            .GetProperty("Nodes")
+            .EnumerateArray()
+            .ToList();
+
+        nodes.Should().HaveCount(1);
+        nodes[0].GetProperty("NodeId").GetString().Should().Be("B");
+    }
+
+    [Test]
+    public async Task SaveTopologyAsync_WritesPayloadBindableToNodeTopologySection()
+    {
+        var filePath = Path.Combine(Path.GetTempPath(), $"nodes-{Guid.NewGuid():N}.json");
+
+        var initialConfig = TopologyWith(MakeConfig("A"), MakeConfig("B"));
+        var (registry, _, _) = CreateRegistry(initialConfig, filePath);
+
+        await registry.SaveTopologyAsync();
+
+        var json = await File.ReadAllTextAsync(filePath);
+        var options = new System.Text.Json.JsonSerializerOptions
+        {
+            Converters = { new System.Text.Json.Serialization.JsonStringEnumConverter() }
+        };
+        var payload = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, NodeTopologyConfig>>(json, options);
+
+        payload.Should().NotBeNull();
+        payload!.TryGetValue("NodeTopology", out var rebound).Should().BeTrue();
+        rebound.Should().NotBeNull();
+        rebound!.Nodes.Should().HaveCount(2);
+        rebound.Nodes.Select(n => n.NodeId).Should().BeEquivalentTo(["A", "B"]);
     }
 }

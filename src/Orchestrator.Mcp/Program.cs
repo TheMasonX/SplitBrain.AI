@@ -140,33 +140,25 @@ foreach (var node in topologyConfig.Nodes.Where(n => n.Provider == NodeProviderT
         });
 }
 
-// Node A inference node (uses default IOptions<OllamaClientOptions>)
-builder.Services.AddSingleton<NodeAInferenceNode>();
-builder.Services.AddSingleton<IInferenceNode>(sp => sp.GetRequiredService<NodeAInferenceNode>());
-
-// Node B inference node (uses a separate OllamaClient bound to OllamaNodeB config)
-builder.Services.AddSingleton<NodeBInferenceNode>(sp =>
+// Keyed OllamaInferenceNode per topology node (config-driven).
+foreach (var ollamaNode in topologyConfig.Nodes.Where(n => n.Provider == NodeProviderType.Ollama && n.Ollama is not null))
 {
-    var optionsMonitor = sp.GetRequiredService<IOptionsMonitor<OllamaClientOptions>>();
-    var nodeBOptions = optionsMonitor.Get("NodeB");
-    var httpFactory = sp.GetRequiredService<IHttpClientFactory>();
-    var httpClient = httpFactory.CreateClient();
-    httpClient.BaseAddress = new Uri(nodeBOptions.BaseUrl);
-    httpClient.Timeout = TimeSpan.FromSeconds(nodeBOptions.TimeoutSeconds);
-    var ollamaClient = new OllamaClient(httpClient, Options.Create(nodeBOptions));
-    var logger = sp.GetRequiredService<ILogger<NodeBInferenceNode>>();
-    return new NodeBInferenceNode(ollamaClient, logger);
-});
-
-// Node C inference node — GitHub Copilot API (optional: only registered when configured)
-// API token is resolved securely from Azure Key Vault (preferred) or COPILOT_API_KEY env var.
-// No raw key is ever stored in config files.
-builder.Services.AddSingleton(sp =>
-{
-    var copilotOptions = sp.GetRequiredService<IOptions<CopilotClientOptions>>().Value;
-    var logger = sp.GetRequiredService<ILogger<NodeCInferenceNode>>();
-    return NodeCInferenceNode.CreateAsync(copilotOptions, logger).GetAwaiter().GetResult();
-});
+    var capturedOllama = ollamaNode;
+    builder.Services.AddKeyedSingleton<OllamaInferenceNode>(capturedOllama.NodeId, (sp, _) =>
+    {
+        var oConfig = capturedOllama.Ollama!;
+        var httpFactory = sp.GetRequiredService<IHttpClientFactory>();
+        var httpClient = httpFactory.CreateClient($"ollama-{capturedOllama.NodeId}");
+        var ollamaOptions = Options.Create(new OllamaClientOptions
+        {
+            BaseUrl = oConfig.BaseUrl,
+            TimeoutSeconds = oConfig.TimeoutSeconds
+        });
+        var client = new OllamaClient(httpClient, ollamaOptions);
+        var logger = sp.GetRequiredService<ILogger<OllamaInferenceNode>>();
+        return new OllamaInferenceNode(capturedOllama.NodeId, oConfig, client, logger);
+    });
+}
 
 // Worker nodes — register an HttpClient + WorkerInferenceNode per Worker topology entry
 foreach (var workerNode in topologyConfig.Nodes.Where(n => n.Provider == NodeProviderType.Worker && n.Worker is not null))
@@ -196,10 +188,16 @@ foreach (var workerNode in topologyConfig.Nodes.Where(n => n.Provider == NodePro
     });
 }
 
-// Queues — Node A high priority (64), Node B normal (32), Node C normal (32)
-builder.Services.AddKeyedSingleton<IInferenceQueue>("nodeA", (_, _) => new NodeQueue(capacity: 64));
-builder.Services.AddKeyedSingleton<IInferenceQueue>("nodeB", (_, _) => new NodeQueue(capacity: 32));
-builder.Services.AddKeyedSingleton<IInferenceQueue>("nodeC", (_, _) => new NodeQueue(capacity: 32));
+// Queues are now created lazily per-node by RoutingService's queueFactory.
+
+// Node C (GitHub Copilot) — registered as singleton for CopilotSdk factory dispatch.
+// API token resolved from Azure Key Vault (preferred) or COPILOT_API_KEY env var.
+builder.Services.AddSingleton(sp =>
+{
+    var copilotOptions = sp.GetRequiredService<IOptions<CopilotClientOptions>>().Value;
+    var logger = sp.GetRequiredService<ILogger<NodeCInferenceNode>>();
+    return NodeCInferenceNode.CreateAsync(copilotOptions, logger).GetAwaiter().GetResult();
+});
 
 builder.Services.AddSingleton<INodeHealthCache, InMemoryNodeHealthCache>();
 builder.Services.AddSingleton<IMetricsCollector, InMemoryMetricsCollector>();
@@ -210,20 +208,22 @@ builder.Services.AddSingleton<INodeHealthPublisher, NullNodeHealthPublisher>();
 builder.Services.AddSingleton<ILogEntryPublisher, NullLogEntryPublisher>();
 
 // Node registry — dynamic topology management with hot-reload
-builder.Services.AddSingleton<IInferenceNodeFactory, InferenceNodeFactory>();
+builder.Services.AddSingleton<IInferenceNodeFactory, Orchestrator.Infrastructure.Registry.InferenceNodeFactory>();
 
 // Dispatch factory: maps NodeConfiguration → concrete singleton by NodeId.
 // This lets NodeRegistry.RebuildTopology reuse existing nodes on hot-reload
 // without constructing new instances each time.
 builder.Services.AddSingleton<Func<NodeConfiguration, IInferenceNode>>(sp => config =>
-    config.NodeId switch
+    config.Provider switch
     {
-        "A" => sp.GetRequiredService<NodeAInferenceNode>(),
-        "B" => sp.GetRequiredService<NodeBInferenceNode>(),
-        "C" => sp.GetRequiredService<NodeCInferenceNode>(),
-        _ when config.Provider == NodeProviderType.Worker =>
+        NodeProviderType.Worker =>
             sp.GetRequiredKeyedService<WorkerInferenceNode>(config.NodeId),
-        _ => throw new InvalidOperationException($"No IInferenceNode registered for NodeId '{config.NodeId}'.")
+        NodeProviderType.Ollama =>
+            sp.GetRequiredKeyedService<OllamaInferenceNode>(config.NodeId),
+        NodeProviderType.CopilotSdk =>
+            sp.GetRequiredService<NodeCInferenceNode>(),
+        _ => throw new InvalidOperationException(
+            $"No IInferenceNode registered for NodeId '{config.NodeId}' provider '{config.Provider}'.")
     });
 
 builder.Services.AddSingleton<INodeRegistry, NodeRegistry>();
@@ -244,16 +244,12 @@ builder.Services.AddSingleton<IModelRegistry>(sp =>
 });
 
 builder.Services.AddSingleton<IRoutingService>(sp => new RoutingService(
-    nodeA: sp.GetRequiredService<IInferenceNode>(),
-    nodeAQueue: sp.GetRequiredKeyedService<IInferenceQueue>("nodeA"),
+    registry: sp.GetRequiredService<INodeRegistry>(),
+    queueFactory: nodeId => new NodeQueue(capacity: nodeId == "A" ? 64 : 32),
     logger: sp.GetRequiredService<ILogger<RoutingService>>(),
-    nodeB: sp.GetRequiredService<NodeBInferenceNode>(),
-    nodeBQueue: sp.GetRequiredKeyedService<IInferenceQueue>("nodeB"),
     healthCache: sp.GetRequiredService<INodeHealthCache>(),
     metrics: sp.GetRequiredService<IMetricsCollector>(),
     history: sp.GetRequiredService<IPromptHistory>(),
-    nodeC: sp.GetRequiredService<NodeCInferenceNode>(),
-    nodeCQueue: sp.GetRequiredKeyedService<IInferenceQueue>("nodeC"),
     routingOptions: sp.GetRequiredService<IOptions<RoutingOptions>>()));
 
 // Phase 3 — Agent system
