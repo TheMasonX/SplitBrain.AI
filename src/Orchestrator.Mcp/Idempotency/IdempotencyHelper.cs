@@ -1,20 +1,13 @@
 namespace Orchestrator.Mcp.Idempotency;
 
 /// <summary>
-/// Encapsulates the Processing → Completed/Failed idempotency lifecycle
+/// Encapsulates the Processing -> Completed/Failed idempotency lifecycle
 /// so individual tool methods stay concise.
 /// </summary>
 internal static class IdempotencyHelper
 {
     private static readonly TimeSpan DefaultTtl = TimeSpan.FromMinutes(5);
 
-    /// <summary>
-    /// If <paramref name="key"/> is null, invokes <paramref name="execute"/> directly.
-    /// Otherwise implements the full idempotency lifecycle:
-    ///   Completed  → return cached result immediately
-    ///   Processing → throw InvalidOperationException (duplicate in-flight)
-    ///   Missing    → mark Processing, execute, mark Completed or Failed
-    /// </summary>
     internal static async Task<string> ExecuteAsync(
         IIdempotencyCache cache,
         string? key,
@@ -24,24 +17,29 @@ internal static class IdempotencyHelper
         if (key is null)
             return await execute();
 
-        var existing = await cache.GetAsync(key, ct);
-        if (existing?.State == IdempotencyState.Completed)
-            return (string)existing.Result!;
-        if (existing?.State == IdempotencyState.Processing)
-            throw new InvalidOperationException($"A request with idempotency key '{key}' is already being processed.");
-
-        await cache.SetAsync(new IdempotencyEntry
+        if (!cache.TryReserve(key, DefaultTtl, out var existing))
         {
-            Key = key,
-            CreatedAt = DateTimeOffset.UtcNow,
-            Ttl = DefaultTtl,
-            State = IdempotencyState.Processing
-        }, ct);
+            if (existing?.State == IdempotencyState.Completed)
+                return (string)existing.Result!;
+
+            if (existing?.State == IdempotencyState.Processing)
+                throw new InvalidOperationException($"A request with idempotency key '{key}' is already being processed.");
+
+            if (existing?.State == IdempotencyState.Failed)
+            {
+                cache.TryRemove(key);
+
+                if (!cache.TryReserve(key, DefaultTtl, out _))
+                    throw new InvalidOperationException(
+                        $"Could not reclaim failed idempotency slot for key '{key}'. " +
+                        "A concurrent retry may already be in progress.");
+            }
+        }
 
         try
         {
             var result = await execute();
-            await cache.SetAsync(new IdempotencyEntry
+            await cache.UpdateAsync(new IdempotencyEntry
             {
                 Key = key,
                 CreatedAt = DateTimeOffset.UtcNow,
@@ -53,7 +51,7 @@ internal static class IdempotencyHelper
         }
         catch
         {
-            await cache.SetAsync(new IdempotencyEntry
+            await cache.UpdateAsync(new IdempotencyEntry
             {
                 Key = key,
                 CreatedAt = DateTimeOffset.UtcNow,

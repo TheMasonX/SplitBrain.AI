@@ -1,6 +1,7 @@
 using System.ComponentModel;
 using System.Text;
 using System.Text.Json;
+using FluentValidation;
 using ModelContextProtocol.Server;
 using Orchestrator.Core.Enums;
 using Orchestrator.Core.Interfaces;
@@ -34,52 +35,81 @@ public sealed class GenerateTestsTool
 
     private async Task<string> ExecuteCoreAsync(string code, string language, string framework, string coverage, CancellationToken cancellationToken)
     {
-        if (string.IsNullOrWhiteSpace(code))
-            throw new ArgumentException("code is required.");
-        if (string.IsNullOrWhiteSpace(language))
-            throw new ArgumentException("language is required.");
-
-        var prompt = BuildPrompt(code, language, framework, coverage);
-        var taskId = Guid.NewGuid().ToString("N");
-
-        var result = await _routing.RouteAsync(
-            TaskType.TestGeneration,
-            new InferenceRequest { Prompt = prompt, Stream = true, Priority = QueuePriority.Normal },
-            cancellationToken);
-
-        var response = new GenerateTestsResponse
+        try
         {
-            Files =
-            [
-                new GeneratedTestFile
-                {
-                    Path = $"Tests.{language}",
-                    Content = result.Text
-                }
-            ],
-            Meta = new Meta
-            {
-                TaskId = taskId,
-                Node = result.NodeId,
-                Model = result.Model,
-                LatencyMs = result.LatencyMs,
-                TokensIn = result.TokensIn,
-                TokensOut = result.TokensOut
-            }
-        };
+            if (string.IsNullOrWhiteSpace(code))
+                throw new ArgumentException("code is required.");
+            if (string.IsNullOrWhiteSpace(language))
+                throw new ArgumentException("language is required.");
 
-        return JsonSerializer.Serialize(response, JsonConfig.Default);
+            var prompt = BuildPrompt(code, language, framework, coverage);
+            var taskId = Guid.NewGuid().ToString("N");
+
+            var result = await _routing.RouteAsync(
+                TaskType.TestGeneration,
+                new InferenceRequest { Prompt = prompt, Stream = true, Priority = QueuePriority.Normal },
+                cancellationToken);
+
+            var response = new GenerateTestsResponse
+            {
+                Files =
+                [
+                    new GeneratedTestFile
+                    {
+                        Path = $"Tests.{language}",
+                        Content = result.Text
+                    }
+                ],
+                Meta = Meta.FromInferenceResult(taskId, result)
+            };
+
+            return JsonSerializer.Serialize(response, JsonConfig.Default);
+        }
+        catch (ValidationException vex)
+        {
+            return JsonSerializer.Serialize(new { error = new { code = "validation_error", message = vex.Message, retryable = false } }, JsonConfig.Default);
+        }
+        catch (OperationCanceledException)
+        {
+            throw; // Let cancellation propagate
+        }
+        catch (Exception ex)
+        {
+            return JsonSerializer.Serialize(new { error = new { code = "internal_error", message = ex.Message, retryable = true } }, JsonConfig.Default);
+        }
+    }
+
+    /// <summary>
+    /// Sanitize user-supplied code to prevent markdown fence escape (prompt injection).
+    /// Breaks any triple-backtick sequences so they cannot close the code fence.
+    /// </summary>
+    private static string SanitizeForFence(string input)
+        => input.Replace("```", "` ` `");
+
+    /// <summary>
+    /// Strip control characters (including newlines) from a short metadata parameter and
+    /// truncate to <paramref name="maxLength"/> to prevent prompt-injection via
+    /// language/framework/coverage-style fields.
+    /// </summary>
+    private static string SanitizeParam(string value, int maxLength = 50)
+    {
+        var clean = new string(value.Where(c => !char.IsControl(c)).ToArray());
+        return clean.Length > maxLength ? clean[..maxLength] : clean;
     }
 
     private static string BuildPrompt(string code, string language, string framework, string coverage)
     {
+        var safeLanguage = SanitizeParam(language);
+        var safeFramework = SanitizeParam(framework);
+        var safeCoverage = SanitizeParam(coverage);
+
         var sb = new StringBuilder();
-        sb.AppendLine($"You are an expert {language} developer specialising in test-driven development.");
-        sb.AppendLine($"Generate {coverage} unit tests using {framework} for the following code.");
+        sb.AppendLine($"You are an expert {safeLanguage} developer specialising in test-driven development.");
+        sb.AppendLine($"Generate {safeCoverage} unit tests using {safeFramework} for the following code.");
         sb.AppendLine("Return ONLY the test file content with no explanation or extra markdown.");
         sb.AppendLine();
-        sb.AppendLine($"```{language}");
-        sb.AppendLine(code);
+        sb.AppendLine($"```{safeLanguage}");
+        sb.AppendLine(SanitizeForFence(code));
         sb.AppendLine("```");
         return sb.ToString();
     }

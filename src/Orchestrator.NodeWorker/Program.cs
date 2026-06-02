@@ -2,6 +2,8 @@ using System.Text.Json;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
+using NodeClient.LlamaCpp;
 using NodeClient.Ollama;
 using Orchestrator.Core.Interfaces;
 using Orchestrator.Core.Models;
@@ -11,12 +13,48 @@ using Orchestrator.NodeWorker;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.Configure<OllamaClientOptions>(
-    builder.Configuration.GetSection(OllamaClientOptions.Section));
+// -------------------------------------------------------------------------
+// Backend selection: set NODE_B_BACKEND=llamacpp to use llama.cpp server,
+// leave unset (or set to "ollama") for the default Ollama backend.
+//
+// llama.cpp backend: configure "LlamaCppNode" section in appsettings.NodeB.json
+//   and launch llama-server on Machine B before starting this worker.
+//   Key server flags: --n-cpu-moe 25 --no-mmap --mlock
+//     --cache-type-k turbo4 --cache-type-v turbo3
+//     --host 0.0.0.0 --port 8080
+//
+// Ollama backend: configure "OllamaNode" section (existing behaviour).
+// -------------------------------------------------------------------------
+var backend = Environment.GetEnvironmentVariable("NODE_B_BACKEND") ?? "ollama";
 
-builder.Services.AddHttpClient<IOllamaClient, OllamaClient>();
-builder.Services.AddSingleton<NodeBInferenceNode>();
-builder.Services.AddSingleton<IInferenceNode>(sp => sp.GetRequiredService<NodeBInferenceNode>());
+if (backend.Equals("llamacpp", StringComparison.OrdinalIgnoreCase))
+{
+    builder.Services.Configure<LlamaCppClientOptions>(
+        builder.Configuration.GetSection(LlamaCppClientOptions.Section));
+
+    // Timeout is set here via ConfigureHttpClient, not in LlamaCppClient constructor.
+    builder.Services.AddHttpClient<ILlamaCppClient, LlamaCppClient>()
+        .ConfigureHttpClient((sp, client) =>
+        {
+            var opts = sp.GetRequiredService<IOptions<LlamaCppClientOptions>>().Value;
+            client.Timeout = TimeSpan.FromSeconds(opts.TimeoutSeconds);
+        });
+
+    builder.Services.AddSingleton<LlamaCppInferenceNode>();
+    builder.Services.AddSingleton<IInferenceNode>(sp =>
+        sp.GetRequiredService<LlamaCppInferenceNode>());
+}
+else
+{
+    builder.Services.Configure<OllamaClientOptions>(
+        builder.Configuration.GetSection(OllamaClientOptions.Section));
+
+    builder.Services.AddHttpClient<IOllamaClient, OllamaClient>();
+    builder.Services.AddSingleton<NodeBInferenceNode>();
+    builder.Services.AddSingleton<IInferenceNode>(sp =>
+        sp.GetRequiredService<NodeBInferenceNode>());
+}
+
 builder.Services.AddSingleton<INodeHealthCache, InMemoryNodeHealthCache>();
 builder.Services.AddSingleton<IMetricsCollector, InMemoryMetricsCollector>();
 builder.Services.AddHostedService<NodeWorkerService>();

@@ -13,6 +13,12 @@ public enum NodeProviderType
     /// to a worker process running on a remote inference machine.
     /// </summary>
     Worker,
+    /// <summary>
+    /// llama.cpp HTTP server (llama-server). Uses the OpenAI-compatible
+    /// /v1/chat/completions endpoint. Exposes MoE offloading flags unavailable
+    /// through Ollama, enabling larger models on low-VRAM GPUs.
+    /// </summary>
+    LlamaCpp,
 }
 
 /// <summary>
@@ -45,6 +51,7 @@ public record NodeConfiguration
     public OllamaProviderConfig? Ollama { get; init; }
     public CopilotProviderConfig? Copilot { get; init; }
     public WorkerProviderConfig? Worker { get; init; }
+    public LlamaCppProviderConfig? LlamaCpp { get; init; }
 }
 
 /// <summary>
@@ -92,6 +99,31 @@ public record WorkerProviderConfig
     public int TimeoutSeconds { get; init; } = 30;
     public long GpuVramTotalMB { get; init; }
     public string DefaultModel { get; init; } = string.Empty;
+}
+
+/// <summary>
+/// llama.cpp server settings per node.
+/// The server is launched externally via Docker or bare-metal with --model, --n-cpu-moe,
+/// --no-mmap, --mlock, and TurboQuant KV cache flags. These flags are NOT set here —
+/// they live in the docker-compose.yml or systemd unit for the inference machine.
+/// </summary>
+public record LlamaCppProviderConfig
+{
+    /// <summary>Hostname or IP of the machine running llama-server.</summary>
+    public required string Host { get; init; }
+    /// <summary>Port the llama-server listens on (default 8080, unlike Ollama's 11434).</summary>
+    public int Port { get; init; } = 8080;
+    public string BaseUrl => $"http://{Host}:{Port}";
+    public int TimeoutSeconds { get; init; } = 180;
+    /// <summary>
+    /// Label for the model loaded in this server instance.
+    /// Must match the --model GGUF filename passed at server startup.
+    /// Used for InferenceResult.Model and observability; not used for routing.
+    /// Routing is by NodeId.
+    /// </summary>
+    public string ModelLabel { get; init; } = "llama-cpp-default";
+    /// <summary>Total VRAM of the GPU running this server (for capacity reporting).</summary>
+    public long GpuVramTotalMB { get; init; } = 8192;
 }
 
 /// <summary>Root object deserialized from nodes.json.</summary>

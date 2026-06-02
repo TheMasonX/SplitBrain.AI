@@ -5,12 +5,14 @@
   </Folder>
   <Folder Name="/NodeClient/">
     <Project Path="src/NodeClient.Copilot/NodeClient.Copilot.csproj" />
+    <Project Path="src/NodeClient.LlamaCpp/NodeClient.LlamaCpp.csproj" />
     <Project Path="src/NodeClient.Ollama/NodeClient.Ollama.csproj" />
     <Project Path="src/NodeClient.Worker/NodeClient.Worker.csproj" />
   </Folder>
   <Folder Name="/Orchestrator/">
     <Project Path="src/Orchestrator.Agents/Orchestrator.Agents.csproj" />
     <Project Path="src/Orchestrator.Core/Orchestrator.Core.csproj" />
+    <Project Path="src/Orchestrator.Hosting/Orchestrator.Hosting.csproj" />
     <Project Path="src/Orchestrator.Infrastructure/Orchestrator.Infrastructure.csproj" />
     <Project Path="src/Orchestrator.Mcp/Orchestrator.Mcp.csproj" />
     <Project Path="src/Orchestrator.NodeWorker/Orchestrator.NodeWorker.csproj" />
