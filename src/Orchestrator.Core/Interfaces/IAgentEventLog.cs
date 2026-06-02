@@ -1,5 +1,3 @@
-using System.Runtime.CompilerServices;
-
 namespace Orchestrator.Core.Interfaces;
 
 public enum AgentStepType
@@ -34,6 +32,6 @@ public interface IAgentEventLog
     Task AppendAsync(AgentStepEvent step, CancellationToken ct = default);
     IAsyncEnumerable<AgentStepEvent> ReplayAsync(
         string taskId,
-        [EnumeratorCancellation] CancellationToken ct = default);
+        CancellationToken ct = default);
     Task<int> GetTotalTokensAsync(string taskId, CancellationToken ct = default);
 }

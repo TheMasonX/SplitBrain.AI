@@ -55,6 +55,9 @@ if (-not $IsccPath) {
     $candidates = @(
         "C:\Program Files (x86)\Inno Setup 6\ISCC.exe",
         "C:\Program Files\Inno Setup 6\ISCC.exe",
+        "C:\Program Files (x86)\Inno Setup 7\ISCC.exe",
+        "C:\Program Files\Inno Setup 7\ISCC.exe",
+        "D:\Program Files\Inno Setup 7\ISCC.exe",
         (Get-Command iscc -ErrorAction SilentlyContinue)?.Source
     ) | Where-Object { $_ -and (Test-Path $_) }
     $IsccPath = $candidates | Select-Object -First 1

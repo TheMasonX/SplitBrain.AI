@@ -74,6 +74,25 @@ project.lock.json
 project.fragment.lock.json
 artifacts/
 
+# MemorySmith wiki service runtime
+.service/*.log
+.service/wiki.err.log
+.service/wiki.pid
+
+# Data/ runtime (gitignored; committed content under Pages/, Memories/ is tracked)
+data/Events/
+data/Keys/
+data/Models/
+data/Tags/
+data/Tasks/
+data/.history/
+data/memorysmith.db
+data/memorysmith.db-shm
+data/memorysmith.db-wal
+
+# Virtual environments (model export, markdown tools)
+.venv-*/
+
 # ASP.NET Scaffolding
 ScaffoldingReadMe.txt
 

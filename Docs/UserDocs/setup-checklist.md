@@ -183,6 +183,24 @@ time=2024-12-20T10:31:00.456Z level=INFO msg="loaded model qwen2.5-coder"
 
 ---
 
+## Optional: Project Wiki & Code Search
+
+- [ ] Deploy wiki service (MemorySmith, port 6769)
+  ```powershell
+  .\scripts\Deploy-WikiService.ps1
+  ```
+  Opens at http://127.0.0.1:6769
+
+- [ ] Warm code-search index
+  ```powershell
+  .\scripts\Warm-CodeSearchIndex.ps1
+  ```
+
+- [ ] Install embedding model (if not yet present in data/Models/)
+  ```powershell
+  .\scripts\Install-CodeSearchModel.ps1
+  ```
+
 ## Files Modified / Created
 
 After running setup script:

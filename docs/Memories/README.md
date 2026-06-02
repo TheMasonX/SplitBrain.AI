@@ -11,6 +11,7 @@ These are living documents — update them when decisions change, not just when 
 | `architecture-current-state.md` | Actual project structure, naming, what is and isn't implemented |
 | `design-decisions.md` | Locked decisions with rationale (charting library, dark theme palette, etc.) |
 | `review-cross-reference.md` | Deep-research review claims vs. actual codebase truth |
+| `build-toolchain.md` | Installer build system, Inno Setup 7 quirks, ISCC auto-detection |
 
 ## How to Use
 

@@ -85,9 +85,10 @@ public sealed class LlamaCppClient : ILlamaCppClient, IDisposable
 
         var doneSeen = false;
 
-        while (!reader.EndOfStream && !cancellationToken.IsCancellationRequested)
+        while (!cancellationToken.IsCancellationRequested)
         {
             var line = await reader.ReadLineAsync(cancellationToken);
+            if (line is null) break;
             if (string.IsNullOrWhiteSpace(line)) continue;
 
             // SSE: skip non-data lines (event:, id:, retry:) — log unknown event types

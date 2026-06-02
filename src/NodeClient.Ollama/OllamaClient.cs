@@ -46,9 +46,10 @@ public sealed class OllamaClient : IOllamaClient, IDisposable
         await using var stream = await response.Content.ReadAsStreamAsync(cancellationToken);
         using var reader = new System.IO.StreamReader(stream);
 
-        while (!reader.EndOfStream)
+        while (true)
         {
             var line = await reader.ReadLineAsync(cancellationToken);
+            if (line is null) break;
             if (string.IsNullOrWhiteSpace(line)) continue;
 
             var chunk = JsonSerializer.Deserialize(line, OllamaJsonContext.Default.OllamaGenerateResponse);

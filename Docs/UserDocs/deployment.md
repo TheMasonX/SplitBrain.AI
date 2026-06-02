@@ -103,3 +103,61 @@ Invoke-RestMethod http://localhost:11434/api/tags
 - Node roles are asymmetric: Node A prioritises latency, Node B prioritises context depth.
 - Agent iteration, token, and safety limits are configured in `appsettings.json`.
 - This document will be updated as configuration files are finalised.
+
+---
+
+## 6. (Optional) Deploy Project Wiki
+
+A MemorySmith wiki service provides a browsable wiki and code search for the
+SplitBrain.AI project.
+
+### Prerequisites
+
+- [MemorySmith](https://github.com/TheMasonX/MemorySmith) cloned to `C:\Users\norrt\source\repos\MemorySmith`
+- .NET 10 SDK (same as project)
+
+### Deploy
+
+```powershell
+# Deploy the wiki service on port 6769
+.\scripts\Deploy-WikiService.ps1
+
+# The service installs and starts automatically.
+# Open http://127.0.0.1:6769 in your browser.
+```
+
+### Code Search
+
+After deployment, warm the code-search index to enable semantic code search
+across all SplitBrain.AI source code:
+
+```powershell
+.\scripts\Warm-CodeSearchIndex.ps1
+```
+
+If the ONNX embedding model is not yet downloaded:
+
+```powershell
+.\scripts\Install-CodeSearchModel.ps1
+```
+
+### Manage the Service
+
+```powershell
+# Check status
+.\scripts\Get-WikiServiceStatus.ps1
+
+# Stop and remove
+.\scripts\Stop-WikiService.ps1
+
+# Full uninstall (stops service + removes artifacts)
+.\scripts\Remove-WikiService.ps1 -RemoveArtifacts
+```
+
+### Wiki Content
+
+The wiki lives under `data/` in this repo:
+- `data/Pages/` — Markdown wiki pages
+- `data/Memories/Core/` — Structured memory records
+- `data/Memories/Working/` — Active session notes
+- `data/codesearch-config.json` — CodeSearch settings for indexing the project

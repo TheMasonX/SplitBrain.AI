@@ -1,6 +1,6 @@
 # Architecture — Current State
 
-Last updated: June 2026 (session 3)
+Last updated: June 2026 (session 11)
 
 ## Solution File
 `Orchestrator.slnx` at repo root (`.slnx` format, VS 2026).
@@ -56,7 +56,14 @@ The plan uses `SplitBrain.*` names conceptually, but the actual solution uses `O
 
 ## Infrastructure Files Present
 `NodeRegistry.cs`, `NodeHealthCheckService.cs`, `RoutingService.cs`, `FallbackChainResolver.cs`, `NodeQueue.cs`, `LiteDbAgentEventLog.cs`, `InMemoryMetricsCollector.cs`, `InMemoryModelRegistry.cs`, `InMemoryNodeHealthCache.cs`, `FileLoggingService.cs`, `PromptHistoryService.cs`
-
+## Recent Changes (session 11 — June 2026)
+- **Warning-free build:** Fixed CS8424, CA2024, NU1510, CS0105 across 7 files — `dotnet build` now produces 0 warnings.
+- **MemorySmith wiki deployment:** Set up wiki service (port 6769, service name `SplitBrain.AI Wiki`) with deploy scripts in `scripts/` (`Deploy-WikiService.ps1`, `Publish-WikiEngine.ps1`, `Stop-WikiService.ps1`, `Get-WikiServiceStatus.ps1`, `Remove-WikiService.ps1`).
+- **Code search integration:** Created `data/codesearch-config.json` indexing all `src/` projects + scripts. Warmup script at `scripts/Warm-CodeSearchIndex.ps1`.
+- **Wiki content:** Created `data/Pages/index.md` as MCP server wiki hub; full `data/` directory layout (Events/, Keys/, Models/, Tasks/, Tags/, .history/).
+- **NodeCInferenceNode.cs** — restored from base64 corruption, replaced collection expression initializers with `List<T>`.
+- **IdempotencyHelper.cs** — adapted to current `IIdempotencyCache` API (GetAsync/SetAsync instead of TryReserve/UpdateAsync).
+- **Disambiguated InferenceNodeFactory** — fully-qualified to `Orchestrator.Infrastructure.Registry.InferenceNodeFactory` in both Dashboard and MCP program files.
 ## Recent Changes (session 3 — June 2026)
 - Added `RoutingOptionsPersistence` service in `Orchestrator.Infrastructure/Configuration` to persist fallback chains into `routing.json` under the `Routing` section.
 - `SplitBrain.Dashboard/Program.cs` now loads `routing.json` (base directory + relative) with `reloadOnChange: true` and registers `RoutingOptionsPersistence` in DI.

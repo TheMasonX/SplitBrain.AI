@@ -1,4 +1,3 @@
-using System.Runtime.CompilerServices;
 using Orchestrator.Core.Configuration;
 using Orchestrator.Core.Models;
 
@@ -17,7 +16,7 @@ public interface IInferenceNode : IAsyncDisposable
 
     IAsyncEnumerable<InferenceChunk> StreamAsync(
         InferenceRequest request,
-        [EnumeratorCancellation] CancellationToken cancellationToken = default);
+        CancellationToken cancellationToken = default);
 
     /// <summary>Probe node health and update the Health property.</summary>
     Task<NodeHealthStatus> GetHealthAsync(CancellationToken cancellationToken = default);
