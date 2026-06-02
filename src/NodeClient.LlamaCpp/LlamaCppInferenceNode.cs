@@ -53,8 +53,8 @@ public sealed class LlamaCppInferenceNode : IInferenceNode
         {
             NodeId           = _opts.NodeId,
             Model            = _opts.ModelLabel,
-            VramMb           = 8192,   // GTX 1080; override via subclass or future config field if needed
-            SupportsStreaming = true    // llama.cpp SSE streaming fully supported (first node to implement)
+            VramMb           = _opts.VramMb,   // configurable via LlamaCppClientOptions.VramMb
+            SupportsStreaming = true            // llama.cpp SSE streaming fully supported (first node to implement)
         };
     }
 

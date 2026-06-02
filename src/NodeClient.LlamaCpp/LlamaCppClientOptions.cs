@@ -36,4 +36,12 @@ public sealed class LlamaCppClientOptions
     /// Defaults to "B" for the standard two-machine topology (Machine B = inference tower).
     /// </summary>
     public string NodeId { get; set; } = "B";
+
+    /// <summary>
+    /// Total VRAM (MB) of the GPU running this llama.cpp server instance.
+    /// Used to populate NodeCapabilities.VramMb for routing and capacity reporting.
+    /// Defaults to 8192 (GTX 1080 8 GB). Override for different hardware.
+    /// Example: 6144 for GTX 1060 6 GB, 16384 for RTX 3080 16 GB.
+    /// </summary>
+    public int VramMb { get; set; } = 8192;
 }

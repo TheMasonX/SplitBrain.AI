@@ -62,11 +62,13 @@ public sealed class LlamaCppClient : ILlamaCppClient, IDisposable
         var payload = BuildChatPayload(request, stream: true);
         var json    = JsonSerializer.Serialize(payload, LlamaCppJsonContext.Default.ChatCompletionRequest);
 
-        // StringContent and HttpRequestMessage are disposed after SendAsync returns
-        // (before the first yield). The response stream is kept alive for the duration
-        // of enumeration by HttpCompletionOption.ResponseHeadersRead.
-        // Do NOT wrap response/stream/reader in a single using block — the using for
-        // reqMsg and content is intentionally scoped to before the first yield.
+        // Iterator disposal semantics: all 'using var' locals in an IAsyncEnumerable method
+        // are disposed when the enumerator is disposed (fully consumed or abandoned),
+        // NOT at the next yield point. content, reqMsg, response, stream, and reader
+        // therefore stay alive for the full duration of enumeration — which is correct.
+        // content and reqMsg carry no I/O after SendAsync completes; holding them is harmless.
+        // HttpCompletionOption.ResponseHeadersRead keeps the TCP connection open so the
+        // response body stream can be read line-by-line as SSE tokens arrive.
         using var content = new StringContent(json, Encoding.UTF8, "application/json");
         using var reqMsg  = new HttpRequestMessage(HttpMethod.Post, _chatEndpoint)
         {
@@ -78,9 +80,6 @@ public sealed class LlamaCppClient : ILlamaCppClient, IDisposable
             HttpCompletionOption.ResponseHeadersRead,
             cancellationToken);
         response.EnsureSuccessStatusCode();
-
-        // After this point, content and reqMsg are already disposed (used only for SendAsync).
-        // The response body stream is held open until we complete reading.
         await using var stream = await response.Content.ReadAsStreamAsync(cancellationToken);
         using var reader = new System.IO.StreamReader(stream);
 
