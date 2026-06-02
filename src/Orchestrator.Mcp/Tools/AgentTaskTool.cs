@@ -1,1 +1,105 @@
-dXNpbmcgU3lzdGVtLkNvbXBvbmVudE1vZGVsOwp1c2luZyBTeXN0ZW0uVGV4dC5Kc29uOwp1c2luZyBGbHVlbnRWYWxpZGF0aW9uOwp1c2luZyBNb2RlbENvbnRleHRQcm90b2NvbC5TZXJ2ZXI7CnVzaW5nIE9yY2hlc3RyYXRvci5BZ2VudHM7CnVzaW5nIE9yY2hlc3RyYXRvci5BZ2VudHMuTW9kZWxzOwp1c2luZyBPcmNoZXN0cmF0b3IuQ29yZS5Nb2RlbHM7CnVzaW5nIE9yY2hlc3RyYXRvci5Db3JlLlNlcmlhbGl6YXRpb247CnVzaW5nIE9yY2hlc3RyYXRvci5NY3AuSWRlbXBvdGVuY3k7CgpuYW1lc3BhY2UgT3JjaGVzdHJhdG9yLk1jcC5Ub29sczsKCltNY3BTZXJ2ZXJUb29sVHlwZV0KcHVibGljIHNlYWxlZCBjbGFzcyBBZ2VudFRhc2tUb29sCnsKICAgIHByaXZhdGUgcmVhZG9ubHkgSUFnZW50T3JjaGVzdHJhdG9yIF9hZ2VudDsKICAgIHByaXZhdGUgcmVhZG9ubHkgSUlkZW1wb3RlbmN5Q2FjaGUgX2lkZW1wb3RlbmN5OwoKICAgIHB1YmxpYyBBZ2VudFRhc2tUb29sKElBZ2VudE9yY2hlc3RyYXRvciBhZ2VudCwgSUlkZW1wb3RlbmN5Q2FjaGUgaWRlbXBvdGVuY3kpCiAgICB7CiAgICAgICAgX2FnZW50ID0gYWdlbnQ7CiAgICAgICAgX2lkZW1wb3RlbmN5ID0gaWRlbXBvdGVuY3k7CiAgICB9CgogICAgW01jcFNlcnZlclRvb2woTmFtZSA9ICJhZ2VudF90YXNrIiksCiAgICAgRGVzY3JpcHRpb24oIlJ1bnMgYSBib3VuZGVkIGF1dG9ub21vdXMgYWdlbnQgbG9vcCAoUGxhbiDihpIgSW1wbGVtZW50IOKGkiBSZXZpZXcg4oaSIFRlc3QpIGZvciBhIG5hdHVyYWwtbGFuZ3VhZ2UgZ29hbC4gTWF4IDQgaXRlcmF0aW9ucywgMTJrIHRva2Vucy4iKV0KICAgIHB1YmxpYyBUYXNrPHN0cmluZz4gUnVuQWdlbnRUYXNrQXN5bmMoCiAgICAgICAgW0Rlc2NyaXB0aW9uKCJIaWdoLWxldmVsIGdvYWwgaW4gbmF0dXJhbCBsYW5ndWFnZSAoZS5nLiAnQWRkIG51bGwtY2hlY2sgdG8gVXNlclNlcnZpY2UuR2V0QnlJZCcpIildCiAgICAgICAgc3RyaW5nIGdvYWwsCiAgICAgICAgW0Rlc2NyaXB0aW9uKCIoT3B0aW9uYWwpIEFic29sdXRlIHBhdGggdG8gdGhlIHdvcmtpbmcgZGlyZWN0b3J5IHRoZSBhZ2VudCBtYXkgcGF0Y2ggYW5kIHRlc3QiKV0KICAgICAgICBzdHJpbmc/IHdvcmtpbmdEaXJlY3RvcnkgPSBudWxsLAogICAgICAgIFtEZXNjcmlwdGlvbigiKE9wdGlvbmFsKSBBZGRpdGlvbmFsIGNvbnRleHQgaW5qZWN0ZWQgaW50byBldmVyeSBwcm9tcHQgKGUuZy4gc3RhY2sgdHJhY2UsIHNwZWMgZXhjZXJwdCkiKV0KICAgICAgICBzdHJpbmc/IGNvbnRleHQgPSBudWxsLAogICAgICAgIFtEZXNjcmlwdGlvbigiKE9wdGlvbmFsKSBJZGVtcG90ZW5jeSBrZXkg4oCUIHNhbWUga2V5IHJldHVybnMgY2FjaGVkIHJlc3VsdCB3aXRoaW4gNSBtaW51dGVzIildCiAgICAgICAgc3RyaW5nPyBpZGVtcG90ZW5jeUtleSA9IG51bGwsCiAgICAgICAgQ2FuY2VsbGF0aW9uVG9rZW4gY2FuY2VsbGF0aW9uVG9rZW4gPSBkZWZhdWx0KQogICAgICAgID0+IElkZW1wb3RlbmN5SGVscGVyLkV4ZWN1dGVBc3luYyhfaWRlbXBvdGVuY3ksIGlkZW1wb3RlbmN5S2V5LCAoKSA9PiBFeGVjdXRlQ29yZUFzeW5jKGdvYWwsIHdvcmtpbmdEaXJlY3RvcnksIGNvbnRleHQsIGNhbmNlbGxhdGlvblRva2VuKSwgY2FuY2VsbGF0aW9uVG9rZW4pOwoKICAgIHByaXZhdGUgYXN5bmMgVGFzazxzdHJpbmc+IEV4ZWN1dGVDb3JlQXN5bmMoc3RyaW5nIGdvYWwsIHN0cmluZz8gd29ya2luZ0RpcmVjdG9yeSwgc3RyaW5nPyBjb250ZXh0LCBDYW5jZWxsYXRpb25Ub2tlbiBjYW5jZWxsYXRpb25Ub2tlbikKICAgIHsKICAgICAgICB0cnkKICAgICAgICB7CiAgICAgICAgICAgIHZhciByZXF1ZXN0ID0gbmV3IEFnZW50UmVxdWVzdAogICAgICAgICAgICB7CiAgICAgICAgICAgICAgICBHb2FsICAgICAgICAgICAgID0gZ29hbCwKICAgICAgICAgICAgICAgIFdvcmtpbmdEaXJlY3RvcnkgPSBzdHJpbmcuSXNOdWxsT3JXaGl0ZVNwYWNlKHdvcmtpbmdEaXJlY3RvcnkpID8gbnVsbCA6IHdvcmtpbmdEaXJlY3RvcnksCiAgICAgICAgICAgICAgICBDb250ZXh0ICAgICAgICAgID0gc3RyaW5nLklzTnVsbE9yV2hpdGVTcGFjZShjb250ZXh0KSA/IG51bGwgOiBjb250ZXh0CiAgICAgICAgICAgIH07CgogICAgICAgICAgICB2YXIgcmVzdWx0ID0gYXdhaXQgX2FnZW50LlJ1bkFzeW5jKHJlcXVlc3QsIGNhbmNlbGxhdGlvblRva2VuKTsKCiAgICAgICAgICAgIHZhciByZXNwb25zZSA9IG5ldyBBZ2VudFRhc2tSZXNwb25zZQogICAgICAgICAgICB7CiAgICAgICAgICAgICAgICBTdWNjZXNzICAgICAgICAgPSByZXN1bHQuU3VjY2VzcywKICAgICAgICAgICAgICAgIEZpbmFsU3RhdGUgICAgICA9IHJlc3VsdC5GaW5hbFN0YXRlLlRvU3RyaW5nKCksCiAgICAgICAgICAgICAgICBTdW1tYXJ5ICAgICAgICAgPSByZXN1bHQuU3VtbWFyeSwKICAgICAgICAgICAgICAgIERpZmYgICAgICAgICAgICA9IHJlc3VsdC5EaWZmLAogICAgICAgICAgICAgICAgVG90YWxJdGVyYXRpb25zID0gcmVzdWx0LlRvdGFsSXRlcmF0aW9ucywKICAgICAgICAgICAgICAgIFRvdGFsVG9rZW5zICAgICA9IHJlc3VsdC5Ub3RhbFRva2Vuc1VzZWQsCiAgICAgICAgICAgICAgICBBYm9ydFJlYXNvbiAgICAgPSByZXN1bHQuQWJvcnRSZWFzb24sCiAgICAgICAgICAgICAgICBTdGVwcyAgICAgICAgICAgPSByZXN1bHQuU3RlcHMuU2VsZWN0KHMgPT4gbmV3IEFnZW50U3RlcFN1bW1hcnkKICAgICAgICAgICAgICAgIHsKICAgICAgICAgICAgICAgICAgICBSb2xlICAgICA9IHMuUm9sZS5Ub1N0cmluZygpLAogICAgICAgICAgICAgICAgICAgIFN0YXRlICAgID0gcy5TdGF0ZS5Ub1N0cmluZygpLAogICAgICAgICAgICAgICAgICAgIFN1Y2Nlc3MgID0gcy5TdWNjZXNzLAogICAgICAgICAgICAgICAgICAgIFRva2VucyAgID0gcy5Ub2tlbnNFc3RpbWF0ZWQsCiAgICAgICAgICAgICAgICAgICAgUmVzcG9uc2UgPSBzLlJlc3BvbnNlLkxlbmd0aCA+IDMwMCA/IHMuUmVzcG9uc2VbLi4zMDBdICsgIuKApiIgOiBzLlJlc3BvbnNlCiAgICAgICAgICAgICAgICB9KS5Ub0xpc3QoKQogICAgICAgICAgICB9OwoKICAgICAgICAgICAgcmV0dXJuIEpzb25TZXJpYWxpemVyLlNlcmlhbGl6ZShyZXNwb25zZSwgSnNvbkNvbmZpZy5EZWZhdWx0KTsKICAgICAgICB9CiAgICAgICAgY2F0Y2ggKFZhbGlkYXRpb25FeGNlcHRpb24gdmV4KQogICAgICAgIHsKICAgICAgICAgICAgcmV0dXJuIEpzb25TZXJpYWxpemVyLlNlcmlhbGl6ZShuZXcgeyBlcnJvciA9IG5ldyB7IGNvZGUgPSAidmFsaWRhdGlvbl9lcnJvciIsIG1lc3NhZ2UgPSB2ZXguTWVzc2FnZSwgcmV0cnlhYmxlID0gZmFsc2UgfSB9LCBKc29uQ29uZmlnLkRlZmF1bHQpOwogICAgICAgIH0KICAgICAgICBjYXRjaCAoT3BlcmF0aW9uQ2FuY2VsZWRFeGNlcHRpb24pCiAgICAgICAgewogICAgICAgICAgICB0aHJvdzsgLy8gTGV0IGNhbmNlbGxhdGlvbiBwcm9wYWdhdGUKICAgICAgICB9CiAgICAgICAgY2F0Y2ggKEV4Y2VwdGlvbiBleCkKICAgICAgICB7CiAgICAgICAgICAgIHJldHVybiBKc29uU2VyaWFsaXplci5TZXJpYWxpemUobmV3IHsgZXJyb3IgPSBuZXcgeyBjb2RlID0gImludGVybmFsX2Vycm9yIiwgbWVzc2FnZSA9IGV4Lk1lc3NhZ2UsIHJldHJ5YWJsZSA9IHRydWUgfSB9LCBKc29uQ29uZmlnLkRlZmF1bHQpOwogICAgICAgIH0KICAgIH0KfQoKLy8gLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tCi8vIFJlc3BvbnNlIG1vZGVscwovLyAtLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0KCnB1YmxpYyBzZWFsZWQgY2xhc3MgQWdlbnRUYXNrUmVzcG9uc2UgOiBPcmNoZXN0cmF0b3IuQ29yZS5JbnRlcmZhY2VzLklNY3BSZXNwb25zZQp7CiAgICBwdWJsaWMgTWV0YSBNZXRhIHsgZ2V0OyBpbml0OyB9ID0gZGVmYXVsdCE7CiAgICBwdWJsaWMgTWNwRXJyb3I/IEVycm9yIHsgZ2V0OyBpbml0OyB9CiAgICBwdWJsaWMgYm9vbCBTdWNjZXNzIHsgZ2V0OyBpbml0OyB9CiAgICBwdWJsaWMgc3RyaW5nIEZpbmFsU3RhdGUgeyBnZXQ7IGluaXQ7IH0gPSBzdHJpbmcuRW1wdHk7CiAgICBwdWJsaWMgc3RyaW5nIFN1bW1hcnkgeyBnZXQ7IGluaXQ7IH0gPSBzdHJpbmcuRW1wdHk7CiAgICBwdWJsaWMgc3RyaW5nIERpZmYgeyBnZXQ7IGluaXQ7IH0gPSBzdHJpbmcuRW1wdHk7CiAgICBwdWJsaWMgaW50IFRvdGFsSXRlcmF0aW9ucyB7IGdldDsgaW5pdDsgfQogICAgcHVibGljIGludCBUb3RhbFRva2VucyB7IGdldDsgaW5pdDsgfQogICAgcHVibGljIHN0cmluZz8gQWJvcnRSZWFzb24geyBnZXQ7IGluaXQ7IH0KICAgIHB1YmxpYyBMaXN0PEFnZW50U3RlcFN1bW1hcnk+IFN0ZXBzIHsgZ2V0OyBpbml0OyB9ID0gW107Cn0KCnB1YmxpYyBzZWFsZWQgY2xhc3MgQWdlbnRTdGVwU3VtbWFyeQp7CiAgICBwdWJsaWMgc3RyaW5nIFJvbGUgeyBnZXQ7IGluaXQ7IH0gPSBzdHJpbmcuRW1wdHk7CiAgICBwdWJsaWMgc3RyaW5nIFN0YXRlIHsgZ2V0OyBpbml0OyB9ID0gc3RyaW5nLkVtcHR5OwogICAgcHVibGljIGJvb2wgU3VjY2VzcyB7IGdldDsgaW5pdDsgfQogICAgcHVibGljIGludCBUb2tlbnMgeyBnZXQ7IGluaXQ7IH0KICAgIHB1YmxpYyBzdHJpbmcgUmVzcG9uc2UgeyBnZXQ7IGluaXQ7IH0gPSBzdHJpbmcuRW1wdHk7Cn0K
+using System.ComponentModel;
+using System.Text.Json;
+using ModelContextProtocol.Server;
+using Orchestrator.Agents;
+using Orchestrator.Agents.Models;
+using Orchestrator.Core.Models;
+using Orchestrator.Core.Serialization;
+using Orchestrator.Mcp.Idempotency;
+
+namespace Orchestrator.Mcp.Tools;
+
+[McpServerToolType]
+public sealed class AgentTaskTool
+{
+    private readonly IAgentOrchestrator _agent;
+    private readonly IIdempotencyCache _idempotency;
+
+    public AgentTaskTool(IAgentOrchestrator agent, IIdempotencyCache idempotency)
+    {
+        _agent = agent;
+        _idempotency = idempotency;
+    }
+
+    [McpServerTool(Name = "agent_task"),
+     Description("Runs a bounded autonomous agent loop (Plan → Implement → Review → Test) for a natural-language goal. Max 4 iterations, 12k tokens.")]
+    public Task<string> RunAgentTaskAsync(
+        [Description("High-level goal in natural language (e.g. 'Add null-check to UserService.GetById')")]
+        string goal,
+        [Description("(Optional) Absolute path to the working directory the agent may patch and test")]
+        string? workingDirectory = null,
+        [Description("(Optional) Additional context injected into every prompt (e.g. stack trace, spec excerpt)")]
+        string? context = null,
+        [Description("(Optional) Idempotency key — same key returns cached result within 5 minutes")]
+        string? idempotencyKey = null,
+        CancellationToken cancellationToken = default)
+        => IdempotencyHelper.ExecuteAsync(_idempotency, idempotencyKey, () => ExecuteCoreAsync(goal, workingDirectory, context, cancellationToken), cancellationToken);
+
+    private async Task<string> ExecuteCoreAsync(string goal, string? workingDirectory, string? context, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var request = new AgentRequest
+            {
+                Goal             = goal,
+                WorkingDirectory = string.IsNullOrWhiteSpace(workingDirectory) ? null : workingDirectory,
+                Context          = string.IsNullOrWhiteSpace(context) ? null : context
+            };
+
+            var result = await _agent.RunAsync(request, cancellationToken);
+
+            var response = new AgentTaskResponse
+            {
+                Success         = result.Success,
+                FinalState      = result.FinalState.ToString(),
+                Summary         = result.Summary,
+                Diff            = result.Diff,
+                TotalIterations = result.TotalIterations,
+                TotalTokens     = result.TotalTokensUsed,
+                AbortReason     = result.AbortReason,
+                Steps           = result.Steps.Select(s => new AgentStepSummary
+                {
+                    Role     = s.Role.ToString(),
+                    State    = s.State.ToString(),
+                    Success  = s.Success,
+                    Tokens   = s.TokensEstimated,
+                    Response = s.Response.Length > 300 ? s.Response[..300] + "…" : s.Response
+                }).ToList()
+            };
+
+            return JsonSerializer.Serialize(response, JsonConfig.Default);
+        }
+        catch (OperationCanceledException) { throw; }
+        catch (Exception ex)
+        {
+            return JsonSerializer.Serialize(new { error = new { code = "internal_error", message = ex.Message, retryable = true } }, JsonConfig.Default);
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Response models
+// ---------------------------------------------------------------------------
+
+public sealed class AgentTaskResponse : Orchestrator.Core.Interfaces.IMcpResponse
+{
+    public Meta Meta { get; init; } = default!;
+    public McpError? Error { get; init; }
+    public bool Success { get; init; }
+    public string FinalState { get; init; } = string.Empty;
+    public string Summary { get; init; } = string.Empty;
+    public string Diff { get; init; } = string.Empty;
+    public int TotalIterations { get; init; }
+    public int TotalTokens { get; init; }
+    public string? AbortReason { get; init; }
+    public List<AgentStepSummary> Steps { get; init; } = [];
+}
+
+public sealed class AgentStepSummary
+{
+    public string Role { get; init; } = string.Empty;
+    public string State { get; init; } = string.Empty;
+    public bool Success { get; init; }
+    public int Tokens { get; init; }
+    public string Response { get; init; } = string.Empty;
+}
