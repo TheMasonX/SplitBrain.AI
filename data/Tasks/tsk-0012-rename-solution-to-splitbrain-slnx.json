@@ -1,0 +1,29 @@
+{
+  "Id": "tsk-0012-rename-solution-to-splitbrain-slnx",
+  "Key": "TSK-0012",
+  "Title": "Rename Orchestrator.slnx to SplitBrain.slnx (Decision D4 partial)",
+  "Description": "Decision D4 (locked 2026-06-01) specifies renaming the solution to SplitBrain.slnx. The solution file is still named Orchestrator.slnx. Sprint 1 scope: create SplitBrain.slnx with the same content and mark Orchestrator.slnx for deletion. Full project-prefix rename (Orchestrator.* -> SplitBrain.*) is deferred to a future sprint due to scope.",
+  "Type": "Task",
+  "Status": "Backlog",
+  "Priority": "Low",
+  "AssigneeMode": "Custom",
+  "AssigneeCustomText": "AI",
+  "Labels": [
+    "architecture",
+    "solution",
+    "rename"
+  ],
+  "Attachments": [],
+  "ExternalLinks": [],
+  "LinkedPages": [
+    "architecture/solution-layout"
+  ],
+  "Comments": [],
+  "EpicId": null,
+  "ParentId": null,
+  "CreatedAtUtc": "2026-06-02T21:00:00Z",
+  "UpdatedAtUtc": "2026-06-02T21:00:00Z",
+  "CompletedAtUtc": null,
+  "Revision": 1,
+  "IsArchived": false
+}

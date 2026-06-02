@@ -1,0 +1,28 @@
+{
+  "Id": "tsk-0003-fix-cbackend-clobber-in-curstepchanged",
+  "Key": "TSK-0003",
+  "Title": "Fix CurStepChanged CBackend collapse from ternary to binary",
+  "Description": "In installer/SplitBrainAI.iss CurStepChanged, 'if RbOllama.Checked then CBackend := ollama else CBackend := llamacpp' overwrites the three-valued CBackend (llamacpp-native / llamacpp-docker) with a bare llamacpp string. IsLlamaCppNative() and IsLlamaCppDocker() both return False after this fires. Fix: use the same CaptureBackend pattern as CurPageChanged.",
+  "Type": "Bug",
+  "Status": "Backlog",
+  "Priority": "High",
+  "AssigneeMode": "Custom",
+  "AssigneeCustomText": "AI",
+  "Labels": [
+    "installer",
+    "pascal"
+  ],
+  "Attachments": [],
+  "ExternalLinks": [],
+  "LinkedPages": [
+    "ops/installer-dev-guide"
+  ],
+  "Comments": [],
+  "EpicId": null,
+  "ParentId": null,
+  "CreatedAtUtc": "2026-06-02T21:00:00Z",
+  "UpdatedAtUtc": "2026-06-02T21:00:00Z",
+  "CompletedAtUtc": null,
+  "Revision": 1,
+  "IsArchived": false
+}

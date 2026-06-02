@@ -1,0 +1,29 @@
+{
+  "Id": "tsk-0011-add-cuda-version-selector-installer",
+  "Key": "TSK-0011",
+  "Title": "Add CUDA build version selector (12.4 vs 13.3) to installer Native backend page",
+  "Description": "The installer always uses CUDA 12.4. Users with CUDA 13.x drivers (R580+) may want to choose 13.3. Add a radio button pair on the BackendPage Native description area: CUDA 12.4 (recommended, broader driver support) / CUDA 13.3 (newest NVIDIA drivers). Pass chosen version as -CudaBuild to GetLlamaCppSetupArgs.",
+  "Type": "Improvement",
+  "Status": "Backlog",
+  "Priority": "Medium",
+  "AssigneeMode": "Custom",
+  "AssigneeCustomText": "AI",
+  "Labels": [
+    "installer",
+    "ux",
+    "cuda"
+  ],
+  "Attachments": [],
+  "ExternalLinks": [],
+  "LinkedPages": [
+    "guides/llamacpp-gtx1080-setup"
+  ],
+  "Comments": [],
+  "EpicId": null,
+  "ParentId": null,
+  "CreatedAtUtc": "2026-06-02T21:00:00Z",
+  "UpdatedAtUtc": "2026-06-02T21:00:00Z",
+  "CompletedAtUtc": null,
+  "Revision": 1,
+  "IsArchived": false
+}

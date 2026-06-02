@@ -1,0 +1,29 @@
+{
+  "Id": "tsk-0013-add-optional-nodeworker-auth",
+  "Key": "TSK-0013",
+  "Title": "Add opt-in bearer token auth to NodeWorker endpoints",
+  "Description": "NodeWorker/Program.cs exposes POST /inference, GET /metrics, GET /models, GET /health with no authentication. Add optional bearer token auth controlled by NodeWorker:Auth:RequireToken (default false) in appsettings.json. When enabled, generate a random token on first run and store in config. Disabled by default \u2014 does not break existing LAN deployments.",
+  "Type": "Security",
+  "Status": "Backlog",
+  "Priority": "High",
+  "AssigneeMode": "Custom",
+  "AssigneeCustomText": "AI",
+  "Labels": [
+    "security",
+    "nodeworker",
+    "auth"
+  ],
+  "Attachments": [],
+  "ExternalLinks": [],
+  "LinkedPages": [
+    "ops/configuration-reference"
+  ],
+  "Comments": [],
+  "EpicId": null,
+  "ParentId": null,
+  "CreatedAtUtc": "2026-06-02T21:00:00Z",
+  "UpdatedAtUtc": "2026-06-02T21:00:00Z",
+  "CompletedAtUtc": null,
+  "Revision": 1,
+  "IsArchived": false
+}

@@ -11,6 +11,15 @@
     5. Installs the NodeWorker as a Windows service
     6. Configures log output to a predictable directory
 
+.PARAMETER SkipDotNet
+    Skip .NET Runtime installation (use when already installed or installer handled it).
+
+.PARAMETER SkipOllama
+    Skip Ollama installation (use when already installed or installer handled it).
+
+.PARAMETER SkipModels
+    Skip Ollama model pull (use when models are already downloaded or llamacpp backend selected).
+
 .NOTES
     Run as Administrator on Node B (GTX 1080 8 GB, Pascal).
     Flash attention DISABLED for Pascal stability.
@@ -21,11 +30,14 @@
 #Requires -RunAsAdministrator
 [CmdletBinding(SupportsShouldProcess)]
 param (
-    [string]$PublishPath    = "$PSScriptRoot\..\publish\node-b",
+    [string]$PublishPath    = "$PSScriptRoot\..\output\node-b\worker",
     [string]$ServiceName    = "SplitBrainNodeWorker",
     [string]$ServiceDisplay = "SplitBrain.AI Node Worker (Node B)",
     [string]$LogDir         = "C:\ProgramData\SplitBrain.AI\logs\node-b",
-    [string]$DotNetVersion  = "10.0"
+    [string]$DotNetVersion  = "10.0",
+    [switch]$SkipDotNet,
+    [switch]$SkipOllama,
+    [switch]$SkipModels
 )
 
 Set-StrictMode -Version Latest
@@ -49,41 +61,50 @@ function Set-PersistentEnv([string]$Name, [string]$Value) {
         return
     }
     [System.Environment]::SetEnvironmentVariable($Name, $Value, "Machine")
-    $env:($Name) = $Value
+    # Update in-process scope (fixed: use Set-Item not $env:($Name))
+    Set-Item "Env:$Name" $Value
     Write-Ok "Env $Name = $Value"
 }
 
 # ---------------------------------------------------------------------------
 # 1. .NET Runtime (runtime only — Node B does not need the SDK)
 # ---------------------------------------------------------------------------
-Write-Step ".NET $DotNetVersion Runtime"
-$runtimeInstalled = (dotnet --list-runtimes 2>$null) -match "^Microsoft\.NETCore\.App $DotNetVersion\."
-if (-not $runtimeInstalled) {
-    Write-Host "    Downloading .NET $DotNetVersion Runtime installer..."
-    $installerPath = "$env:TEMP\dotnet-install.ps1"
-    Invoke-WebRequest -Uri "https://dot.net/v1/dotnet-install.ps1" -OutFile $installerPath -UseBasicParsing
-    & $installerPath -Channel $DotNetVersion -Runtime dotnet -InstallDir "C:\Program Files\dotnet" -NoPath
-    Write-Ok ".NET $DotNetVersion Runtime installed"
+if ($SkipDotNet) {
+    Write-Skip ".NET $DotNetVersion Runtime (skipped by -SkipDotNet)"
 } else {
-    Write-Skip ".NET $DotNetVersion Runtime already present"
+    Write-Step ".NET $DotNetVersion Runtime"
+    $runtimeInstalled = (dotnet --list-runtimes 2>$null) -match "^Microsoft\.NETCore\.App $DotNetVersion\."
+    if (-not $runtimeInstalled) {
+        Write-Host "    Downloading .NET $DotNetVersion Runtime installer..."
+        $installerPath = "$env:TEMP\dotnet-install.ps1"
+        Invoke-WebRequest -Uri "https://dot.net/v1/dotnet-install.ps1" -OutFile $installerPath -UseBasicParsing
+        & $installerPath -Channel $DotNetVersion -Runtime dotnet -InstallDir "C:\Program Files\dotnet" -NoPath
+        Write-Ok ".NET $DotNetVersion Runtime installed"
+    } else {
+        Write-Skip ".NET $DotNetVersion Runtime already present"
+    }
 }
 
 # ---------------------------------------------------------------------------
 # 2. Ollama
 # ---------------------------------------------------------------------------
-Write-Step "Ollama"
-if (-not (Test-CommandExists "ollama")) {
-    Write-Host "    Downloading Ollama installer..."
-    $ollamaInstaller = "$env:TEMP\OllamaSetup.exe"
-    Invoke-WebRequest -Uri "https://ollama.com/download/OllamaSetup.exe" -OutFile $ollamaInstaller -UseBasicParsing
-    Start-Process -FilePath $ollamaInstaller -ArgumentList "/S" -Wait
-    Write-Ok "Ollama installed"
+if ($SkipOllama) {
+    Write-Skip "Ollama (skipped by -SkipOllama)"
 } else {
-    Write-Skip "Ollama already installed"
+    Write-Step "Ollama"
+    if (-not (Test-CommandExists "ollama")) {
+        Write-Host "    Downloading Ollama installer..."
+        $ollamaInstaller = "$env:TEMP\OllamaSetup.exe"
+        Invoke-WebRequest -Uri "https://ollama.com/download/OllamaSetup.exe" -OutFile $ollamaInstaller -UseBasicParsing
+        Start-Process -FilePath $ollamaInstaller -ArgumentList "/S" -Wait
+        Write-Ok "Ollama installed"
+    } else {
+        Write-Skip "Ollama already installed"
+    }
 }
 
 # ---------------------------------------------------------------------------
-# 3. Node B Ollama environment variables (from spec §4.2)
+# 3. Node B Ollama environment variables
 #    Flash attention DISABLED — Pascal (GTX 1080) instability.
 #    Single parallel to prevent VRAM fragmentation.
 # ---------------------------------------------------------------------------
@@ -98,28 +119,36 @@ Set-PersistentEnv "OLLAMA_HOST"              "0.0.0.0"
 # ---------------------------------------------------------------------------
 # 4. Pull required models
 # ---------------------------------------------------------------------------
-Write-Step "Pulling Ollama models for Node B"
+if ($SkipModels) {
+    Write-Skip "Model pull (skipped by -SkipModels — use this when selecting llama.cpp backend)"
+} else {
+    Write-Step "Pulling Ollama models for Node B"
 
-$models = @(
-    "qwen2.5-coder:7b-instruct-q5_K_M",   # primary deep-inference model
-    "deepseek-coder:6.7b-instruct-q4_K_M"  # fallback model
-)
+    $models = @(
+        "qwen2.5-coder:7b-instruct-q5_K_M",    # primary deep-inference model
+        "deepseek-coder:6.7b-instruct-q4_K_M"  # fallback model
+    )
 
-$ollamaProcess = $null
-if (-not (Test-NetConnection -ComputerName localhost -Port 11434 -InformationLevel Quiet -WarningAction SilentlyContinue)) {
-    Write-Host "    Starting Ollama serve temporarily for model pull..."
-    $ollamaProcess = Start-Process "ollama" -ArgumentList "serve" -PassThru -WindowStyle Hidden
-    Start-Sleep -Seconds 5
-}
+    $ollamaProcess = $null
+    if (-not (Test-NetConnection -ComputerName localhost -Port 11434 -InformationLevel Quiet -WarningAction SilentlyContinue)) {
+        Write-Host "    Starting Ollama serve temporarily for model pull..."
+        $ollamaProcess = Start-Process "ollama" -ArgumentList "serve" -PassThru -WindowStyle Hidden
+        Start-Sleep -Seconds 5
+    }
 
-foreach ($model in $models) {
-    Write-Host "    Pulling $model ..."
-    ollama pull $model
-    Write-Ok "Pulled $model"
-}
+    foreach ($model in $models) {
+        Write-Host "    Pulling $model ..."
+        ollama pull $model
+        if ($LASTEXITCODE -ne 0) {
+            Write-Warning "Failed to pull model '$model' (exit code $LASTEXITCODE) — retry manually: ollama pull $model"
+        } else {
+            Write-Ok "Pulled $model"
+        }
+    }
 
-if ($ollamaProcess) {
-    Stop-Process -Id $ollamaProcess.Id -Force -ErrorAction SilentlyContinue
+    if ($ollamaProcess) {
+        Stop-Process -Id $ollamaProcess.Id -Force -ErrorAction SilentlyContinue
+    }
 }
 
 # ---------------------------------------------------------------------------
@@ -172,6 +201,5 @@ if (-not (Test-Path $exePath)) {
 # ---------------------------------------------------------------------------
 Write-Host "`n[Node B provisioning complete]" -ForegroundColor Green
 Write-Host "  Ollama env vars:  machine-scope (reboot or re-open shell to take effect)"
-Write-Host "  Models pulled:    $($models -join ', ')"
 Write-Host "  Logs:             $LogDir"
 Write-Host "  Service:          $ServiceName"

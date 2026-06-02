@@ -1,0 +1,29 @@
+{
+  "Id": "tsk-0008-fix-setup-llamacpp-pinned-tag",
+  "Key": "TSK-0008",
+  "Title": "Fix stale pinned fallback tag in Setup-LlamaCpp.ps1",
+  "Description": "installer/scripts/Setup-LlamaCpp.ps1 uses hardcoded fallback tag 'b5695' described as 'approximate pinned tag \u2014 user should update if stale'. This tag may not exist in GitHub Releases, producing a broken download URL. Fix: replace with a resolved latest release URL from the API response, or use the GitHub releases/latest redirect approach.",
+  "Type": "Bug",
+  "Status": "Backlog",
+  "Priority": "Medium",
+  "AssigneeMode": "Custom",
+  "AssigneeCustomText": "AI",
+  "Labels": [
+    "installer",
+    "llamacpp",
+    "download"
+  ],
+  "Attachments": [],
+  "ExternalLinks": [],
+  "LinkedPages": [
+    "guides/llamacpp-gtx1080-setup"
+  ],
+  "Comments": [],
+  "EpicId": null,
+  "ParentId": null,
+  "CreatedAtUtc": "2026-06-02T21:00:00Z",
+  "UpdatedAtUtc": "2026-06-02T21:00:00Z",
+  "CompletedAtUtc": null,
+  "Revision": 1,
+  "IsArchived": false
+}
