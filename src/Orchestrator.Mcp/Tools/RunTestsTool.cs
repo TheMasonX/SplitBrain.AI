@@ -1,1 +1,193 @@
-dXNpbmcgU3lzdGVtLkNvbXBvbmVudE1vZGVsOwp1c2luZyBTeXN0ZW0uVGV4dC5Kc29uOwp1c2luZyBTeXN0ZW0uVGV4dC5SZWd1bGFyRXhwcmVzc2lvbnM7CnVzaW5nIEZsdWVudFZhbGlkYXRpb247CnVzaW5nIE1vZGVsQ29udGV4dFByb3RvY29sLlNlcnZlcjsKdXNpbmcgT3JjaGVzdHJhdG9yLkNvcmUuTW9kZWxzOwp1c2luZyBPcmNoZXN0cmF0b3IuQ29yZS5TZXJpYWxpemF0aW9uOwp1c2luZyBPcmNoZXN0cmF0b3IuQ29yZS5WYWxpZGF0aW9uOwoKbmFtZXNwYWNlIE9yY2hlc3RyYXRvci5NY3AuVG9vbHM7CgpbTWNwU2VydmVyVG9vbFR5cGVdCnB1YmxpYyBzZWFsZWQgY2xhc3MgUnVuVGVzdHNUb29sCnsKICAgIFtNY3BTZXJ2ZXJUb29sKE5hbWUgPSAicnVuX3Rlc3RzIiksIERlc2NyaXB0aW9uKCJSdW5zIHRoZSB0ZXN0IHN1aXRlIGZvciBhIHByb2plY3QgYW5kIHJldHVybnMgcGFzcy9mYWlsIHJlc3VsdHMuIildCiAgICBwdWJsaWMgYXN5bmMgVGFzazxzdHJpbmc+IFJ1blRlc3RzQXN5bmMoCiAgICAgICAgW0Rlc2NyaXB0aW9uKCJBYnNvbHV0ZSBwYXRoIHRvIHRoZSAuY3Nwcm9qIG9yIHNvbHV0aW9uIGZpbGUgdG8gdGVzdCIpXSBzdHJpbmcgcHJvamVjdFBhdGgsCiAgICAgICAgW0Rlc2NyaXB0aW9uKCJPcHRpb25hbCB0ZXN0IGZpbHRlciBleHByZXNzaW9uIChlLmcuIEZ1bGx5UXVhbGlmaWVkTmFtZX5NeVRlc3QpIildIHN0cmluZyBmaWx0ZXIgPSAiIiwKICAgICAgICBbRGVzY3JpcHRpb24oIkFsbG93ZWQgcm9vdCBkaXJlY3Rvcnkg4oCUIHBhdGggaXMgcmVqZWN0ZWQgaWYgb3V0c2lkZSB0aGlzIHNjb3BlIildIHN0cmluZyBhbGxvd2VkUm9vdCA9ICIiLAogICAgICAgIFtEZXNjcmlwdGlvbigiVGltZW91dCBpbiBzZWNvbmRzIGZvciB0aGUgZnVsbCB0ZXN0IHJ1biAoMeKAkzEyMCkiKV0gaW50IHRpbWVvdXRTZWNvbmRzID0gMzAsCiAgICAgICAgQ2FuY2VsbGF0aW9uVG9rZW4gY2FuY2VsbGF0aW9uVG9rZW4gPSBkZWZhdWx0KQogICAgewogICAgICAgIHRyeQogICAgICAgIHsKICAgICAgICAgICAgdmFyIHJlcXVlc3QgPSBuZXcgUnVuVGVzdHNSZXF1ZXN0CiAgICAgICAgICAgIHsKICAgICAgICAgICAgICAgIFByb2plY3RQYXRoID0gcHJvamVjdFBhdGgsCiAgICAgICAgICAgICAgICBUZXN0RmlsdGVyID0gc3RyaW5nLklzTnVsbE9yV2hpdGVTcGFjZShmaWx0ZXIpID8gbnVsbCA6IGZpbHRlciwKICAgICAgICAgICAgICAgIFRpbWVvdXRTZWNvbmRzID0gdGltZW91dFNlY29uZHMKICAgICAgICAgICAgfTsKCiAgICAgICAgICAgIHJlcXVlc3QuVmFsaWRhdGVPclRocm93KG5ldyBSdW5UZXN0c1JlcXVlc3RWYWxpZGF0b3IoKSk7CgogICAgICAgICAgICAvLyBTZWN1cml0eTogaWYgYW4gYWxsb3dlZFJvb3QgaXMgc3BlY2lmaWVkLCBlbmZvcmNlIGl0CiAgICAgICAgICAgIGlmICghc3RyaW5nLklzTnVsbE9yV2hpdGVTcGFjZShhbGxvd2VkUm9vdCkpCiAgICAgICAgICAgIHsKICAgICAgICAgICAgICAgIHZhciBmdWxsUGF0aCA9IFBhdGguR2V0RnVsbFBhdGgocHJvamVjdFBhdGgpOwogICAgICAgICAgICAgICAgdmFyIGZ1bGxSb290ID0gUGF0aC5HZXRGdWxsUGF0aChhbGxvd2VkUm9vdCkuVHJpbUVuZChQYXRoLkRpcmVjdG9yeVNlcGFyYXRvckNoYXIpICsgUGF0aC5EaXJlY3RvcnlTZXBhcmF0b3JDaGFyOwogICAgICAgICAgICAgICAgaWYgKCFmdWxsUGF0aC5TdGFydHNXaXRoKGZ1bGxSb290LCBTdHJpbmdDb21wYXJpc29uLk9yZGluYWxJZ25vcmVDYXNlKSkKICAgICAgICAgICAgICAgIHsKICAgICAgICAgICAgICAgICAgICByZXR1cm4gSnNvblNlcmlhbGl6ZXIuU2VyaWFsaXplKG5ldyBSdW5UZXN0c1Jlc3BvbnNlCiAgICAgICAgICAgICAgICAgICAgewogICAgICAgICAgICAgICAgICAgICAgICBTdW1tYXJ5ID0gbmV3IFRlc3RTdW1tYXJ5KCksCiAgICAgICAgICAgICAgICAgICAgICAgIEZhaWx1cmVzID0gW10sCiAgICAgICAgICAgICAgICAgICAgICAgIEVycm9yID0gbmV3IE1jcEVycm9yCiAgICAgICAgICAgICAgICAgICAgICAgIHsKICAgICAgICAgICAgICAgICAgICAgICAgICAgIENvZGUgPSAiUEFUSF9WSU9MQVRJT04iLAogICAgICAgICAgICAgICAgICAgICAgICAgICAgTWVzc2FnZSA9ICQicHJvamVjdFBhdGggJ3twcm9qZWN0UGF0aH0nIGlzIG91dHNpZGUgdGhlIGFsbG93ZWQgcm9vdCAne2FsbG93ZWRSb290fSciLAogICAgICAgICAgICAgICAgICAgICAgICAgICAgUmV0cnlhYmxlID0gZmFsc2UKICAgICAgICAgICAgICAgICAgICAgICAgfSwKICAgICAgICAgICAgICAgICAgICAgICAgTWV0YSA9IG5ldyBNZXRhIHsgVGFza0lkID0gR3VpZC5OZXdHdWlkKCkuVG9TdHJpbmcoIk4iKSwgTm9kZSA9ICJsb2NhbCIgfQogICAgICAgICAgICAgICAgICAgIH0sIEpzb25Db25maWcuRGVmYXVsdCk7CiAgICAgICAgICAgICAgICB9CiAgICAgICAgICAgIH0KCiAgICAgICAgICAgIHZhciBhcmdzID0gJCJ0ZXN0IFwie3Byb2plY3RQYXRofVwiIC0tbm8tYnVpbGQgLS1sb2dnZXIgY29uc29sZTt2ZXJib3NpdHk9bm9ybWFsIjsKICAgICAgICAgICAgaWYgKCFzdHJpbmcuSXNOdWxsT3JXaGl0ZVNwYWNlKGZpbHRlcikpCiAgICAgICAgICAgICAgICBhcmdzICs9ICQiIC0tZmlsdGVyIFwie2ZpbHRlcn1cIiI7CgogICAgICAgICAgICB1c2luZyB2YXIgY3RzID0gQ2FuY2VsbGF0aW9uVG9rZW5Tb3VyY2UuQ3JlYXRlTGlua2VkVG9rZW5Tb3VyY2UoY2FuY2VsbGF0aW9uVG9rZW4pOwogICAgICAgICAgICBjdHMuQ2FuY2VsQWZ0ZXIoVGltZVNwYW4uRnJvbVNlY29uZHModGltZW91dFNlY29uZHMpKTsKCiAgICAgICAgICAgIHZhciBzdyA9IFN5c3RlbS5EaWFnbm9zdGljcy5TdG9wd2F0Y2guU3RhcnROZXcoKTsKICAgICAgICAgICAgdmFyIChleGl0Q29kZSwgc3Rkb3V0LCBzdGRlcnIpID0gYXdhaXQgUnVuUHJvY2Vzc0FzeW5jKCJkb3RuZXQiLCBhcmdzLCBjdHMuVG9rZW4pOwogICAgICAgICAgICBzdy5TdG9wKCk7CgogICAgICAgICAgICB2YXIgKHN1bW1hcnksIGZhaWx1cmVzKSA9IFBhcnNlRG90bmV0VGVzdE91dHB1dChzdGRvdXQgKyAiXG4iICsgc3RkZXJyLCAoaW50KXN3LkVsYXBzZWRNaWxsaXNlY29uZHMpOwoKICAgICAgICAgICAgTWNwRXJyb3I/IGVycm9yID0gbnVsbDsKICAgICAgICAgICAgaWYgKGV4aXRDb2RlICE9IDAgJiYgZmFpbHVyZXMuQ291bnQgPT0gMCkKICAgICAgICAgICAgewogICAgICAgICAgICAgICAgZXJyb3IgPSBuZXcgTWNwRXJyb3IKICAgICAgICAgICAgICAgIHsKICAgICAgICAgICAgICAgICAgICBDb2RlID0gIlRFU1RfUlVOX0ZBSUxFRCIsCiAgICAgICAgICAgICAgICAgICAgTWVzc2FnZSA9IHN0ZGVyci5MZW5ndGggPiAwID8gc3RkZXJyWy4uTWF0aC5NaW4oNTAwLCBzdGRlcnIuTGVuZ3RoKV0gOiAiZG90bmV0IHRlc3QgZXhpdGVkIHdpdGggbm9uLXplcm8gY29kZSIsCiAgICAgICAgICAgICAgICAgICAgUmV0cnlhYmxlID0gZmFsc2UKICAgICAgICAgICAgICAgIH07CiAgICAgICAgICAgIH0KCiAgICAgICAgICAgIHZhciByZXNwb25zZSA9IG5ldyBSdW5UZXN0c1Jlc3BvbnNlCiAgICAgICAgICAgIHsKICAgICAgICAgICAgICAgIFN1bW1hcnkgPSBzdW1tYXJ5LAogICAgICAgICAgICAgICAgRmFpbHVyZXMgPSBmYWlsdXJlcywKICAgICAgICAgICAgICAgIEVycm9yID0gZXJyb3IsCiAgICAgICAgICAgICAgICBNZXRhID0gbmV3IE1ldGEKICAgICAgICAgICAgICAgIHsKICAgICAgICAgICAgICAgICAgICBUYXNrSWQgPSBHdWlkLk5ld0d1aWQoKS5Ub1N0cmluZygiTiIpLAogICAgICAgICAgICAgICAgICAgIE5vZGUgPSAibG9jYWwiLAogICAgICAgICAgICAgICAgICAgIExhdGVuY3lNcyA9IChpbnQpc3cuRWxhcHNlZE1pbGxpc2Vjb25kcwogICAgICAgICAgICAgICAgfQogICAgICAgICAgICB9OwoKICAgICAgICAgICAgcmV0dXJuIEpzb25TZXJpYWxpemVyLlNlcmlhbGl6ZShyZXNwb25zZSwgSnNvbkNvbmZpZy5EZWZhdWx0KTsKICAgICAgICB9CiAgICAgICAgY2F0Y2ggKFZhbGlkYXRpb25FeGNlcHRpb24gdmV4KQogICAgICAgIHsKICAgICAgICAgICAgcmV0dXJuIEpzb25TZXJpYWxpemVyLlNlcmlhbGl6ZShuZXcgeyBlcnJvciA9IG5ldyB7IGNvZGUgPSAidmFsaWRhdGlvbl9lcnJvciIsIG1lc3NhZ2UgPSB2ZXguTWVzc2FnZSwgcmV0cnlhYmxlID0gZmFsc2UgfSB9LCBKc29uQ29uZmlnLkRlZmF1bHQpOwogICAgICAgIH0KICAgICAgICBjYXRjaCAoT3BlcmF0aW9uQ2FuY2VsZWRFeGNlcHRpb24pCiAgICAgICAgewogICAgICAgICAgICB0aHJvdzsgLy8gTGV0IGNhbmNlbGxhdGlvbiBwcm9wYWdhdGUKICAgICAgICB9CiAgICAgICAgY2F0Y2ggKEV4Y2VwdGlvbiBleCkKICAgICAgICB7CiAgICAgICAgICAgIHJldHVybiBKc29uU2VyaWFsaXplci5TZXJpYWxpemUobmV3IHsgZXJyb3IgPSBuZXcgeyBjb2RlID0gImludGVybmFsX2Vycm9yIiwgbWVzc2FnZSA9IGV4Lk1lc3NhZ2UsIHJldHJ5YWJsZSA9IHRydWUgfSB9LCBKc29uQ29uZmlnLkRlZmF1bHQpOwogICAgICAgIH0KICAgIH0KCiAgICAvLyAtLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0KICAgIC8vIE91dHB1dCBwYXJzaW5nCiAgICAvLyAtLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0KCiAgICBwcml2YXRlIHN0YXRpYyAoVGVzdFN1bW1hcnkgU3VtbWFyeSwgTGlzdDxUZXN0RmFpbHVyZT4gRmFpbHVyZXMpIFBhcnNlRG90bmV0VGVzdE91dHB1dCgKICAgICAgICBzdHJpbmcgb3V0cHV0LCBpbnQgZHVyYXRpb25NcykKICAgIHsKICAgICAgICB2YXIgZmFpbHVyZXMgPSBuZXcgTGlzdDxUZXN0RmFpbHVyZT4oKTsKICAgICAgICBpbnQgcGFzc2VkID0gMCwgZmFpbGVkID0gMCwgc2tpcHBlZCA9IDA7CgogICAgICAgIC8vIERvdG5ldCB0ZXN0IHN1bW1hcnkgbGluZTogIlBhc3NlZCEgIC0gRmFpbGVkOiAwLCBQYXNzZWQ6IDUsIFNraXBwZWQ6IDAsIFRvdGFsOiA1LCBEdXJhdGlvbjogMSBzIgogICAgICAgIHZhciBzdW1tYXJ5TWF0Y2ggPSBSZWdleC5NYXRjaChvdXRwdXQsCiAgICAgICAgICAgIEAiKD86UGFzc2VkfEZhaWxlZCkhLio/RmFpbGVkOlxzKihcZCspLFxzKlBhc3NlZDpccyooXGQrKSxccypTa2lwcGVkOlxzKihcZCspLFxzKlRvdGFsOlxzKihcZCspIiwKICAgICAgICAgICAgUmVnZXhPcHRpb25zLklnbm9yZUNhc2UpOwoKICAgICAgICBpZiAoc3VtbWFyeU1hdGNoLlN1Y2Nlc3MpCiAgICAgICAgewogICAgICAgICAgICBmYWlsZWQgID0gaW50LlBhcnNlKHN1bW1hcnlNYXRjaC5Hcm91cHNbMV0uVmFsdWUpOwogICAgICAgICAgICBwYXNzZWQgID0gaW50LlBhcnNlKHN1bW1hcnlNYXRjaC5Hcm91cHNbMl0uVmFsdWUpOwogICAgICAgICAgICBza2lwcGVkID0gaW50LlBhcnNlKHN1bW1hcnlNYXRjaC5Hcm91cHNbM10uVmFsdWUpOwogICAgICAgIH0KCiAgICAgICAgLy8gUGFyc2UgaW5kaXZpZHVhbCBmYWlsdXJlIGJsb2NrcwogICAgICAgIHZhciBmYWlsdXJlQmxvY2tzID0gUmVnZXguTWF0Y2hlcyhvdXRwdXQsCiAgICAgICAgICAgIEAiRmFpbGVkXHMrKD88bmFtZT5bXlxyXG5dKylccj9cbig/PGJvZHk+Lio/KSg/PVxyP1xuRmFpbGVkIHxccj9cblBhc3NlZCF8XHI/XG5ccypcblxzKlxufCQpIiwKICAgICAgICAgICAgUmVnZXhPcHRpb25zLlNpbmdsZWxpbmUpOwoKICAgICAgICBmb3JlYWNoIChNYXRjaCBtIGluIGZhaWx1cmVCbG9ja3MpCiAgICAgICAgewogICAgICAgICAgICB2YXIgYm9keSA9IG0uR3JvdXBzWyJib2R5Il0uVmFsdWUuVHJpbSgpOwogICAgICAgICAgICB2YXIgbXNnTWF0Y2ggPSBSZWdleC5NYXRjaChib2R5LCBAIkVycm9yIE1lc3NhZ2U6XHMqKD88bXNnPlteXHJcbl0rKSIpOwogICAgICAgICAgICB2YXIgc3RhY2tNYXRjaCA9IFJlZ2V4Lk1hdGNoKGJvZHksIEAiU3RhY2sgVHJhY2U6XHMqKD88c3Q+W1xzXFNdKykiKTsKICAgICAgICAgICAgZmFpbHVyZXMuQWRkKG5ldyBUZXN0RmFpbHVyZQogICAgICAgICAgICB7CiAgICAgICAgICAgICAgICBUZXN0TmFtZSAgPSBtLkdyb3Vwc1sibmFtZSJdLlZhbHVlLlRyaW0oKSwKICAgICAgICAgICAgICAgIE1lc3NhZ2UgICA9IG1zZ01hdGNoLlN1Y2Nlc3MgPyBtc2dNYXRjaC5Hcm91cHNbIm1zZyJdLlZhbHVlLlRyaW0oKSA6IGJvZHlbLi5NYXRoLk1pbigyMDAsIGJvZHkuTGVuZ3RoKV0sCiAgICAgICAgICAgICAgICBTdGFja1RyYWNlID0gc3RhY2tNYXRjaC5TdWNjZXNzID8gc3RhY2tNYXRjaC5Hcm91cHNbInN0Il0uVmFsdWUuVHJpbSgpIDogbnVsbAogICAgICAgICAgICB9KTsKICAgICAgICB9CgogICAgICAgIHZhciBzdW1tYXJ5ID0gbmV3IFRlc3RTdW1tYXJ5CiAgICAgICAgewogICAgICAgICAgICBUb3RhbCAgICAgID0gcGFzc2VkICsgZmFpbGVkICsgc2tpcHBlZCwKICAgICAgICAgICAgUGFzc2VkICAgICA9IHBhc3NlZCwKICAgICAgICAgICAgRmFpbGVkICAgICA9IGZhaWxlZCwKICAgICAgICAgICAgU2tpcHBlZCAgICA9IHNraXBwZWQsCiAgICAgICAgICAgIER1cmF0aW9uTXMgPSBkdXJhdGlvbk1zCiAgICAgICAgfTsKCiAgICAgICAgcmV0dXJuIChzdW1tYXJ5LCBmYWlsdXJlcyk7CiAgICB9CgogICAgLy8gLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tCiAgICAvLyBQcm9jZXNzIGhlbHBlcgogICAgLy8gLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tCgogICAgcHJpdmF0ZSBzdGF0aWMgYXN5bmMgVGFzazwoaW50IEV4aXRDb2RlLCBzdHJpbmcgU3Rkb3V0LCBzdHJpbmcgU3RkZXJyKT4gUnVuUHJvY2Vzc0FzeW5jKAogICAgICAgIHN0cmluZyBleGVjdXRhYmxlLCBzdHJpbmcgYXJndW1lbnRzLCBDYW5jZWxsYXRpb25Ub2tlbiBjYW5jZWxsYXRpb25Ub2tlbikKICAgIHsKICAgICAgICB1c2luZyB2YXIgcHJvY2VzcyA9IG5ldyBTeXN0ZW0uRGlhZ25vc3RpY3MuUHJvY2VzcygpOwogICAgICAgIHByb2Nlc3MuU3RhcnRJbmZvID0gbmV3IFN5c3RlbS5EaWFnbm9zdGljcy5Qcm9jZXNzU3RhcnRJbmZvCiAgICAgICAgewogICAgICAgICAgICBGaWxlTmFtZSA9IGV4ZWN1dGFibGUsCiAgICAgICAgICAgIEFyZ3VtZW50cyA9IGFyZ3VtZW50cywKICAgICAgICAgICAgUmVkaXJlY3RTdGFuZGFyZE91dHB1dCA9IHRydWUsCiAgICAgICAgICAgIFJlZGlyZWN0U3RhbmRhcmRFcnJvciA9IHRydWUsCiAgICAgICAgICAgIFVzZVNoZWxsRXhlY3V0ZSA9IGZhbHNlLAogICAgICAgICAgICBDcmVhdGVOb1dpbmRvdyA9IHRydWUKICAgICAgICB9OwoKICAgICAgICBwcm9jZXNzLlN0YXJ0KCk7CgogICAgICAgIHZhciBzdGRvdXRUYXNrID0gcHJvY2Vzcy5TdGFuZGFyZE91dHB1dC5SZWFkVG9FbmRBc3luYyhjYW5jZWxsYXRpb25Ub2tlbik7CiAgICAgICAgdmFyIHN0ZGVyclRhc2sgPSBwcm9jZXNzLlN0YW5kYXJkRXJyb3IuUmVhZFRvRW5kQXN5bmMoY2FuY2VsbGF0aW9uVG9rZW4pOwoKICAgICAgICBhd2FpdCBwcm9jZXNzLldhaXRGb3JFeGl0QXN5bmMoY2FuY2VsbGF0aW9uVG9rZW4pOwoKICAgICAgICByZXR1cm4gKHByb2Nlc3MuRXhpdENvZGUsIGF3YWl0IHN0ZG91dFRhc2ssIGF3YWl0IHN0ZGVyclRhc2spOwogICAgfQp9Cg==
+using System.ComponentModel;
+using System.Text.Json;
+using System.Text.RegularExpressions;
+using ModelContextProtocol.Server;
+using Orchestrator.Core.Models;
+using Orchestrator.Core.Serialization;
+using Orchestrator.Core.Validation;
+
+namespace Orchestrator.Mcp.Tools;
+
+[McpServerToolType]
+public sealed class RunTestsTool
+{
+    [McpServerTool(Name = "run_tests"), Description("Runs the test suite for a project and returns pass/fail results.")]
+    public async Task<string> RunTestsAsync(
+        [Description("Absolute path to the .csproj or solution file to test")] string projectPath,
+        [Description("Allowed root directory (REQUIRED) — projectPath is rejected if outside this scope")] string allowedRoot,
+        [Description("Optional test filter expression (e.g. FullyQualifiedName~MyTest)")] string filter = "",
+        [Description("Timeout in seconds for the full test run (1–120)")] int timeoutSeconds = 30,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var request = new RunTestsRequest
+            {
+                ProjectPath = projectPath,
+                TestFilter = string.IsNullOrWhiteSpace(filter) ? null : filter,
+                TimeoutSeconds = timeoutSeconds
+            };
+
+            request.ValidateOrThrow(new RunTestsRequestValidator());
+
+            // Security: allowedRoot is REQUIRED — always validate the path against it.
+            if (string.IsNullOrWhiteSpace(allowedRoot))
+            {
+                return JsonSerializer.Serialize(new RunTestsResponse
+                {
+                    Summary = new TestSummary(),
+                    Failures = [],
+                    Error = new McpError
+                    {
+                        Code = "ALLOWED_ROOT_REQUIRED",
+                        Message = "allowedRoot is required — supply an absolute directory the projectPath must live under.",
+                        Retryable = false
+                    },
+                    Meta = new Meta { TaskId = Guid.NewGuid().ToString("N"), Node = "local" }
+                }, JsonConfig.Default);
+            }
+
+            var fullPath = Path.GetFullPath(projectPath);
+            var fullRoot = Path.GetFullPath(allowedRoot).TrimEnd(Path.DirectorySeparatorChar) + Path.DirectorySeparatorChar;
+            if (!fullPath.StartsWith(fullRoot, StringComparison.OrdinalIgnoreCase))
+            {
+                return JsonSerializer.Serialize(new RunTestsResponse
+                {
+                    Summary = new TestSummary(),
+                    Failures = [],
+                    Error = new McpError
+                    {
+                        Code = "PATH_VIOLATION",
+                        Message = $"projectPath '{projectPath}' is outside the allowed root '{allowedRoot}'",
+                        Retryable = false
+                    },
+                    Meta = new Meta { TaskId = Guid.NewGuid().ToString("N"), Node = "local" }
+                }, JsonConfig.Default);
+            }
+
+            var args = $"test \"{projectPath}\" --no-build --logger console;verbosity=normal";
+            if (!string.IsNullOrWhiteSpace(filter))
+                args += $" --filter \"{filter}\"";
+
+            using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            cts.CancelAfter(TimeSpan.FromSeconds(timeoutSeconds));
+
+            var sw = System.Diagnostics.Stopwatch.StartNew();
+            var (exitCode, stdout, stderr) = await RunProcessAsync("dotnet", args, cts.Token);
+            sw.Stop();
+
+            var (summary, failures) = ParseDotnetTestOutput(stdout + "\n" + stderr, (int)sw.ElapsedMilliseconds);
+
+            McpError? error = null;
+            if (exitCode != 0 && failures.Count == 0)
+            {
+                error = new McpError
+                {
+                    Code = "TEST_RUN_FAILED",
+                    Message = stderr.Length > 0 ? stderr[..Math.Min(500, stderr.Length)] : "dotnet test exited with non-zero code",
+                    Retryable = false
+                };
+            }
+
+            var response = new RunTestsResponse
+            {
+                Summary = summary,
+                Failures = failures,
+                Error = error,
+                Meta = new Meta
+                {
+                    TaskId = Guid.NewGuid().ToString("N"),
+                    Node = "local",
+                    LatencyMs = (int)sw.ElapsedMilliseconds
+                }
+            };
+
+            return JsonSerializer.Serialize(response, JsonConfig.Default);
+        }
+        catch (OperationCanceledException) { throw; }
+        catch (Exception ex)
+        {
+            return JsonSerializer.Serialize(new { error = new { code = "internal_error", message = ex.Message, retryable = true } }, JsonConfig.Default);
+        }
+    }
+
+    // ---------------------------------------------------------------------------
+    // Output parsing
+    // ---------------------------------------------------------------------------
+
+    private static (TestSummary Summary, List<TestFailure> Failures) ParseDotnetTestOutput(
+        string output, int durationMs)
+    {
+        var failures = new List<TestFailure>();
+        int passed = 0, failed = 0, skipped = 0;
+
+        // Dotnet test summary line: "Passed!  - Failed: 0, Passed: 5, Skipped: 0, Total: 5, Duration: 1 s"
+        var summaryMatch = Regex.Match(output,
+            @"(?:Passed|Failed)!.*?Failed:\s*(\d+),\s*Passed:\s*(\d+),\s*Skipped:\s*(\d+),\s*Total:\s*(\d+)",
+            RegexOptions.IgnoreCase);
+
+        if (summaryMatch.Success)
+        {
+            failed  = int.Parse(summaryMatch.Groups[1].Value);
+            passed  = int.Parse(summaryMatch.Groups[2].Value);
+            skipped = int.Parse(summaryMatch.Groups[3].Value);
+        }
+
+        // Parse individual failure blocks
+        var failureBlocks = Regex.Matches(output,
+            @"Failed\s+(?<name>[^\r\n]+)\r?\n(?<body>.*?)(?=\r?\nFailed |\r?\nPassed!|\r?\n\s*\n\s*\n|$)",
+            RegexOptions.Singleline);
+
+        foreach (Match m in failureBlocks)
+        {
+            var body = m.Groups["body"].Value.Trim();
+            var msgMatch = Regex.Match(body, @"Error Message:\s*(?<msg>[^\r\n]+)");
+            var stackMatch = Regex.Match(body, @"Stack Trace:\s*(?<st>[\s\S]+)");
+            failures.Add(new TestFailure
+            {
+                TestName  = m.Groups["name"].Value.Trim(),
+                Message   = msgMatch.Success ? msgMatch.Groups["msg"].Value.Trim() : body[..Math.Min(200, body.Length)],
+                StackTrace = stackMatch.Success ? stackMatch.Groups["st"].Value.Trim() : null
+            });
+        }
+
+        var summary = new TestSummary
+        {
+            Total      = passed + failed + skipped,
+            Passed     = passed,
+            Failed     = failed,
+            Skipped    = skipped,
+            DurationMs = durationMs
+        };
+
+        return (summary, failures);
+    }
+
+    // ---------------------------------------------------------------------------
+    // Process helper
+    // ---------------------------------------------------------------------------
+
+    private static async Task<(int ExitCode, string Stdout, string Stderr)> RunProcessAsync(
+        string executable, string arguments, CancellationToken cancellationToken)
+    {
+        using var process = new System.Diagnostics.Process();
+        process.StartInfo = new System.Diagnostics.ProcessStartInfo
+        {
+            FileName = executable,
+            Arguments = arguments,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            UseShellExecute = false,
+            CreateNoWindow = true
+        };
+
+        process.Start();
+
+        var stdoutTask = process.StandardOutput.ReadToEndAsync(cancellationToken);
+        var stderrTask = process.StandardError.ReadToEndAsync(cancellationToken);
+
+        await process.WaitForExitAsync(cancellationToken);
+
+        return (process.ExitCode, await stdoutTask, await stderrTask);
+    }
+}
