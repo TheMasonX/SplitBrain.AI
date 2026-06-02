@@ -15,6 +15,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Orchestrator.Core\Orchestrator.Core.csproj" />
+    <ProjectReference Include="..\NodeClient.LlamaCpp\NodeClient.LlamaCpp.csproj" />
     <ProjectReference Include="..\NodeClient.Ollama\NodeClient.Ollama.csproj" />
     <ProjectReference Include="..\Orchestrator.Infrastructure\Orchestrator.Infrastructure.csproj" />
   </ItemGroup>
