@@ -103,13 +103,27 @@ public sealed class ReviewCodeTool
     private static string SanitizeForFence(string input)
         => input.Replace("```", "` ` `");
 
+    /// <summary>
+    /// Strip control characters (including newlines) from a short metadata parameter and
+    /// truncate to <paramref name="maxLength"/> to prevent prompt-injection via
+    /// language/focus-style fields.
+    /// </summary>
+    private static string SanitizeParam(string value, int maxLength = 50)
+    {
+        var clean = new string(value.Where(c => !char.IsControl(c)).ToArray());
+        return clean.Length > maxLength ? clean[..maxLength] : clean;
+    }
+
     private static string BuildPrompt(ReviewCodeRequest request)
     {
+        var language = SanitizeParam(request.Language);
+        var focus = SanitizeParam(request.Focus);
+
         var sb = new System.Text.StringBuilder();
-        sb.AppendLine($"You are an expert {request.Language} code reviewer. Perform a {request.Focus} review of the following code.");
+        sb.AppendLine($"You are an expert {language} code reviewer. Perform a {focus} review of the following code.");
         sb.AppendLine("Provide a concise summary of your findings.");
         sb.AppendLine();
-        sb.AppendLine($"```{request.Language}");
+        sb.AppendLine($"```{language}");
         sb.AppendLine(SanitizeForFence(request.Code));
         sb.AppendLine("```");
 
