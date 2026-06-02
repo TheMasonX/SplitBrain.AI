@@ -1,19 +1,6 @@
-using System.Runtime.CompilerServices;
-
 namespace Orchestrator.Core.Interfaces;
 
-public enum AgentStepType
-{
-    Init,
-    Plan,
-    Implement,
-    Review,
-    Test,
-    Done,
-    Fail,
-    FallbackTriggered,
-    ValidationFailed
-}
+public enum AgentStepType { Init, Plan, Implement, Review, Test, Done, Fail, FallbackTriggered, ValidationFailed }
 
 public record AgentStepEvent
 {
@@ -32,8 +19,6 @@ public record AgentStepEvent
 public interface IAgentEventLog
 {
     Task AppendAsync(AgentStepEvent step, CancellationToken ct = default);
-    IAsyncEnumerable<AgentStepEvent> ReplayAsync(
-        string taskId,
-        [EnumeratorCancellation] CancellationToken ct = default);
+    IAsyncEnumerable<AgentStepEvent> ReplayAsync(string taskId, CancellationToken ct = default);
     Task<int> GetTotalTokensAsync(string taskId, CancellationToken ct = default);
 }

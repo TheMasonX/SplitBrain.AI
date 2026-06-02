@@ -1,36 +1,8 @@
 namespace Orchestrator.Core.Configuration;
 
-/// <summary>
-/// Provider type determines which adapter creates the IInferenceNode.
-/// Extend this enum when adding new provider integrations.
-/// </summary>
-public enum NodeProviderType
-{
-    Ollama,
-    CopilotSdk,
-    /// <summary>
-    /// Remote Orchestrator.NodeWorker instance. Routes inference over HTTP
-    /// to a worker process running on a remote inference machine.
-    /// </summary>
-    Worker,
-}
+public enum NodeProviderType { Ollama, CopilotSdk, Worker, LlamaCpp }
+public enum NodeRole { Fast, Deep, Hybrid, Standby }
 
-/// <summary>
-/// Role governs hard routing rules. Fast nodes handle latency-sensitive work.
-/// Deep nodes handle complex reasoning. Hybrid can do both. Standby is reserve.
-/// </summary>
-public enum NodeRole
-{
-    Fast,
-    Deep,
-    Hybrid,
-    Standby
-}
-
-/// <summary>
-/// Complete configuration for a single inference node.
-/// Serialized to/from nodes.json. Immutable record for thread safety.
-/// </summary>
 public record NodeConfiguration
 {
     public required string NodeId { get; init; }
@@ -45,11 +17,9 @@ public record NodeConfiguration
     public OllamaProviderConfig? Ollama { get; init; }
     public CopilotProviderConfig? Copilot { get; init; }
     public WorkerProviderConfig? Worker { get; init; }
+    public LlamaCppProviderConfig? LlamaCpp { get; init; }
 }
 
-/// <summary>
-/// Ollama-specific settings per node.
-/// </summary>
 public record OllamaProviderConfig
 {
     public required string Host { get; init; }
@@ -59,17 +29,9 @@ public record OllamaProviderConfig
     public int MaxLoadedModels { get; init; } = 2;
     public bool FlashAttention { get; init; } = true;
     public int TimeoutSeconds { get; init; } = 10;
-    /// <summary>
-    /// Static VRAM capacity. Ollama /api/ps does not expose total GPU memory,
-    /// so total VRAM must come from config for utilization calculations.
-    /// </summary>
     public long GpuVramTotalMB { get; init; }
 }
 
-/// <summary>
-/// GitHub Copilot SDK settings.
-/// Auth resolution: Azure Key Vault → env var COPILOT_API_KEY → GitHub CLI.
-/// </summary>
 public record CopilotProviderConfig
 {
     public string? CliPath { get; init; }
@@ -81,20 +43,24 @@ public record CopilotProviderConfig
     public int TimeoutSeconds { get; init; } = 30;
 }
 
-/// <summary>
-/// Settings for a remote Orchestrator.NodeWorker instance.
-/// The worker exposes HTTP endpoints for inference relay.
-/// </summary>
 public record WorkerProviderConfig
 {
-    /// <summary>Base URL of the remote worker (e.g. http://192.168.1.100:5100).</summary>
     public required string BaseUrl { get; init; }
     public int TimeoutSeconds { get; init; } = 30;
     public long GpuVramTotalMB { get; init; }
     public string DefaultModel { get; init; } = string.Empty;
 }
 
-/// <summary>Root object deserialized from nodes.json.</summary>
+public record LlamaCppProviderConfig
+{
+    public required string Host { get; init; }
+    public int Port { get; init; } = 8080;
+    public string BaseUrl => $"http://{Host}:{Port}";
+    public int TimeoutSeconds { get; init; } = 180;
+    public string ModelLabel { get; init; } = "llama-cpp-default";
+    public long GpuVramTotalMB { get; init; } = 8192;
+}
+
 public sealed class NodeTopologyConfig
 {
     public List<NodeConfiguration> Nodes { get; set; } = [];
