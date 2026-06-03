@@ -1,4 +1,4 @@
-﻿using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -29,6 +29,7 @@ using Orchestrator.Infrastructure.Registry;
 using Orchestrator.Infrastructure.Routing;
 using Orchestrator.Mcp.Idempotency;
 using Orchestrator.Mcp.Tools;
+using Orchestrator.Mcp.WriteAccess;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -231,6 +232,13 @@ builder.Services.AddHostedService<NodeHealthCheckService>();
 
 // MCP idempotency cache (TTL-based deduplication, in-process)
 builder.Services.AddSingleton<IIdempotencyCache, InMemoryIdempotencyCache>();
+
+// P0.4: Per-tool timeout config
+// (TimeoutSeconds defaults live in ToolTimeout.cs; override via Mcp:ToolTimeouts:{ToolName})
+
+// P0.5: Write-access gate
+builder.Services.Configure<WriteAccessOptions>(builder.Configuration.GetSection(WriteAccessOptions.Section));
+builder.Services.AddSingleton<WriteAccessGuard>();
 
 // Model registry — seeded from appsettings SplitBrain:Models section
 builder.Services.AddSingleton<IModelRegistry>(sp =>
