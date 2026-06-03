@@ -1,0 +1,10 @@
+### Test qcoder:latest response format for generate_tests tool
+POST http://localhost:11434/api/generate
+Content-Type: application/json
+
+{
+  "model": "qcoder:latest",
+  "prompt": "Generate xunit tests for this C# code:\npublic class Calculator { public int Add(int a, int b) => a + b; }\nRespond ONLY with valid JSON: {\"files\": [{\"path\": \"CalculatorTests.cs\", \"content\": \"<test file content>\"}]}",
+  "stream": false,
+  "format": "json"
+}
