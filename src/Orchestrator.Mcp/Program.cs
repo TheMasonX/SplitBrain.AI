@@ -279,7 +279,8 @@ builder.Services
     .WithTools<ReadFileTool>()
     .WithTools<ListFilesTool>()
     .WithTools<WriteFileTool>()
-    .WithTools<QueryAllowedRootTool>();
+    .WithTools<QueryAllowedRootTool>()
+    .WithTools<ExplainCodeTool>();
 
 // OpenTelemetry — traces + metrics exported via OTLP (Jaeger / Grafana / etc.)
 // Set OTEL_EXPORTER_OTLP_ENDPOINT env-var to your collector; defaults to http://localhost:4317
