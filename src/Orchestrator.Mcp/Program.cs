@@ -336,16 +336,22 @@ builder.Services
     .WithTools<RunTestsTool>()
     .WithTools<AgentTaskTool>();
 
-var otlpEndpoint = builder.Configuration["OTEL_EXPORTER_OTLP_ENDPOINT"] ?? "http://localhost:4317";
-builder.Services
+// OTel: only export to OTLP if OTEL_EXPORTER_OTLP_ENDPOINT is explicitly set.
+// If not set, OTel internal metrics/traces still work but no data leaves the process.
+// This prevents connection noise when no Jaeger/Grafana collector is running locally.
+var otlpEndpoint = builder.Configuration["OTEL_EXPORTER_OTLP_ENDPOINT"];
+var otelBuilder = builder.Services
     .AddOpenTelemetry()
     .ConfigureResource(r => r.AddService("SplitBrain.Mcp", serviceVersion: "3.0.0"))
-    .WithTracing(tracing => tracing
-        .AddAspNetCoreInstrumentation()
-        .AddOtlpExporter(o => o.Endpoint = new Uri(otlpEndpoint)))
-    .WithMetrics(metrics => metrics
-        .AddAspNetCoreInstrumentation()
-        .AddOtlpExporter(o => o.Endpoint = new Uri(otlpEndpoint)));
+    .WithTracing(t => t.AddAspNetCoreInstrumentation())
+    .WithMetrics(m => m.AddAspNetCoreInstrumentation());
+
+if (!string.IsNullOrEmpty(otlpEndpoint))
+{
+    otelBuilder
+        .WithTracing(t => t.AddOtlpExporter(o => o.Endpoint = new Uri(otlpEndpoint!)))
+        .WithMetrics(m => m.AddOtlpExporter(o => o.Endpoint = new Uri(otlpEndpoint!)));
+}
 
 var app = builder.Build();
 
