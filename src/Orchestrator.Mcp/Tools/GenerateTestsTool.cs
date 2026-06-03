@@ -8,6 +8,7 @@ using Orchestrator.Core.Enums;
 using Orchestrator.Core.Interfaces;
 using Orchestrator.Core.Models;
 using Orchestrator.Core.Serialization;
+using Orchestrator.Core.Utilities;
 using Orchestrator.Mcp.Idempotency;
 
 namespace Orchestrator.Mcp.Tools;
@@ -57,6 +58,10 @@ public sealed class GenerateTestsTool
                 GetType().Name, result.NodeId, result.Model, result.Text.Length,
                 result.Text.Length > 500 ? result.Text[..500] + "…" : result.Text);
 
+            // Strip any markdown code fences the model may have wrapped around the test file content
+            // even though the prompt forbids them. ResponseParser is a no-op if no fences are present.
+            var cleaned = ResponseParser.StripFences(result.Text);
+
             var response = new GenerateTestsResponse
             {
                 Files = new List<GeneratedTestFile>
@@ -64,7 +69,7 @@ public sealed class GenerateTestsTool
                     new GeneratedTestFile
                     {
                         Path = $"Tests.{language}",
-                        Content = result.Text
+                        Content = cleaned
                     }
                 },
                 Meta = new Meta
