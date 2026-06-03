@@ -1,5 +1,6 @@
 using System.ComponentModel;
 using System.Text.Json;
+using Microsoft.Extensions.Logging;
 using ModelContextProtocol.Server;
 using Orchestrator.Agents;
 using Orchestrator.Agents.Models;
@@ -14,11 +15,13 @@ public sealed class AgentTaskTool
 {
     private readonly IAgentOrchestrator _agent;
     private readonly IIdempotencyCache _idempotency;
+    private readonly ILogger<AgentTaskTool> _logger;
 
-    public AgentTaskTool(IAgentOrchestrator agent, IIdempotencyCache idempotency)
+    public AgentTaskTool(IAgentOrchestrator agent, IIdempotencyCache idempotency, ILogger<AgentTaskTool> logger)
     {
         _agent = agent;
         _idempotency = idempotency;
+        _logger = logger;
     }
 
     [McpServerTool(Name = "agent_task"),
@@ -45,6 +48,15 @@ public sealed class AgentTaskTool
         };
 
         var result = await _agent.RunAsync(request, cancellationToken);
+
+        // Log the raw agent loop result — surfaces aggregate state, abort reason,
+        // and a short preview of the final summary to %TEMP%\splitbrain-mcp-*.log
+        // so the broken-tool investigation can see what the agent actually produced.
+        var rawPreview = (result.Summary ?? string.Empty);
+        _logger.LogDebug("[{ToolName}] Raw response (success={Success}, finalState={State}, iterations={Iter}, tokens={Tokens}, abort={Abort}): {Preview}",
+            GetType().Name, result.Success, result.FinalState, result.TotalIterations, result.TotalTokensUsed,
+            result.AbortReason ?? "-",
+            rawPreview.Length > 500 ? rawPreview[..500] + "…" : rawPreview);
 
         var response = new AgentTaskResponse
         {
