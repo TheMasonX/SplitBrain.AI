@@ -1,0 +1,17 @@
+{
+  "Id": "splitbrain-phase0-implementation",
+  "Title": "Phase 0 Implementation Status",
+  "Content": "Phase 0 (bug fixes) implemented 2026-06-03 on feature/phase-0-fixes (PR #17 → next-gen). Key fixes: OllamaNodeB.TimeoutSeconds=5 (eliminates 4-min timeout cascade), new ResponseCleaner.cs (maximally forgiving LLM codegen output parser using 4-strategy extraction: fenced block → looks-like-code → prose-wrapper strip → fallback), RefactorCodeTool + GenerateTestsTool now use ResponseCleaner + 45/60s per-tool timeout + ILoggingService parity, GenerateTestsTool output path fixed (Tests.csharp → {Class}Tests.cs via Regex class detection), SearchCodebaseTool glob fixed using Microsoft.Extensions.FileSystemGlobbing Matcher (was extension-only fake glob), AgentTaskTool Meta null fixed (was default! = null crash) + applyChanges param added (Phase 1 TODO for write gate). All changes gated by pre+post 5-seat council review. ResponseCleaner post-impl council found and fixed a LINQ type-confusion bug before commit. applyChanges disk write deferred to Phase 1.",
+  "Status": 1,
+  "Confidence": 0.97,
+  "Tags": ["phase-0", "bugs", "implementation", "current-state"],
+  "References": ["splitbrain-audit-batch-status", "splitbrain-next-gen-branch-state"],
+  "Conflicts": [],
+  "SourceLinks": [
+    {"Label": "ResponseCleaner.cs", "Uri": "%SplitBrainRepo%src/Orchestrator.Mcp/Helpers/ResponseCleaner.cs"},
+    {"Label": "RefactorCodeTool.cs", "Uri": "%SplitBrainRepo%src/Orchestrator.Mcp/Tools/RefactorCodeTool.cs"},
+    {"Label": "appsettings.json", "Uri": "%SplitBrainRepo%src/Orchestrator.Mcp/appsettings.json"}
+  ],
+  "UsageCount": 0,
+  "LastUpdated": "2026-06-03T06:00:00Z"
+}
