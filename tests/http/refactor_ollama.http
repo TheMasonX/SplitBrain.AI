@@ -1,0 +1,10 @@
+### Test qcoder:latest response format for refactor_code tool
+POST http://localhost:11434/api/generate
+Content-Type: application/json
+
+{
+  "model": "qcoder:latest",
+  "prompt": "Refactor this C# code for readability:\npublic string FormatName(string first, string last, bool upper) {\n  if (upper == true) { return first.ToUpper() + \" \" + last.ToUpper(); }\n  else { return first + \" \" + last; }\n}\nRespond ONLY with valid JSON: {\"code\": \"<refactored code here>\", \"summary\": \"<one sentence>\"}",
+  "stream": false,
+  "format": "json"
+}
