@@ -35,7 +35,6 @@ AppUpdatesURL={#MyAppURL}/releases
 DefaultDirName={autopf}\{#MyAppName}
 DefaultGroupName={#MyAppName}
 AllowNoIcons=yes
-LicenseFile={#RepoRoot}\LICENSE
 OutputDir={#OutputBase}
 OutputBaseFilename=SplitBrainAI-Setup-{#MyAppVersion}
 Compression=lzma2/ultra64
@@ -59,39 +58,29 @@ SetupIconFile=
 [Languages]
 Name: "english"; MessagesFile: "compiler:Default.isl"
 
-[Types]
-Name: "orchestrator"; Description: "Orchestrator — MCP Server + Dashboard (routes tasks to workers)"
-Name: "worker";       Description: "Worker — Node Worker only (provides local inference)"
-Name: "full";         Description: "Orchestrator + Worker — both roles on this machine"
-
-[Components]
-Name: "mcp";       Description: "MCP Server (Orchestrator.Mcp)";         Types: orchestrator full
-Name: "dashboard"; Description: "SplitBrain Dashboard (Blazor UI)";       Types: orchestrator full
-Name: "worker";    Description: "Node Worker (Orchestrator.NodeWorker)";   Types: worker full
-Name: "data";      Description: "Wiki / Documentation (data/)";            Types: orchestrator worker full
-
 [Tasks]
 Name: "installservice";     Description: "Install as Windows &Service (auto-start on boot)";   GroupDescription: "Service options:"
-Name: "installservice\mcp"; Description: "MCP Server service";                                 GroupDescription: "Service options:"; Components: mcp
-Name: "installservice\wrk"; Description: "Node Worker service";                                GroupDescription: "Service options:"; Components: worker
+Name: "installservice\mcp"; Description: "MCP Server service";                                 GroupDescription: "Service options:"; Check: HasOrchestrator
+Name: "installservice\wrk"; Description: "Node Worker service";                                GroupDescription: "Service options:"; Check: HasWorker
 Name: "addfirewall";        Description: "Add Windows &Firewall rules for LAN access";         GroupDescription: "Network:"
 Name: "pullmodels";         Description: "Download &Ollama models now (auto-skipped if llama.cpp selected)"; GroupDescription: "Ollama models:"
 Name: "desktopicon";        Description: "Create a &Desktop shortcut";                         GroupDescription: "Shortcuts:"; Flags: unchecked
 
 [Files]
 ; ── Node A binaries ───────────────────────────────────────────────────────────
-Source: "output\node-a\mcp\*";       DestDir: "{app}\node-a\mcp";       Components: mcp;       Flags: recursesubdirs ignoreversion
-Source: "output\node-a\dashboard\*"; DestDir: "{app}\node-a\dashboard"; Components: dashboard; Flags: recursesubdirs ignoreversion
+Source: "output\node-a\mcp\*";       DestDir: "{app}\node-a\mcp";       Flags: recursesubdirs ignoreversion
+Source: "output\node-a\dashboard\*"; DestDir: "{app}\node-a\dashboard"; Flags: recursesubdirs ignoreversion
 
 ; ── Node B binaries ───────────────────────────────────────────────────────────
-Source: "output\node-b\worker\*";    DestDir: "{app}\node-b\worker";    Components: worker;    Flags: recursesubdirs ignoreversion
+Source: "output\node-b\worker\*";    DestDir: "{app}\node-b\worker";    Flags: recursesubdirs ignoreversion
 
 ; ── Deploy / setup scripts ────────────────────────────────────────────────────
 Source: "{#RepoRoot}\deploy\*";      DestDir: "{app}\deploy";           Flags: recursesubdirs ignoreversion
 Source: "scripts\*";                 DestDir: "{app}\installer-scripts"; Flags: recursesubdirs ignoreversion
 
+; DO NOT UNCOMMENT! These are for development convenience only and would bloat the installer size massively.
 ; ── Data / wiki ───────────────────────────────────────────────────────────────
-Source: "{#RepoRoot}\data\*";        DestDir: "{app}\data";             Components: data; Flags: recursesubdirs ignoreversion skipifsourcedoesntexist
+; Source: "{#RepoRoot}\data\*";        DestDir: "{app}\data";             Components: data; Flags: recursesubdirs ignoreversion skipifsourcedoesntexist
 
 ; ── Docs ─────────────────────────────────────────────────────────────────────
 Source: "{#RepoRoot}\README.md";     DestDir: "{app}";                  Flags: ignoreversion
@@ -99,15 +88,14 @@ Source: "{#RepoRoot}\LICENSE";       DestDir: "{app}";                  Flags: i
 
 [Icons]
 ; Node A shortcuts
-Name: "{group}\SplitBrain.AI MCP Server"; Filename: "{app}\node-a\mcp\Orchestrator.Mcp.exe"; Components: mcp
-Name: "{group}\SplitBrain Dashboard";     Filename: "{app}\node-a\dashboard\SplitBrain.Dashboard.exe"; Components: dashboard
+Name: "{group}\SplitBrain.AI MCP Server"; Filename: "{app}\node-a\mcp\Orchestrator.Mcp.exe"; Check: HasOrchestrator
+Name: "{group}\SplitBrain Dashboard";     Filename: "{app}\node-a\dashboard\SplitBrain.Dashboard.exe"; Check: HasOrchestrator
 ; Node B shortcuts
-Name: "{group}\SplitBrain.AI Node Worker"; Filename: "{app}\node-b\worker\Orchestrator.NodeWorker.exe"; Components: worker
+Name: "{group}\SplitBrain.AI Node Worker"; Filename: "{app}\node-b\worker\Orchestrator.NodeWorker.exe"; Check: HasWorker
 ; Common
-Name: "{group}\Setup Guide";          Filename: "{app}\data\Pages\guides\getting-started.md"; Components: data
 Name: "{group}\Uninstall {#MyAppName}"; Filename: "{uninstallexe}"
 ; Desktop
-Name: "{autodesktop}\SplitBrain.AI";  Filename: "{app}\node-a\mcp\Orchestrator.Mcp.exe"; Components: mcp; Tasks: desktopicon
+Name: "{autodesktop}\SplitBrain.AI";  Filename: "{app}\node-a\mcp\Orchestrator.Mcp.exe"; Check: HasOrchestrator; Tasks: desktopicon
 
 [Run]
 ; ── Write configuration (always) ─────────────────────────────────────────────
@@ -121,13 +109,13 @@ Filename: "powershell.exe"; \
     Parameters: "-NonInteractive -ExecutionPolicy Bypass -Command ""& '{{app}}\deploy\setup-node-a.ps1' -PublishPath '{{app}}\node-a\mcp' -SkipDotNet -SkipOllama -SkipModels"""; \
     StatusMsg: "Installing MCP Server service..."; \
     Flags: runhidden waituntilterminated; \
-    Tasks: installservice\mcp; Components: mcp
+    Tasks: installservice\mcp
 
 Filename: "powershell.exe"; \
     Parameters: "-NonInteractive -ExecutionPolicy Bypass -Command ""& '{{app}}\deploy\setup-node-b.ps1' -PublishPath '{{app}}\node-b\worker' -SkipDotNet -SkipOllama -SkipModels"""; \
     StatusMsg: "Installing Node Worker service..."; \
     Flags: runhidden waituntilterminated; \
-    Tasks: installservice\wrk; Components: worker
+    Tasks: installservice\wrk
 
 ; ── Add firewall rules (optional) ────────────────────────────────────────────
 Filename: "powershell.exe"; \
@@ -150,28 +138,27 @@ Filename: "powershell.exe"; \
     Parameters: "-NonInteractive -ExecutionPolicy Bypass -File ""{app}\installer-scripts\Setup-LlamaCpp.ps1"" {code:GetLlamaCppSetupArgs}"; \
     StatusMsg: "Setting up llama.cpp inference server..."; \
     Flags: runhidden waituntilterminated; \
-    Check: HasLlamaCppSelected; \
-    Components: worker
+    Check: HasLlamaCppSelected
 
 ; ── Launch after install (offer in Finish page) ───────────────────────────────
 Filename: "{app}\node-a\mcp\Orchestrator.Mcp.exe"; \
     Description: "Launch MCP Server now"; \
     Flags: nowait postinstall skipifsilent; \
-    Components: mcp
+    Check: HasOrchestrator
 
 Filename: "{app}\node-a\dashboard\SplitBrain.Dashboard.exe"; \
     Description: "Launch Dashboard now"; \
     Flags: nowait postinstall skipifsilent; \
-    Components: dashboard
+    Check: HasOrchestrator
 
 [UninstallRun]
 ; Stop and remove services on uninstall
 Filename: "powershell.exe"; \
     Parameters: "-NonInteractive -ExecutionPolicy Bypass -Command ""Stop-Service SplitBrainMcpServer -Force -ea 0; sc.exe delete SplitBrainMcpServer"""; \
-    Flags: runhidden; Components: mcp
+    Flags: runhidden; Check: HasOrchestrator
 Filename: "powershell.exe"; \
     Parameters: "-NonInteractive -ExecutionPolicy Bypass -Command ""Stop-Service SplitBrainNodeWorker -Force -ea 0; sc.exe delete SplitBrainNodeWorker"""; \
-    Flags: runhidden; Components: worker
+    Flags: runhidden; Check: HasWorker
 ; Remove firewall rules
 Filename: "powershell.exe"; \
     Parameters: "-NonInteractive -ExecutionPolicy Bypass -Command ""Remove-NetFirewallRule -DisplayName 'SplitBrain.AI*' -ea 0"""; \
@@ -187,6 +174,7 @@ var
   // Page references
   RolePage        : TWizardPage;
   NetworkPage     : TInputQueryWizardPage;
+  OptionalPage    : TInputQueryWizardPage;
   BackendPage     : TWizardPage;
 
   // Radio buttons on RolePage
@@ -324,16 +312,28 @@ begin
   NetworkPage.Add('MCP Server port:', False);    // [1]
   NetworkPage.Add('Node Worker port:', False);   // [2]
   NetworkPage.Add('Ollama URL (this machine):', False);  // [3]
-  NetworkPage.Add('GitHub Copilot token (optional — for Node C):', True); // [4] password
-  NetworkPage.Add('llama.cpp model file path (e.g. C:\Models\model.gguf):', False); // [5] — only used if llamacpp backend
 
   // Defaults
   NetworkPage.Values[0] := '192.168.1.X';
   NetworkPage.Values[1] := '5100';
   NetworkPage.Values[2] := '5050';
   NetworkPage.Values[3] := 'http://localhost:11434';
-  NetworkPage.Values[4] := '';
-  NetworkPage.Values[5] := 'C:\Models\qwen3-coder-30b-a3b.gguf';
+end;
+
+// ── Optional settings page (token, model path) ──────────────────────────────
+procedure CreateOptionalPage;
+begin
+  OptionalPage := CreateInputQueryPage(NetworkPage.ID,
+    'Optional Settings',
+    'GitHub Copilot token and llama.cpp model path. These are optional and can be configured later.',
+    '');
+
+  OptionalPage.Add('GitHub Copilot token (optional):', True); // [0] password
+  OptionalPage.Add('llama.cpp model file path (e.g. C:\Models\model.gguf):', False); // [1]
+
+  // Defaults
+  OptionalPage.Values[0] := '';
+  OptionalPage.Values[1] := 'C:\Models\qwen3-coder-30b-a3b.gguf';
 end;
 
 // ── Backend page (Worker / Full roles) ───────────────────────────────────────
@@ -430,6 +430,7 @@ begin
 
   CreateRolePage;
   CreateNetworkPage;
+  CreateOptionalPage;
   CreateBackendPage;
 end;
 
@@ -520,14 +521,13 @@ begin
   McpPort      := Trim(NetworkPage.Values[1]);
   WorkerPort   := Trim(NetworkPage.Values[2]);
   OllamaUrl    := Trim(NetworkPage.Values[3]);
-  CopilotToken := Trim(NetworkPage.Values[4]);
+  CopilotToken := Trim(OptionalPage.Values[0]);
 
   // Full mode: Orchestrator connects to the local Worker, ignore peer IP
   if IsFull then EffectivePeerIp := 'localhost'
   else           EffectivePeerIp := PeerIp;
 
-  Result := Format('-InstallDir "%s" -Role "%s" -PeerIp "%s" -McpPort %s -WorkerPort %s -OllamaUrl "%s"',
-    [ExpandConstant('{app}'), CRole, EffectivePeerIp, McpPort, WorkerPort, OllamaUrl]);
+  Result := Format('-InstallDir "%s" -Role "%s" -PeerIp "%s" -McpPort %s -WorkerPort %s -OllamaUrl "%s"', [ExpandConstant('{app}'), CRole, EffectivePeerIp, McpPort, WorkerPort, OllamaUrl]);
 
   if CopilotToken <> '' then
     Result := Result + Format(' -CopilotToken "%s"', [CopilotToken]);
@@ -554,14 +554,13 @@ begin
   else                     Mode := 'docker';
 
   // Model path from NetworkPage [5] (empty = script uses its built-in default)
-  ModelPath := Trim(NetworkPage.Values[5]);
+  ModelPath := Trim(OptionalPage.Values[1]);
 
   // CUDA build version (default 12.4 unless RbCuda13 exists and is checked)
   CudaVer := '12.4';
   CCudaBuild := CudaVer;
 
-  Result := Format('-InstallDir "%s" -Mode %s -LlamaCppPort 8080 -CudaBuild %s',
-    [ExpandConstant('{app}'), Mode, CudaVer]);
+  Result := Format('-InstallDir "%s" -Mode %s -LlamaCppPort 8080 -CudaBuild %s', [ExpandConstant('{app}'), Mode, CudaVer]);
 
   if ModelPath <> '' then
     Result := Result + Format(' -ModelPath "%s"', [ModelPath]);

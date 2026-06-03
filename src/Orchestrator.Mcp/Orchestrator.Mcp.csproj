@@ -7,6 +7,7 @@
     <ProjectReference Include="..\NodeClient.Ollama\NodeClient.Ollama.csproj" />
     <ProjectReference Include="..\NodeClient.Copilot\NodeClient.Copilot.csproj" />
     <ProjectReference Include="..\NodeClient.Worker\NodeClient.Worker.csproj" />
+    <ProjectReference Include="..\NodeClient.LlamaCpp\NodeClient.LlamaCpp.csproj" />
   </ItemGroup>
 
   <ItemGroup>
