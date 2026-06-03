@@ -30,21 +30,17 @@ using Orchestrator.Infrastructure.Registry;
 using Orchestrator.Infrastructure.Routing;
 using Orchestrator.Mcp.Idempotency;
 using Orchestrator.Mcp.Tools;
+using Orchestrator.Mcp.WriteAccess;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Signal Windows SCM that this process is a Windows Service (no-op when run interactively)
 builder.Host.UseWindowsService();
 
-// Load nodes.json beside the executable for hot-reloadable topology config
 builder.Configuration.AddJsonFile(
     Path.Combine(AppContext.BaseDirectory, "nodes.json"),
-    optional: true,
-    reloadOnChange: true);
-// Also load from the project directory during development
+    optional: true, reloadOnChange: true);
 builder.Configuration.AddJsonFile("nodes.json", optional: true, reloadOnChange: true);
 
-// Redirect all logging to stderr so stdout carries only MCP JSON-RPC messages
 LoggerConfiguration loggerBuilder = new LoggerConfiguration()
     .MinimumLevel.Debug()
     .MinimumLevel.Override("Microsoft", LogEventLevel.Information)
@@ -55,32 +51,22 @@ LoggerConfiguration loggerBuilder = new LoggerConfiguration()
     .WriteTo.Console(standardErrorFromLevel: LogEventLevel.Verbose);
 
 if (OperatingSystem.IsWindows())
-{
     loggerBuilder = loggerBuilder.WriteTo.EventLog("SplitBrain MCP", manageEventSource: true, restrictedToMinimumLevel: LogEventLevel.Information);
-}
 
 Log.Logger = loggerBuilder.CreateLogger();
-
 builder.Logging.ClearProviders();
 builder.Logging.AddSerilog(Log.Logger, dispose: true);
 
-builder.Services.Configure<OllamaClientOptions>(
-    builder.Configuration.GetSection(OllamaClientOptions.Section));
+builder.Services.Configure<OllamaClientOptions>(builder.Configuration.GetSection(OllamaClientOptions.Section));
+builder.Services.Configure<OllamaClientOptions>("NodeB", builder.Configuration.GetSection("OllamaNodeB"));
+builder.Services.Configure<CopilotClientOptions>(builder.Configuration.GetSection(CopilotClientOptions.Section));
+builder.Services.Configure<RoutingOptions>(builder.Configuration.GetSection(RoutingOptions.Section));
+builder.Services.Configure<NodeTopologyConfig>(builder.Configuration.GetSection("NodeTopology"));
+builder.Services.Configure<FileLoggingOptions>(builder.Configuration.GetSection(FileLoggingOptions.Section));
 
-builder.Services.Configure<OllamaClientOptions>("NodeB",
-    builder.Configuration.GetSection("OllamaNodeB"));
-
-builder.Services.Configure<CopilotClientOptions>(
-    builder.Configuration.GetSection(CopilotClientOptions.Section));
-
-builder.Services.Configure<RoutingOptions>(
-    builder.Configuration.GetSection(RoutingOptions.Section));
-
-builder.Services.Configure<NodeTopologyConfig>(
-    builder.Configuration.GetSection("NodeTopology"));
-
-builder.Services.Configure<FileLoggingOptions>(
-    builder.Configuration.GetSection(FileLoggingOptions.Section));
+// P0.5: Write-access gate — Disabled by default; configure via Mcp:WriteAccess in appsettings.json
+builder.Services.Configure<WriteAccessOptions>(builder.Configuration.GetSection(WriteAccessOptions.Section));
+builder.Services.AddSingleton<WriteAccessGuard>();
 
 builder.Services.AddHttpClient<IOllamaClient, OllamaClient>();
 
@@ -88,7 +74,7 @@ var topologyConfig = builder.Configuration
     .GetSection("NodeTopology")
     .Get<NodeTopologyConfig>() ?? new NodeTopologyConfig();
 
-// Register resilient HttpClients + keyed OllamaInferenceNode per topology entry
+// Ollama nodes — resilient per-node HttpClient + keyed singleton
 foreach (var node in topologyConfig.Nodes.Where(n => n.Provider == NodeProviderType.Ollama && n.Ollama is not null))
 {
     var ollamaConfig = node.Ollama!;
@@ -102,25 +88,19 @@ foreach (var node in topologyConfig.Nodes.Where(n => n.Provider == NodeProviderT
         {
             pipeline.AddRetry(new HttpRetryStrategyOptions
             {
-                MaxRetryAttempts = 3,
-                Delay = TimeSpan.FromMilliseconds(500),
-                BackoffType = DelayBackoffType.Exponential,
-                UseJitter = true,
+                MaxRetryAttempts = 3, Delay = TimeSpan.FromMilliseconds(500),
+                BackoffType = DelayBackoffType.Exponential, UseJitter = true,
                 ShouldHandle = new PredicateBuilder<HttpResponseMessage>()
                     .HandleResult(r => !r.IsSuccessStatusCode)
-                    .Handle<HttpRequestException>()
-                    .Handle<TimeoutRejectedException>()
+                    .Handle<HttpRequestException>().Handle<TimeoutRejectedException>()
             });
             pipeline.AddCircuitBreaker(new HttpCircuitBreakerStrategyOptions
             {
-                FailureRatio = 0.8,
-                SamplingDuration = TimeSpan.FromSeconds(30),
-                MinimumThroughput = 10,
-                BreakDuration = TimeSpan.FromSeconds(30),
+                FailureRatio = 0.8, SamplingDuration = TimeSpan.FromSeconds(30),
+                MinimumThroughput = 10, BreakDuration = TimeSpan.FromSeconds(30),
                 ShouldHandle = new PredicateBuilder<HttpResponseMessage>()
                     .HandleResult(r => !r.IsSuccessStatusCode)
-                    .Handle<HttpRequestException>()
-                    .Handle<TimeoutRejectedException>()
+                    .Handle<HttpRequestException>().Handle<TimeoutRejectedException>()
             });
             pipeline.AddTimeout(TimeSpan.FromSeconds(ollamaConfig.TimeoutSeconds));
         });
@@ -134,18 +114,14 @@ foreach (var ollamaNode in topologyConfig.Nodes.Where(n => n.Provider == NodePro
         var oConfig = capturedOllama.Ollama!;
         var httpFactory = sp.GetRequiredService<IHttpClientFactory>();
         var httpClient = httpFactory.CreateClient($"ollama-{capturedOllama.NodeId}");
-        var ollamaOptions = Options.Create(new OllamaClientOptions
-        {
-            BaseUrl = oConfig.BaseUrl,
-            TimeoutSeconds = oConfig.TimeoutSeconds
-        });
+        var ollamaOptions = Options.Create(new OllamaClientOptions { BaseUrl = oConfig.BaseUrl, TimeoutSeconds = oConfig.TimeoutSeconds });
         var client = new OllamaClient(httpClient, ollamaOptions);
         var logger = sp.GetRequiredService<ILogger<OllamaInferenceNode>>();
         return new OllamaInferenceNode(capturedOllama.NodeId, oConfig, client, logger);
     });
 }
 
-// Worker nodes
+// Worker nodes — resilient per-node HttpClient (TSK-0007: retry + circuit breaker)
 foreach (var workerNode in topologyConfig.Nodes.Where(n => n.Provider == NodeProviderType.Worker && n.Worker is not null))
 {
     var wc = workerNode.Worker!;
@@ -159,25 +135,19 @@ foreach (var workerNode in topologyConfig.Nodes.Where(n => n.Provider == NodePro
         {
             pipeline.AddRetry(new HttpRetryStrategyOptions
             {
-                MaxRetryAttempts = 2,
-                Delay = TimeSpan.FromSeconds(1),
-                BackoffType = DelayBackoffType.Exponential,
-                UseJitter = true,
+                MaxRetryAttempts = 2, Delay = TimeSpan.FromSeconds(1),
+                BackoffType = DelayBackoffType.Exponential, UseJitter = true,
                 ShouldHandle = new PredicateBuilder<HttpResponseMessage>()
                     .HandleResult(r => !r.IsSuccessStatusCode)
-                    .Handle<HttpRequestException>()
-                    .Handle<TimeoutRejectedException>()
+                    .Handle<HttpRequestException>().Handle<TimeoutRejectedException>()
             });
             pipeline.AddCircuitBreaker(new HttpCircuitBreakerStrategyOptions
             {
-                FailureRatio = 0.8,
-                SamplingDuration = TimeSpan.FromSeconds(60),
-                MinimumThroughput = 5,
-                BreakDuration = TimeSpan.FromSeconds(30),
+                FailureRatio = 0.8, SamplingDuration = TimeSpan.FromSeconds(60),
+                MinimumThroughput = 5, BreakDuration = TimeSpan.FromSeconds(30),
                 ShouldHandle = new PredicateBuilder<HttpResponseMessage>()
                     .HandleResult(r => !r.IsSuccessStatusCode)
-                    .Handle<HttpRequestException>()
-                    .Handle<TimeoutRejectedException>()
+                    .Handle<HttpRequestException>().Handle<TimeoutRejectedException>()
             });
             pipeline.AddTimeout(TimeSpan.FromSeconds(wc.TimeoutSeconds));
         });
@@ -188,18 +158,14 @@ foreach (var workerNode in topologyConfig.Nodes.Where(n => n.Provider == NodePro
         var wConfig = capturedNode.Worker!;
         var httpFactory = sp.GetRequiredService<IHttpClientFactory>();
         var httpClient = httpFactory.CreateClient($"worker-{capturedNode.NodeId}");
-        var workerOptions = Options.Create(new WorkerClientOptions
-        {
-            BaseUrl = wConfig.BaseUrl,
-            TimeoutSeconds = wConfig.TimeoutSeconds
-        });
+        var workerOptions = Options.Create(new WorkerClientOptions { BaseUrl = wConfig.BaseUrl, TimeoutSeconds = wConfig.TimeoutSeconds });
         var client = new WorkerClient(httpClient, workerOptions);
         var logger = sp.GetRequiredService<ILogger<WorkerInferenceNode>>();
         return new WorkerInferenceNode(capturedNode.NodeId, wConfig, client, logger);
     });
 }
 
-// LlamaCpp nodes (TSK-0001: wire LlamaCppInferenceNode into dispatch)
+// LlamaCpp nodes (TSK-0001)
 foreach (var llamaCppNode in topologyConfig.Nodes.Where(n => n.Provider == NodeProviderType.LlamaCpp && n.LlamaCpp is not null))
 {
     var lc = llamaCppNode.LlamaCpp!;
@@ -215,25 +181,19 @@ foreach (var llamaCppNode in topologyConfig.Nodes.Where(n => n.Provider == NodeP
         {
             pipeline.AddRetry(new HttpRetryStrategyOptions
             {
-                MaxRetryAttempts = 2,
-                Delay = TimeSpan.FromSeconds(1),
-                BackoffType = DelayBackoffType.Exponential,
-                UseJitter = true,
+                MaxRetryAttempts = 2, Delay = TimeSpan.FromSeconds(1),
+                BackoffType = DelayBackoffType.Exponential, UseJitter = true,
                 ShouldHandle = new PredicateBuilder<HttpResponseMessage>()
                     .HandleResult(r => !r.IsSuccessStatusCode)
-                    .Handle<HttpRequestException>()
-                    .Handle<TimeoutRejectedException>()
+                    .Handle<HttpRequestException>().Handle<TimeoutRejectedException>()
             });
             pipeline.AddCircuitBreaker(new HttpCircuitBreakerStrategyOptions
             {
-                FailureRatio = 0.8,
-                SamplingDuration = TimeSpan.FromSeconds(60),
-                MinimumThroughput = 5,
-                BreakDuration = TimeSpan.FromSeconds(30),
+                FailureRatio = 0.8, SamplingDuration = TimeSpan.FromSeconds(60),
+                MinimumThroughput = 5, BreakDuration = TimeSpan.FromSeconds(30),
                 ShouldHandle = new PredicateBuilder<HttpResponseMessage>()
                     .HandleResult(r => !r.IsSuccessStatusCode)
-                    .Handle<HttpRequestException>()
-                    .Handle<TimeoutRejectedException>()
+                    .Handle<HttpRequestException>().Handle<TimeoutRejectedException>()
             });
             pipeline.AddTimeout(TimeSpan.FromSeconds(lc.TimeoutSeconds));
         });
@@ -242,16 +202,14 @@ foreach (var llamaCppNode in topologyConfig.Nodes.Where(n => n.Provider == NodeP
     {
         var nodeOpts = Options.Create(new LlamaCppClientOptions
         {
-            BaseUrl        = lc.BaseUrl,
-            TimeoutSeconds = lc.TimeoutSeconds,
-            ModelLabel     = lc.ModelLabel,
-            NodeId         = capturedLlamaCpp.NodeId,
-            VramMb         = (int)lc.GpuVramTotalMB
+            BaseUrl = lc.BaseUrl, TimeoutSeconds = lc.TimeoutSeconds,
+            ModelLabel = lc.ModelLabel, NodeId = capturedLlamaCpp.NodeId,
+            VramMb = (int)lc.GpuVramTotalMB
         });
         var httpFactory = sp.GetRequiredService<IHttpClientFactory>();
-        var httpClient  = httpFactory.CreateClient($"llamacpp-{capturedLlamaCpp.NodeId}");
-        var client      = new LlamaCppClient(httpClient, nodeOpts, sp.GetRequiredService<ILogger<LlamaCppClient>>());
-        var logger      = sp.GetRequiredService<ILogger<LlamaCppInferenceNode>>();
+        var httpClient = httpFactory.CreateClient($"llamacpp-{capturedLlamaCpp.NodeId}");
+        var client = new LlamaCppClient(httpClient, nodeOpts, sp.GetRequiredService<ILogger<LlamaCppClient>>());
+        var logger = sp.GetRequiredService<ILogger<LlamaCppInferenceNode>>();
         return new LlamaCppInferenceNode(client, nodeOpts, logger);
     });
 }
@@ -269,29 +227,21 @@ builder.Services.AddSingleton<IPromptHistory, PromptHistoryService>();
 builder.Services.AddSingleton<ILoggingService, FileLoggingService>();
 builder.Services.AddSingleton<INodeHealthPublisher, NullNodeHealthPublisher>();
 builder.Services.AddSingleton<ILogEntryPublisher, NullLogEntryPublisher>();
-
 builder.Services.AddSingleton<IInferenceNodeFactory, Orchestrator.Infrastructure.Registry.InferenceNodeFactory>();
 
-// Dispatch factory — maps NodeConfiguration → concrete keyed singleton by NodeId.
-// TSK-0001: LlamaCpp arm added.
 builder.Services.AddSingleton<Func<NodeConfiguration, IInferenceNode>>(sp => config =>
     config.Provider switch
     {
-        NodeProviderType.Worker =>
-            sp.GetRequiredKeyedService<WorkerInferenceNode>(config.NodeId),
-        NodeProviderType.Ollama =>
-            sp.GetRequiredKeyedService<OllamaInferenceNode>(config.NodeId),
-        NodeProviderType.CopilotSdk =>
-            sp.GetRequiredService<NodeCInferenceNode>(),
-        NodeProviderType.LlamaCpp =>
-            sp.GetRequiredKeyedService<LlamaCppInferenceNode>(config.NodeId),
+        NodeProviderType.Worker      => sp.GetRequiredKeyedService<WorkerInferenceNode>(config.NodeId),
+        NodeProviderType.Ollama      => sp.GetRequiredKeyedService<OllamaInferenceNode>(config.NodeId),
+        NodeProviderType.CopilotSdk  => sp.GetRequiredService<NodeCInferenceNode>(),
+        NodeProviderType.LlamaCpp    => sp.GetRequiredKeyedService<LlamaCppInferenceNode>(config.NodeId),
         _ => throw new InvalidOperationException(
             $"No IInferenceNode registered for NodeId '{config.NodeId}' provider '{config.Provider}'.")
     });
 
 builder.Services.AddSingleton<INodeRegistry, NodeRegistry>();
 builder.Services.AddHostedService<NodeHealthCheckService>();
-
 builder.Services.AddSingleton<IIdempotencyCache, InMemoryIdempotencyCache>();
 
 builder.Services.AddSingleton<IModelRegistry>(sp =>
@@ -299,19 +249,16 @@ builder.Services.AddSingleton<IModelRegistry>(sp =>
     var registry = new InMemoryModelRegistry();
     var config = sp.GetRequiredService<IConfiguration>();
     var models = config.GetSection("SplitBrain:Models").Get<List<ModelDefinition>>() ?? [];
-    foreach (var m in models)
-        registry.RegisterModel(m);
+    foreach (var m in models) registry.RegisterModel(m);
     return registry;
 });
 
-// TSK-0006: Queue capacity now reads from topology MaxConcurrentRequests instead of
-// hardcoded nodeId == "A" ? 64 : 32.
+// TSK-0006: Queue capacity from topology MaxConcurrentRequests
 builder.Services.AddSingleton<IRoutingService>(sp => new RoutingService(
     registry: sp.GetRequiredService<INodeRegistry>(),
     queueFactory: nodeId =>
     {
-        var cap = topologyConfig.Nodes
-            .FirstOrDefault(n => n.NodeId == nodeId)?.MaxConcurrentRequests ?? 32;
+        var cap = topologyConfig.Nodes.FirstOrDefault(n => n.NodeId == nodeId)?.MaxConcurrentRequests ?? 32;
         return new NodeQueue(capacity: Math.Max(4, cap));
     },
     logger: sp.GetRequiredService<ILogger<RoutingService>>(),
@@ -328,17 +275,22 @@ builder.Services.AddSingleton<IKernelPlannerService, KernelPlannerService>();
 builder.Services
     .AddMcpServer()
     .WithHttpTransport()
+    // Existing tools (Phase 0 fixed)
     .WithTools<ReviewCodeTool>()
     .WithTools<RefactorCodeTool>()
     .WithTools<GenerateTestsTool>()
     .WithTools<SearchCodebaseTool>()
     .WithTools<ApplyPatchTool>()
     .WithTools<RunTestsTool>()
-    .WithTools<AgentTaskTool>();
+    .WithTools<AgentTaskTool>()
+    // Phase 1 tools (from feature/p0-p1-tools reconciliation)
+    .WithTools<ReadFileTool>()
+    .WithTools<ListFilesTool>()
+    .WithTools<WriteFileTool>()
+    .WithTools<QueryAllowedRootTool>()
+    .WithTools<ExplainCodeTool>();
 
-// OTel: only export to OTLP if OTEL_EXPORTER_OTLP_ENDPOINT is explicitly set.
-// If not set, OTel internal metrics/traces still work but no data leaves the process.
-// This prevents connection noise when no Jaeger/Grafana collector is running locally.
+// OTel: only export if OTEL_EXPORTER_OTLP_ENDPOINT is explicitly set (prevents startup noise)
 var otlpEndpoint = builder.Configuration["OTEL_EXPORTER_OTLP_ENDPOINT"];
 var otelBuilder = builder.Services
     .AddOpenTelemetry()
@@ -354,7 +306,5 @@ if (!string.IsNullOrEmpty(otlpEndpoint))
 }
 
 var app = builder.Build();
-
 app.MapMcp("/mcp");
-
 await app.RunAsync();
