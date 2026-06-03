@@ -6,20 +6,29 @@ using ModelContextProtocol.Server;
 using Orchestrator.Core.Models;
 using Orchestrator.Core.Serialization;
 using Orchestrator.Core.Validation;
+using Orchestrator.Mcp.WriteAccess;
 
 namespace Orchestrator.Mcp.Tools;
 
 [McpServerToolType]
 public sealed class RunTestsTool
 {
+    private readonly WriteAccessGuard _writeGuard;
+
+    public RunTestsTool(WriteAccessGuard writeGuard) => _writeGuard = writeGuard;
+
     [McpServerTool(Name = "run_tests"), Description("Runs the test suite for a project and returns pass/fail results.")]
     public async Task<string> RunTestsAsync(
         [Description("Absolute path to the .csproj or solution file to test")] string projectPath,
         [Description("Allowed root directory -- path is rejected if outside this scope")] string allowedRoot,
         [Description("Optional test filter expression (e.g. FullyQualifiedName~MyTest)")] string filter = "",
         [Description("Timeout in seconds for the full test run (1-120)")] int timeoutSeconds = 30,
+        [Description("Required when write gate is PerCallEnable. Set true to authorize test execution.")] bool enableWrite = false,
         CancellationToken cancellationToken = default)
     {
+        var writeError = _writeGuard.CheckWrite("run_tests", enableWrite);
+        if (writeError is not null) return writeError;
+
         try
         {
             var request = new RunTestsRequest
