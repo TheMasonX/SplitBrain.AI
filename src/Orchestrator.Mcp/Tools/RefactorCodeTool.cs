@@ -2,6 +2,7 @@ using System.ComponentModel;
 using System.Text;
 using System.Text.Json;
 using FluentValidation;
+using Microsoft.Extensions.Logging;
 using ModelContextProtocol.Server;
 using Orchestrator.Core.Enums;
 using Orchestrator.Core.Interfaces;
@@ -17,11 +18,13 @@ public sealed class RefactorCodeTool
 {
     private readonly IRoutingService _routing;
     private readonly IIdempotencyCache _idempotency;
+    private readonly ILogger<RefactorCodeTool> _logger;
 
-    public RefactorCodeTool(IRoutingService routing, IIdempotencyCache idempotency)
+    public RefactorCodeTool(IRoutingService routing, IIdempotencyCache idempotency, ILogger<RefactorCodeTool> logger)
     {
         _routing = routing;
         _idempotency = idempotency;
+        _logger = logger;
     }
 
     [McpServerTool(Name = "refactor_code"), Description("Refactors code for the requested goal while preserving behaviour.")]
@@ -50,6 +53,10 @@ public sealed class RefactorCodeTool
             TaskType.Refactor,
             new InferenceRequest { Prompt = prompt, Stream = true, Priority = QueuePriority.Normal },
             cancellationToken);
+
+        _logger.LogDebug("[{ToolName}] Raw response (node={Node}, model={Model}, {Tokens} chars): {Preview}",
+            GetType().Name, result.NodeId, result.Model, result.Text.Length,
+            result.Text.Length > 500 ? result.Text[..500] + "…" : result.Text);
 
         var response = new RefactorCodeResponse
         {
