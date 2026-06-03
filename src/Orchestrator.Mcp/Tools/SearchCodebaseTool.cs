@@ -87,15 +87,7 @@ public sealed class SearchCodebaseTool
             var response = new SearchCodebaseResponse
             {
                 Results = results,
-                Meta    = new Meta
-                {
-                    TaskId    = taskId,
-                    Node      = result.NodeId,
-                    Model     = result.Model,
-                    LatencyMs = result.LatencyMs,
-                    TokensIn  = result.TokensIn,
-                    TokensOut = result.TokensOut
-                }
+                Meta    = Meta.FromInferenceResult(taskId, result)
             };
 
             return JsonSerializer.Serialize(response, JsonConfig.Default);

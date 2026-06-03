@@ -1,0 +1,30 @@
+{
+  "Id": "splitbrain-phase1-reconciliation",
+  "Title": "Phase 1 Reconciliation \u2014 feature/p0-p1-tools vs PR #18",
+  "Content": "Phase 1 tools reconciled 2026-06-03. PR #15 (feature/p0-p1-tools) closed. PR #18 merged to next-gen at 1f554a87. New branch feature/phase-1-tools (2396a5bf) created from merged next-gen. PR #19 submitted. Decisions: ResponseCleaner (4-strategy, PR #18) supersedes ResponseParser.StripFences (PR #15). Per-tool CTS timeouts (PR #18) supersede ToolTimeout constants (PR #15). Conditional OTel (PR #18) preserved. Ported from PR #15: WriteAccessGuard/Options (3-mode write gate Disabled/PerCallEnable/AlwaysEnabled), 5 new tools (read_file, write_file, list_files, query_allowed_root, explain_code), ApplyPatchTool write-gated, Meta.FromInferenceResult, NodeHealth.LastLatencyMs, ResponseParser.cs, docs/QUICKSTART.md. Phase 1 complete additions: AgentTaskTool.applyChanges wired to write gate + UnifiedDiffApplier (path traversal guarded, per-file best-effort), Meta.FromInferenceResult applied to all Phase 0 tools, TASKS.md added. Total MCP surface after Phase 1: 12 tools.",
+  "Status": 1,
+  "Confidence": 0.97,
+  "Tags": [
+    "phase-1",
+    "reconciliation",
+    "tools",
+    "write-gate",
+    "current-state"
+  ],
+  "References": [
+    "splitbrain-phase0-implementation"
+  ],
+  "Conflicts": [],
+  "SourceLinks": [
+    {
+      "Label": "AgentTaskTool.cs",
+      "Uri": "%SplitBrainRepo%src/Orchestrator.Mcp/Tools/AgentTaskTool.cs"
+    },
+    {
+      "Label": "WriteAccessGuard.cs",
+      "Uri": "%SplitBrainRepo%src/Orchestrator.Mcp/WriteAccess/WriteAccessGuard.cs"
+    }
+  ],
+  "UsageCount": 0,
+  "LastUpdated": "2026-06-03T10:00:00Z"
+}
