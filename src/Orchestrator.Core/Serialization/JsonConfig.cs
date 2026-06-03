@@ -15,4 +15,9 @@ public static class JsonConfig
             new JsonStringEnumConverter()
         }
     };
+
+    static JsonConfig()
+    {
+        Default.MakeReadOnly();
+    }
 }
