@@ -1,10 +1,8 @@
 using Microsoft.Extensions.Logging;
-using Orchestrator.Core.Configuration;
 using Orchestrator.Core.Enums;
 using Orchestrator.Core.Interfaces;
 using Orchestrator.Core.Models;
 using System.Diagnostics;
-using System.Runtime.CompilerServices;
 
 namespace NodeClient.Ollama;
 
@@ -22,11 +20,8 @@ public sealed class NodeBInferenceNode : IInferenceNode
 
     private readonly IOllamaClient _client;
     private readonly ILogger<NodeBInferenceNode> _logger;
-    private NodeHealthStatus _health = new() { State = HealthState.Unavailable, LastChecked = DateTimeOffset.MinValue };
 
     public string NodeId => "B";
-    public NodeProviderType Provider => NodeProviderType.Ollama;
-    public NodeHealthStatus Health => _health;
 
     public NodeCapabilities Capabilities { get; } = new()
     {
@@ -62,85 +57,68 @@ public sealed class NodeBInferenceNode : IInferenceNode
                 Text      = text,
                 NodeId    = NodeId,
                 Model     = model,
-                LatencyMs = (int)sw.ElapsedMilliseconds
+                LatencyMs = (int)sw.ElapsedMilliseconds,
+                // TODO: Ollama API returns prompt_eval_count and eval_count in its response.
+                // OllamaClient currently discards these. Wire through when OllamaClient is updated.
+                TokensIn  = 0,
+                TokensOut = text.Length / 4  // rough fallback: ~4 chars per token
             };
         }
-        catch (Exception ex) when (ex is not OperationCanceledException && !request.UseFallback && !IsConnectivityException(ex))
+        catch (Exception primaryEx) when (primaryEx is not OperationCanceledException && !request.UseFallback && !IsConnectivityException(primaryEx))
         {
+            // §12: model crash → retry once with fallback model, preserving the primary exception
             sw.Restart();
-            _logger.LogWarning(ex,
+            _logger.LogWarning(primaryEx,
                 "Node B primary model {PrimaryModel} failed — retrying with fallback {FallbackModel}",
                 PrimaryModel, FallbackModel);
 
-            var fallbackReq = request with { Model = FallbackModel, UseFallback = true };
-            var fallbackText = await _client.ExecuteAsync(fallbackReq, cancellationToken);
-            sw.Stop();
-            _logger.LogInformation("Node B fallback completed latencyMs={Latency}", sw.ElapsedMilliseconds);
-
-            return new InferenceResult
+            try
             {
-                Text      = fallbackText,
-                NodeId    = NodeId,
-                Model     = FallbackModel,
-                LatencyMs = (int)sw.ElapsedMilliseconds
-            };
+                var fallbackReq = request with { Model = FallbackModel, UseFallback = true };
+                var fallbackText = await _client.ExecuteAsync(fallbackReq, cancellationToken);
+                sw.Stop();
+                _logger.LogInformation("Node B fallback completed latencyMs={Latency}", sw.ElapsedMilliseconds);
+
+                return new InferenceResult
+                {
+                    Text      = fallbackText,
+                    NodeId    = NodeId,
+                    Model     = FallbackModel,
+                    LatencyMs = (int)sw.ElapsedMilliseconds,
+                    // TODO: Ollama API returns prompt_eval_count and eval_count in its response.
+                    // OllamaClient currently discards these. Wire through when OllamaClient is updated.
+                    TokensIn  = 0,
+                    TokensOut = fallbackText.Length / 4  // rough fallback: ~4 chars per token
+                };
+            }
+            catch (Exception fallbackEx)
+            {
+                throw new AggregateException("Both primary and fallback models failed on Node B", primaryEx, fallbackEx);
+            }
         }
     }
 
-    public async IAsyncEnumerable<InferenceChunk> StreamAsync(
-        InferenceRequest request,
-        [EnumeratorCancellation] CancellationToken cancellationToken = default)
+    public async Task<NodeHealth> GetHealthAsync(CancellationToken cancellationToken = default)
     {
-        var result = await ExecuteAsync(request, cancellationToken);
-        yield return new InferenceChunk
-        {
-            Content = result.Text,
-            IsFinal = true,
-            FinalResult = new Orchestrator.Core.Models.InferenceResult
-            {
-                Text = result.Text,
-                NodeId = result.NodeId,
-                Model = result.Model,
-                LatencyMs = result.LatencyMs
-            }
-        };
-    }
-
-    public async Task<NodeHealthStatus> GetHealthAsync(CancellationToken cancellationToken = default)
-    {
-        NodeHealthStatus status;
+        NodeStatus status;
         try
         {
-            var isHealthy = await _client.IsHealthyAsync(cancellationToken);
-            status = new NodeHealthStatus
-            {
-                State = isHealthy ? HealthState.Healthy : HealthState.Degraded,
-                LastChecked = DateTimeOffset.UtcNow
-            };
+            status = await _client.IsHealthyAsync(cancellationToken)
+                ? NodeStatus.Healthy
+                : NodeStatus.Degraded;
         }
         catch
         {
-            status = new NodeHealthStatus
-            {
-                State = HealthState.Unavailable,
-                LastChecked = DateTimeOffset.UtcNow
-            };
+            status = NodeStatus.Unavailable;
         }
-        _health = status;
-        return status;
-    }
 
-    public Task<IReadOnlyList<ModelInfo>> ListModelsAsync(CancellationToken cancellationToken = default)
-    {
-        IReadOnlyList<ModelInfo> result =
-        [
-            new ModelInfo { ModelId = PrimaryModel },
-            new ModelInfo { ModelId = FallbackModel }
-        ];
-        return Task.FromResult(result);
+        return new NodeHealth
+        {
+            NodeId = NodeId,
+            Status = status,
+            CheckedAt = DateTimeOffset.UtcNow
+        };
     }
-
-    public ValueTask DisposeAsync() => ValueTask.CompletedTask;
 
     private static bool IsConnectivityException(Exception ex) =>
         ex is System.Net.Http.HttpRequestException httpEx &&
