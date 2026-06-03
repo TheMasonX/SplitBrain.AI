@@ -95,15 +95,7 @@ public sealed class RefactorCodeTool
             var response = new RefactorCodeResponse
             {
                 Summary = cleanedCode,   // callers get clean code, not markdown
-                Meta = new Meta
-                {
-                    TaskId    = taskId,
-                    Node      = result.NodeId,
-                    Model     = result.Model,
-                    LatencyMs = result.LatencyMs,
-                    TokensIn  = result.TokensIn,
-                    TokensOut = result.TokensOut
-                }
+                Meta    = Meta.FromInferenceResult(taskId, result)
             };
 
             try { await _log.LogResponseAsync("refactor_code", response, result.LatencyMs, ct); } catch (Exception) { /* log failure — intentionally silent; tool must not fail on logging errors */ }

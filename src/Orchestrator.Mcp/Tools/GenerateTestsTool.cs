@@ -91,15 +91,7 @@ public sealed class GenerateTestsTool
                         Content = cleanedTests
                     }
                 },
-                Meta = new Meta
-                {
-                    TaskId    = taskId,
-                    Node      = result.NodeId,
-                    Model     = result.Model,
-                    LatencyMs = result.LatencyMs,
-                    TokensIn  = result.TokensIn,
-                    TokensOut = result.TokensOut
-                }
+                Meta    = Meta.FromInferenceResult(taskId, result)
             };
 
             try { await _log.LogResponseAsync("generate_tests", response, result.LatencyMs, ct); } catch (Exception) { /* log failure — intentionally silent; tool must not fail on logging errors */ }

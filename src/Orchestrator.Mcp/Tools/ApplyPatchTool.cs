@@ -5,20 +5,35 @@ using Orchestrator.Core.Models;
 using Orchestrator.Core.Serialization;
 using Orchestrator.Core.Validation;
 using Orchestrator.Mcp.Patching;
+using Orchestrator.Mcp.WriteAccess;
 
 namespace Orchestrator.Mcp.Tools;
 
 [McpServerToolType]
 public sealed class ApplyPatchTool
 {
-    [McpServerTool(Name = "apply_patch"), Description("Applies a unified diff patch to a file on disk within the allowed root directory.")]
+    private readonly WriteAccessGuard _writeGuard;
+    public ApplyPatchTool(WriteAccessGuard writeGuard) => _writeGuard = writeGuard;
+
+    [McpServerTool(Name = "apply_patch"), Description(
+        "Applies a unified diff patch to a file on disk within the allowed root directory. " +
+        "Requires write access. Use dryRun: true to validate without writing.")]
     public async Task<string> ApplyPatchAsync(
         [Description("Absolute path to the file to patch")] string filePath,
         [Description("Unified diff patch content (output of `diff -u`)")] string patch,
         [Description("Allowed root directory — patch is rejected if filePath is outside this scope")] string allowedRoot,
         [Description("When true, validates the patch without writing to disk")] bool dryRun = false,
+        [Description("Authorise mutation (required when write gate is PerCallEnable)")] bool enableWrite = false,
         CancellationToken cancellationToken = default)
     {
+        // Apply the write gate check FIRST — dryRun bypasses actual disk write but still checks the gate
+        // so callers can see what would happen. Override: dryRun doesn't need write permission.
+        if (!dryRun)
+        {
+            var writeError = _writeGuard.CheckWrite("apply_patch", enableWrite);
+            if (writeError is not null) return writeError;
+        }
+
         var request = new ApplyPatchRequest
         {
             DryRun = dryRun,
@@ -30,20 +45,17 @@ public sealed class ApplyPatchTool
 
         request.ValidateOrThrow(new ApplyPatchRequestValidator());
 
-        // Security: enforce that the target file is under the allowed root
         var fullPath = Path.GetFullPath(filePath);
         var fullRoot = Path.GetFullPath(allowedRoot).TrimEnd(Path.DirectorySeparatorChar) + Path.DirectorySeparatorChar;
+
         if (!fullPath.StartsWith(fullRoot, StringComparison.OrdinalIgnoreCase))
         {
             return JsonSerializer.Serialize(new ApplyPatchResponse
             {
                 Success = false,
-                Error = new McpError
-                {
-                    Code = "PATH_VIOLATION",
+                Error = new McpError { Code = "PATH_VIOLATION",
                     Message = $"filePath '{filePath}' is outside the allowed root '{allowedRoot}'",
-                    Retryable = false
-                },
+                    Retryable = false },
                 Meta = new Meta { TaskId = Guid.NewGuid().ToString("N"), Node = "local" }
             }, JsonConfig.Default);
         }
@@ -53,12 +65,8 @@ public sealed class ApplyPatchTool
             return JsonSerializer.Serialize(new ApplyPatchResponse
             {
                 Success = false,
-                Error = new McpError
-                {
-                    Code = "FILE_NOT_FOUND",
-                    Message = $"File not found: {fullPath}",
-                    Retryable = false
-                },
+                Error = new McpError { Code = "FILE_NOT_FOUND",
+                    Message = $"File not found: {fullPath}", Retryable = false },
                 Meta = new Meta { TaskId = Guid.NewGuid().ToString("N"), Node = "local" }
             }, JsonConfig.Default);
         }
@@ -66,7 +74,7 @@ public sealed class ApplyPatchTool
         try
         {
             var original = await File.ReadAllTextAsync(fullPath, cancellationToken);
-            var patched = UnifiedDiffApplier.Apply(original, patch);
+            var patched  = UnifiedDiffApplier.Apply(original, patch);
 
             if (!dryRun)
                 await File.WriteAllTextAsync(fullPath, patched, cancellationToken);
@@ -83,12 +91,7 @@ public sealed class ApplyPatchTool
             return JsonSerializer.Serialize(new ApplyPatchResponse
             {
                 Success = false,
-                Error = new McpError
-                {
-                    Code = "PATCH_FAILED",
-                    Message = ex.Message,
-                    Retryable = false
-                },
+                Error = new McpError { Code = "PATCH_FAILED", Message = ex.Message, Retryable = false },
                 Meta = new Meta { TaskId = Guid.NewGuid().ToString("N"), Node = "local" }
             }, JsonConfig.Default);
         }
