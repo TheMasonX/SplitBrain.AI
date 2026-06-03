@@ -1,6 +1,5 @@
 using System.ComponentModel;
 using System.Text.Json;
-using FluentValidation;
 using ModelContextProtocol.Server;
 using Orchestrator.Agents;
 using Orchestrator.Agents.Models;
@@ -16,23 +15,14 @@ public sealed class AgentTaskTool
     private readonly IAgentOrchestrator _agent;
     private readonly IIdempotencyCache _idempotency;
 
-    public AgentTaskTool(IAgentOrchestrator agent, IIdempotencyCache idempotency)
-    {
-        _agent = agent;
-        _idempotency = idempotency;
-    }
+    public AgentTaskTool(IAgentOrchestrator agent, IIdempotencyCache idempotency) { _agent = agent; _idempotency = idempotency; }
 
-    [McpServerTool(Name = "agent_task"),
-     Description("Runs a bounded autonomous agent loop (Plan -> Implement -> Review -> Test) for a natural-language goal. Max 4 iterations, 12k tokens.")]
+    [McpServerTool(Name = "agent_task"), Description("Runs a bounded autonomous agent loop (Plan -> Implement -> Review -> Test) for a natural-language goal. Max 4 iterations, 12k tokens.")]
     public Task<string> RunAgentTaskAsync(
-        [Description("High-level goal in natural language (e.g. 'Add null-check to UserService.GetById')")]
-        string goal,
-        [Description("(Optional) Absolute path to the working directory the agent may patch and test")]
-        string? workingDirectory = null,
-        [Description("(Optional) Additional context injected into every prompt (e.g. stack trace, spec excerpt)")]
-        string? context = null,
-        [Description("(Optional) Idempotency key -- same key returns cached result within 5 minutes")]
-        string? idempotencyKey = null,
+        [Description("High-level goal in natural language (e.g. 'Add null-check to UserService.GetById')")] string goal,
+        [Description("(Optional) Absolute path to the working directory the agent may patch and test")] string? workingDirectory = null,
+        [Description("(Optional) Additional context injected into every prompt (e.g. stack trace, spec excerpt)")] string? context = null,
+        [Description("(Optional) Idempotency key -- same key returns cached result within 5 minutes")] string? idempotencyKey = null,
         CancellationToken cancellationToken = default)
         => IdempotencyHelper.ExecuteAsync(_idempotency, idempotencyKey, () => ExecuteCoreAsync(goal, workingDirectory, context, cancellationToken), cancellationToken);
 
@@ -40,45 +30,13 @@ public sealed class AgentTaskTool
     {
         try
         {
-            var request = new AgentRequest
-            {
-                Goal             = goal,
-                WorkingDirectory = string.IsNullOrWhiteSpace(workingDirectory) ? null : workingDirectory,
-                Context          = string.IsNullOrWhiteSpace(context) ? null : context
-            };
-
+            var request = new AgentRequest { Goal = goal, WorkingDirectory = string.IsNullOrWhiteSpace(workingDirectory) ? null : workingDirectory, Context = string.IsNullOrWhiteSpace(context) ? null : context };
             var result = await _agent.RunAsync(request, cancellationToken);
-
-            var response = new AgentTaskResponse
-            {
-                Success         = result.Success,
-                FinalState      = result.FinalState.ToString(),
-                Summary         = result.Summary,
-                Diff            = result.Diff,
-                TotalIterations = result.TotalIterations,
-                TotalTokens     = result.TotalTokensUsed,
-                AbortReason     = result.AbortReason,
-                Steps           = result.Steps.Select(s => new AgentStepSummary
-                {
-                    Role     = s.Role.ToString(),
-                    State    = s.State.ToString(),
-                    Success  = s.Success,
-                    Tokens   = s.TokensEstimated,
-                    Response = s.Response.Length > 300 ? s.Response[..300] + "..." : s.Response
-                }).ToList()
-            };
-
+            var response = new AgentTaskResponse { Success = result.Success, FinalState = result.FinalState.ToString(), Summary = result.Summary, Diff = result.Diff, TotalIterations = result.TotalIterations, TotalTokens = result.TotalTokensUsed, AbortReason = result.AbortReason, Steps = result.Steps.Select(s => new AgentStepSummary { Role = s.Role.ToString(), State = s.State.ToString(), Success = s.Success, Tokens = s.TokensEstimated, Response = s.Response.Length > 300 ? s.Response[..300] + "..." : s.Response }).ToList() };
             return JsonSerializer.Serialize(response, JsonConfig.Default);
         }
-        catch (ValidationException vex)
-        {
-            return JsonSerializer.Serialize(new { error = new { code = "validation_error", message = vex.Message, retryable = false } }, JsonConfig.Default);
-        }
         catch (OperationCanceledException) { throw; }
-        catch (Exception ex)
-        {
-            return JsonSerializer.Serialize(new { error = new { code = "internal_error", message = ex.Message, retryable = true } }, JsonConfig.Default);
-        }
+        catch (Exception ex) { return JsonSerializer.Serialize(new { error = new { code = "internal_error", message = ex.Message, retryable = true } }, JsonConfig.Default); }
     }
 }
 

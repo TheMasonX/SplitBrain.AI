@@ -39,84 +39,36 @@ public sealed class ReviewCodeTool
     {
         var stopwatch = Stopwatch.StartNew();
         var taskId = Guid.NewGuid().ToString();
-
-        var request = new ReviewCodeRequest
-        {
-            Code = code,
-            Language = language,
-            Focus = focus
-        };
-
+        var safeLanguage = SanitizeParam(language);
+        var safeFocus = SanitizeParam(focus);
+        var request = new ReviewCodeRequest { Code = code, Language = safeLanguage, Focus = safeFocus };
         try
         {
-            // Log incoming request
             await _loggingService.LogRequestAsync("review_code", request, cancellationToken);
-
             request.ValidateOrThrow(new ReviewCodeRequestValidator());
-
             var prompt = BuildPrompt(request);
-
-            var inferenceRequest = new InferenceRequest
-            {
-                Prompt = prompt,
-                Stream = true
-            };
-
+            var inferenceRequest = new InferenceRequest { Prompt = prompt, Stream = true };
             var result = await _routing.RouteAsync(TaskType.Review, inferenceRequest, cancellationToken);
-
-            // Log inference details
-            await _loggingService.LogInferenceAsync(
-                taskId,
-                prompt,
-                result.Text,
-                result.Model,
-                result.NodeId,
-                result.LatencyMs,
-                cancellationToken);
-
-            var response = new ReviewCodeResponse
-            {
-                Summary = result.Text,
-                Issues = [],
-                Meta = Meta.FromInferenceResult(taskId, result)
-            };
-
+            await _loggingService.LogInferenceAsync(taskId, prompt, result.Text, result.Model, result.NodeId, result.LatencyMs, cancellationToken);
+            var response = new ReviewCodeResponse { Summary = result.Text, Issues = [], Meta = Meta.FromInferenceResult(taskId, result) };
             stopwatch.Stop();
-
-            // Log response
             await _loggingService.LogResponseAsync("review_code", response, stopwatch.ElapsedMilliseconds, cancellationToken);
-
             return JsonSerializer.Serialize(response, JsonConfig.Default);
         }
-        catch (Exception ex)
-        {
-            stopwatch.Stop();
-            await _loggingService.LogErrorAsync("review_code", ex, cancellationToken);
-            throw;
-        }
+        catch (Exception ex) { stopwatch.Stop(); await _loggingService.LogErrorAsync("review_code", ex, cancellationToken); throw; }
     }
 
     private static string BuildPrompt(ReviewCodeRequest request)
     {
+        var safeCode = SanitizeForFence(request.Code);
         var sb = new System.Text.StringBuilder();
         sb.AppendLine($"You are an expert {request.Language} code reviewer. Perform a {request.Focus} review of the following code.");
         sb.AppendLine("Provide a concise summary of your findings.");
-        sb.AppendLine();
-        sb.AppendLine($"```{request.Language}");
-        sb.AppendLine(request.Code);
-        sb.AppendLine("```");
-
-        if (request.Context?.Count > 0)
-        {
-            sb.AppendLine();
-            sb.AppendLine("Related files for context:");
-            foreach (var file in request.Context)
-            {
-                sb.AppendLine($"// {file.Path}");
-                sb.AppendLine(file.Content);
-            }
-        }
-
+        sb.AppendLine(); sb.AppendLine($"```{request.Language}"); sb.AppendLine(safeCode); sb.AppendLine("```");
+        if (request.Context?.Count > 0) { sb.AppendLine(); sb.AppendLine("Related files for context:"); foreach (var file in request.Context) { sb.AppendLine($"// {file.Path}"); sb.AppendLine(file.Content); } }
         return sb.ToString();
     }
+
+    private static string SanitizeParam(string value) { if (string.IsNullOrEmpty(value)) return string.Empty; var sb = new System.Text.StringBuilder(value.Length); foreach (var ch in value) if (ch == '\r' || ch == '\n' || ch == '\t' || !char.IsControl(ch)) sb.Append(ch); var cleaned = sb.ToString().Trim(); return cleaned.Length > 256 ? cleaned[..256] : cleaned; }
+    private static string SanitizeForFence(string value) => string.IsNullOrEmpty(value) ? string.Empty : value.Replace("```", "''`");
 }
