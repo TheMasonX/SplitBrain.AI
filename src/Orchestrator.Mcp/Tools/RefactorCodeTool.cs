@@ -8,6 +8,7 @@ using Orchestrator.Core.Enums;
 using Orchestrator.Core.Interfaces;
 using Orchestrator.Core.Models;
 using Orchestrator.Core.Serialization;
+using Orchestrator.Core.Utilities;
 using Orchestrator.Core.Validation;
 using Orchestrator.Mcp.Idempotency;
 
@@ -58,9 +59,13 @@ public sealed class RefactorCodeTool
             GetType().Name, result.NodeId, result.Model, result.Text.Length,
             result.Text.Length > 500 ? result.Text[..500] + "…" : result.Text);
 
+        // Strip any markdown code fences the model may have wrapped around the refactored code
+        // even though the prompt forbids them. ResponseParser is a no-op if no fences are present.
+        var cleaned = ResponseParser.StripFences(result.Text);
+
         var response = new RefactorCodeResponse
         {
-            Summary = result.Text,
+            Summary = cleaned,
             Meta = new Meta
             {
                 TaskId = taskId,
