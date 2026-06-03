@@ -1,0 +1,29 @@
+{
+  "Id": "tsk-0010-add-model-path-input-installer",
+  "Key": "TSK-0010",
+  "Title": "Add model path input field to installer wizard for llama.cpp backend",
+  "Description": "Setup-LlamaCpp.ps1 hardcodes ModelPath='C:\\Models\\qwen3-coder-30b-a3b.gguf'. Users must manually edit the generated launch scripts to point at their actual GGUF file. Add a 'Model file path' input to the NetworkPage (field [5]) when llama.cpp is selected, and pass it through GetLlamaCppSetupArgs to Setup-LlamaCpp.ps1 as -ModelPath.",
+  "Type": "Improvement",
+  "Status": "Backlog",
+  "Priority": "High",
+  "AssigneeMode": "Custom",
+  "AssigneeCustomText": "AI",
+  "Labels": [
+    "installer",
+    "ux",
+    "llamacpp"
+  ],
+  "Attachments": [],
+  "ExternalLinks": [],
+  "LinkedPages": [
+    "guides/installer"
+  ],
+  "Comments": [],
+  "EpicId": null,
+  "ParentId": null,
+  "CreatedAtUtc": "2026-06-02T21:00:00Z",
+  "UpdatedAtUtc": "2026-06-02T21:00:00Z",
+  "CompletedAtUtc": null,
+  "Revision": 1,
+  "IsArchived": false
+}

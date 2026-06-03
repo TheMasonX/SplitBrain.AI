@@ -1,0 +1,27 @@
+{
+  "Id": "tsk-0009-fix-extractok-logic-setup-llamacpp",
+  "Key": "TSK-0009",
+  "Title": "Fix $extractOk unconditional overwrite in Setup-LlamaCpp.ps1",
+  "Description": "In native mode, $extractOk is set to $false inside the download-failure catch block, but is then unconditionally set to $true after the if (Test-Path $zipPath) block, overwriting the failure state. The extraction-failure path never propagates correctly. Fix: only set $extractOk = $true inside the success path, not after the conditional block.",
+  "Type": "Bug",
+  "Status": "Backlog",
+  "Priority": "Medium",
+  "AssigneeMode": "Custom",
+  "AssigneeCustomText": "AI",
+  "Labels": [
+    "installer",
+    "llamacpp",
+    "powershell"
+  ],
+  "Attachments": [],
+  "ExternalLinks": [],
+  "LinkedPages": [],
+  "Comments": [],
+  "EpicId": null,
+  "ParentId": null,
+  "CreatedAtUtc": "2026-06-02T21:00:00Z",
+  "UpdatedAtUtc": "2026-06-02T21:00:00Z",
+  "CompletedAtUtc": null,
+  "Revision": 1,
+  "IsArchived": false
+}

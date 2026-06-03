@@ -2,6 +2,7 @@ using System.Text.Json;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using NodeClient.LlamaCpp;
 using NodeClient.Ollama;
@@ -12,6 +13,9 @@ using Orchestrator.Infrastructure.Metrics;
 using Orchestrator.NodeWorker;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Signal Windows SCM that this process is a Windows Service (no-op when run interactively)
+builder.Host.UseWindowsService();
 
 // -------------------------------------------------------------------------
 // Backend selection: set NODE_B_BACKEND=llamacpp to use llama.cpp server,
@@ -59,7 +63,56 @@ builder.Services.AddSingleton<INodeHealthCache, InMemoryNodeHealthCache>();
 builder.Services.AddSingleton<IMetricsCollector, InMemoryMetricsCollector>();
 builder.Services.AddHostedService<NodeWorkerService>();
 
+// -------------------------------------------------------------------------
+// Optional bearer token auth for the inference endpoints.
+// Set NodeWorker:Auth:RequireToken=true in appsettings.json to enable.
+// Default: false (unauthenticated — suitable for trusted LAN deployments).
+// When enabled, set NodeWorker:Auth:Token or SPLITBRAIN_WORKER_TOKEN env var.
+// If RequireToken=true but no token is configured, a one-time ephemeral token
+// is generated and logged at startup (Warning level).
+// -------------------------------------------------------------------------
+var requireAuth = builder.Configuration.GetValue<bool>("NodeWorker:Auth:RequireToken", false);
+var workerToken = builder.Configuration["NodeWorker:Auth:Token"]
+    ?? Environment.GetEnvironmentVariable("SPLITBRAIN_WORKER_TOKEN")
+    ?? string.Empty;
+
+if (requireAuth && string.IsNullOrWhiteSpace(workerToken))
+{
+    workerToken = Guid.NewGuid().ToString("N");
+    // Log via the builder's logging provider (available before Build())
+    Console.Error.WriteLine(
+        $"[WARN] NodeWorker:Auth:RequireToken=true but no token is configured. " +
+        $"Generated ephemeral token: {workerToken}  " +
+        $"Set NodeWorker:Auth:Token in appsettings.json to persist across restarts.");
+}
+
 var app = builder.Build();
+
+// Apply auth middleware BEFORE routing (if enabled)
+if (requireAuth && !string.IsNullOrWhiteSpace(workerToken))
+{
+    var capturedToken = workerToken;
+    app.Use(async (context, next) =>
+    {
+        // Skip auth for the health endpoint — health probes must always succeed
+        if (context.Request.Path.StartsWithSegments("/health"))
+        {
+            await next(context);
+            return;
+        }
+
+        var authHeader = context.Request.Headers.Authorization.ToString();
+        var expectedHeader = $"Bearer {capturedToken}";
+        if (!authHeader.Equals(expectedHeader, StringComparison.Ordinal))
+        {
+            context.Response.StatusCode = 401;
+            context.Response.Headers.Append("WWW-Authenticate", "Bearer");
+            await context.Response.WriteAsync("Unauthorized — set Authorization: Bearer <token>");
+            return;
+        }
+        await next(context);
+    });
+}
 
 // -------------------------------------------------------------------------
 // GET /health — returns current node status and last health snapshot

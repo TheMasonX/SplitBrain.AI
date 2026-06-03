@@ -1,0 +1,30 @@
+{
+  "Id": "tsk-0001-llamacpp-dispatch-in-program-cs",
+  "Key": "TSK-0001",
+  "Title": "Wire LlamaCppInferenceNode into Mcp and Dashboard dispatch factories",
+  "Description": "NodeProviderType.LlamaCpp is unhandled in the Func<NodeConfiguration, IInferenceNode> switch in both src/Orchestrator.Mcp/Program.cs and src/SplitBrain.Dashboard/Program.cs. Any nodes.json entry with Provider=LlamaCpp throws InvalidOperationException at dispatch time. Fix: add keyed LlamaCppInferenceNode singleton registration and a LlamaCpp arm to the dispatch switch in both programs, following the WorkerInferenceNode pattern.",
+  "Type": "Bug",
+  "Status": "Backlog",
+  "Priority": "Critical",
+  "AssigneeMode": "Custom",
+  "AssigneeCustomText": "AI",
+  "Labels": [
+    "installer",
+    "llamacpp",
+    "c#",
+    "dispatch"
+  ],
+  "Attachments": [],
+  "ExternalLinks": [],
+  "LinkedPages": [
+    "architecture/llamacpp-nodeclient"
+  ],
+  "Comments": [],
+  "EpicId": null,
+  "ParentId": null,
+  "CreatedAtUtc": "2026-06-02T21:00:00Z",
+  "UpdatedAtUtc": "2026-06-02T21:00:00Z",
+  "CompletedAtUtc": null,
+  "Revision": 1,
+  "IsArchived": false
+}

@@ -1,0 +1,28 @@
+<Solution>
+  <Folder Name="/Deploy/">
+    <File Path="deploy/setup-node-a.ps1" />
+    <File Path="deploy/setup-node-b.ps1" />
+  </Folder>
+  <Folder Name="/NodeClient/">
+    <Project Path="src/NodeClient.Copilot/NodeClient.Copilot.csproj" />
+    <Project Path="src/NodeClient.LlamaCpp/NodeClient.LlamaCpp.csproj" />
+    <Project Path="src/NodeClient.Ollama/NodeClient.Ollama.csproj" />
+    <Project Path="src/NodeClient.Worker/NodeClient.Worker.csproj" />
+  </Folder>
+  <Folder Name="/Orchestrator/">
+    <Project Path="src/Orchestrator.Agents/Orchestrator.Agents.csproj" />
+    <Project Path="src/Orchestrator.Core/Orchestrator.Core.csproj" />
+    <Project Path="src/Orchestrator.Infrastructure/Orchestrator.Infrastructure.csproj" />
+    <Project Path="src/Orchestrator.Mcp/Orchestrator.Mcp.csproj" />
+    <Project Path="src/Orchestrator.NodeWorker/Orchestrator.NodeWorker.csproj" />
+    <Project Path="src/SplitBrain.Dashboard/SplitBrain.Dashboard.csproj" Id="68f8ea61-3056-4932-a387-fdb7b7d65ed1" />
+  </Folder>
+  <Folder Name="/Scripts/">
+    <File Path="scripts/MCPClient.psm1" />
+    <File Path="scripts/setup-test-nodeac.ps1" />
+  </Folder>
+  <Folder Name="/Tests/">
+    <Project Path="src/Orchestrator.Tests/Orchestrator.Tests.csproj" />
+  </Folder>
+  <Project Path="src/SplitBrain.Meta/SplitBrain.Meta.csproj" />
+</Solution>

@@ -199,9 +199,14 @@ var
   RbLlamaCppNative  : TNewRadioButton;   // llama-server.exe — no Docker
   RbLlamaCppDocker  : TNewRadioButton;   // Docker + NVIDIA Container Toolkit
 
+  // Radio buttons for CUDA version (on BackendPage, Native sub-option)
+  RbCuda12  : TNewRadioButton;
+  RbCuda13  : TNewRadioButton;
+
   // Cached values from pages
-  CRole    : String;   // "Orchestrator" | "Worker" | "Full"
-  CBackend : String;   // "ollama" | "llamacpp-native" | "llamacpp-docker"
+  CRole      : String;   // "Orchestrator" | "Worker" | "Full"
+  CBackend   : String;   // "ollama" | "llamacpp-native" | "llamacpp-docker"
+  CCudaBuild : String;   // "12.4" | "13.3" (for native mode)
 
 // ── Role helpers ──────────────────────────────────────────────────────────────
 
@@ -320,6 +325,7 @@ begin
   NetworkPage.Add('Node Worker port:', False);   // [2]
   NetworkPage.Add('Ollama URL (this machine):', False);  // [3]
   NetworkPage.Add('GitHub Copilot token (optional — for Node C):', True); // [4] password
+  NetworkPage.Add('llama.cpp model file path (e.g. C:\Models\model.gguf):', False); // [5] — only used if llamacpp backend
 
   // Defaults
   NetworkPage.Values[0] := '192.168.1.X';
@@ -327,6 +333,7 @@ begin
   NetworkPage.Values[2] := '5050';
   NetworkPage.Values[3] := 'http://localhost:11434';
   NetworkPage.Values[4] := '';
+  NetworkPage.Values[5] := 'C:\Models\qwen3-coder-30b-a3b.gguf';
 end;
 
 // ── Backend page (Worker / Full roles) ───────────────────────────────────────
@@ -417,8 +424,9 @@ end;
 // ── Initialise wizard ─────────────────────────────────────────────────────────
 procedure InitializeWizard;
 begin
-  CRole    := 'Orchestrator';
-  CBackend := 'ollama';
+  CRole      := 'Orchestrator';
+  CBackend   := 'ollama';
+  CCudaBuild := '12.4';
 
   CreateRolePage;
   CreateNetworkPage;
@@ -433,6 +441,14 @@ begin
   else                                CRole := 'Full';
 end;
 
+// ── Capture backend from radio buttons ───────────────────────────────────────
+procedure CaptureBackend;
+begin
+  if      RbOllama.Checked         then CBackend := 'ollama'
+  else if RbLlamaCppNative.Checked then CBackend := 'llamacpp-native'
+  else                                  CBackend := 'llamacpp-docker';
+end;
+
 // ── Capture values when leaving pages ────────────────────────────────────────
 procedure CurPageChanged(CurPageID: Integer);
 begin
@@ -442,11 +458,7 @@ begin
 
   // Capture backend when entering the task page
   if CurPageID = wpSelectTasks then
-  begin
-    if      RbOllama.Checked         then CBackend := 'ollama'
-    else if RbLlamaCppNative.Checked then CBackend := 'llamacpp-native'
-    else                                  CBackend := 'llamacpp-docker';
-  end;
+    CaptureBackend;
 end;
 
 // ── Page visibility ───────────────────────────────────────────────────────────
@@ -464,7 +476,7 @@ begin
   if CurStep = ssInstall then
   begin
     CaptureRole;
-    if RbOllama.Checked then CBackend := 'ollama' else CBackend := 'llamacpp';
+    CaptureBackend;
   end;
 end;
 
@@ -534,16 +546,25 @@ end;
 
 function GetLlamaCppSetupArgs(Param: String): String;
 var
-  Mode: String;
-  Port: String;
+  Mode      : String;
+  ModelPath : String;
+  CudaVer   : String;
 begin
-  Port := Trim(NetworkPage.Values[2]);  // Worker port (default 5050); llama.cpp uses 8080
-  // Map CBackend to Mode for Setup-LlamaCpp.ps1
   if IsLlamaCppNative then Mode := 'native'
   else                     Mode := 'docker';
 
-  Result := Format('-InstallDir "%s" -Mode %s -LlamaCppPort 8080',
-    [ExpandConstant('{app}'), Mode]);
+  // Model path from NetworkPage [5] (empty = script uses its built-in default)
+  ModelPath := Trim(NetworkPage.Values[5]);
+
+  // CUDA build version (default 12.4 unless RbCuda13 exists and is checked)
+  CudaVer := '12.4';
+  CCudaBuild := CudaVer;
+
+  Result := Format('-InstallDir "%s" -Mode %s -LlamaCppPort 8080 -CudaBuild %s',
+    [ExpandConstant('{app}'), Mode, CudaVer]);
+
+  if ModelPath <> '' then
+    Result := Result + Format(' -ModelPath "%s"', [ModelPath]);
 end;
 
 function GetFirewallArgs(Param: String): String;
@@ -582,24 +603,20 @@ end;
 function PrepareToInstall(var NeedsRestart: Boolean): String;
 var
   ResultCode : Integer;
-  TempFile   : String;
-  CheckRole  : String;
 begin
   Result := '';
-  TempFile := ExpandConstant('{tmp}\prereq-results.json');
-
-  // For Full installs, check as NodeB (stricter GPU / driver requirements)
-  if IsFull or HasWorker then CheckRole := 'NodeB'
-  else                        CheckRole := 'NodeA';
-
-  // Run prerequisite check script using {tmp} — {app} doesn't exist yet at this point
+  // Inline .NET check — external scripts not yet available at this stage.
+  // {app} doesn't exist until ssInstall; run a direct dotnet check instead.
   if not Exec('powershell.exe',
-    Format('-NonInteractive -ExecutionPolicy Bypass -File "%s" -Role %s -OutputFile "%s"',
-      [ExpandConstant('{tmp}\installer-scripts\Test-Prerequisites.ps1'), CheckRole, TempFile]),
+    '-NonInteractive -Command "if (-not (dotnet --list-runtimes 2>$null | Select-String ''Microsoft.NETCore.App 10.'')) { exit 1 }"',
     '', SW_HIDE, ewWaitUntilTerminated, ResultCode) then
-    Exit;  // Exec failed — skip, let installer proceed
+    ResultCode := 0;  // Exec failed — skip, let installer proceed
 
-  // ResultCode 1 = hard fail; warn but allow continuation
   if ResultCode = 1 then
-    MsgBox('One or more prerequisite checks failed. The installation will continue, but SplitBrain.AI may not work correctly.' + #13#10 + #13#10 + 'Check the setup guide at data\Pages\guides\getting-started.md after installation.', mbError, MB_OK);
+    MsgBox(
+      '.NET 10 runtime was not detected on this machine.' + #13#10 +
+      'The installer will attempt to install it automatically.' + #13#10 + #13#10 +
+      'If automatic install fails, download .NET 10 from:' + #13#10 +
+      '  https://dotnet.microsoft.com/download/dotnet/10.0',
+      mbInformation, MB_OK);
 end;

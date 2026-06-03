@@ -4,6 +4,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using NodeClient.Copilot;
 using NodeClient.Ollama;
+using NodeClient.LlamaCpp;
 using NodeClient.Worker;
 using Orchestrator.Agents;
 using Orchestrator.Agents.SemanticKernel;
@@ -146,6 +147,33 @@ namespace SplitBrain.Dashboard
                     {
                         client.BaseAddress = new Uri(wc.BaseUrl);
                         client.Timeout = TimeSpan.FromSeconds(wc.TimeoutSeconds * 2);
+                    })
+                    // TSK-0007: Worker nodes now have the same resilience as Ollama nodes
+                    .AddResilienceHandler($"resilience-worker-{workerNode.NodeId}", pipeline =>
+                    {
+                        pipeline.AddRetry(new HttpRetryStrategyOptions
+                        {
+                            MaxRetryAttempts = 2,
+                            Delay = TimeSpan.FromSeconds(1),
+                            BackoffType = DelayBackoffType.Exponential,
+                            UseJitter = true,
+                            ShouldHandle = new PredicateBuilder<HttpResponseMessage>()
+                                .HandleResult(r => !r.IsSuccessStatusCode)
+                                .Handle<HttpRequestException>()
+                                .Handle<TimeoutRejectedException>()
+                        });
+                        pipeline.AddCircuitBreaker(new HttpCircuitBreakerStrategyOptions
+                        {
+                            FailureRatio = 0.8,
+                            SamplingDuration = TimeSpan.FromSeconds(60),
+                            MinimumThroughput = 5,
+                            BreakDuration = TimeSpan.FromSeconds(30),
+                            ShouldHandle = new PredicateBuilder<HttpResponseMessage>()
+                                .HandleResult(r => !r.IsSuccessStatusCode)
+                                .Handle<HttpRequestException>()
+                                .Handle<TimeoutRejectedException>()
+                        });
+                        pipeline.AddTimeout(TimeSpan.FromSeconds(wc.TimeoutSeconds));
                     });
 
                 var capturedNode = workerNode;
@@ -162,6 +190,55 @@ namespace SplitBrain.Dashboard
                     var client = new WorkerClient(httpClient, workerOptions);
                     var logger = sp.GetRequiredService<ILogger<WorkerInferenceNode>>();
                     return new WorkerInferenceNode(capturedNode.NodeId, wConfig, client, logger);
+                });
+            }
+
+            // LlamaCpp nodes — keyed singleton per topology entry (TSK-0001)
+            foreach (var llamaCppNode in topologyConfig.Nodes.Where(n => n.Provider == NodeProviderType.LlamaCpp && n.LlamaCpp is not null))
+            {
+                var lc = llamaCppNode.LlamaCpp!;
+                var capturedLlamaCpp = llamaCppNode;
+
+                builder.Services
+                    .AddHttpClient($"llamacpp-{llamaCppNode.NodeId}", client =>
+                    {
+                        client.BaseAddress = new Uri(lc.BaseUrl);
+                        client.Timeout = TimeSpan.FromSeconds(lc.TimeoutSeconds * 2);
+                    })
+                    .AddResilienceHandler($"resilience-llamacpp-{llamaCppNode.NodeId}", pipeline =>
+                    {
+                        pipeline.AddRetry(new HttpRetryStrategyOptions
+                        {
+                            MaxRetryAttempts = 2, Delay = TimeSpan.FromSeconds(1),
+                            BackoffType = DelayBackoffType.Exponential, UseJitter = true,
+                            ShouldHandle = new PredicateBuilder<HttpResponseMessage>()
+                                .HandleResult(r => !r.IsSuccessStatusCode)
+                                .Handle<HttpRequestException>().Handle<TimeoutRejectedException>()
+                        });
+                        pipeline.AddCircuitBreaker(new HttpCircuitBreakerStrategyOptions
+                        {
+                            FailureRatio = 0.8, SamplingDuration = TimeSpan.FromSeconds(60),
+                            MinimumThroughput = 5, BreakDuration = TimeSpan.FromSeconds(30),
+                            ShouldHandle = new PredicateBuilder<HttpResponseMessage>()
+                                .HandleResult(r => !r.IsSuccessStatusCode)
+                                .Handle<HttpRequestException>().Handle<TimeoutRejectedException>()
+                        });
+                        pipeline.AddTimeout(TimeSpan.FromSeconds(lc.TimeoutSeconds));
+                    });
+
+                builder.Services.AddKeyedSingleton<LlamaCppInferenceNode>(capturedLlamaCpp.NodeId, (sp, _) =>
+                {
+                    var nodeOpts = Options.Create(new LlamaCppClientOptions
+                    {
+                        BaseUrl = lc.BaseUrl, TimeoutSeconds = lc.TimeoutSeconds,
+                        ModelLabel = lc.ModelLabel, NodeId = capturedLlamaCpp.NodeId,
+                        VramMb = (int)lc.GpuVramTotalMB
+                    });
+                    var httpFactory = sp.GetRequiredService<IHttpClientFactory>();
+                    var httpClient = httpFactory.CreateClient($"llamacpp-{capturedLlamaCpp.NodeId}");
+                    var client = new LlamaCppClient(httpClient, nodeOpts, sp.GetRequiredService<ILogger<LlamaCppClient>>());
+                    var logger = sp.GetRequiredService<ILogger<LlamaCppInferenceNode>>();
+                    return new LlamaCppInferenceNode(client, nodeOpts, logger);
                 });
             }
 
@@ -201,7 +278,13 @@ namespace SplitBrain.Dashboard
             builder.Services.AddSingleton<IPromptHistory, PromptHistoryService>();
             builder.Services.AddSingleton<IRoutingService>(sp => new RoutingService(
                 registry: sp.GetRequiredService<INodeRegistry>(),
-                queueFactory: nodeId => new NodeQueue(capacity: nodeId == "A" ? 64 : 32),
+                queueFactory: nodeId =>
+                {
+                    // TSK-0006: Use MaxConcurrentRequests from topology instead of hardcoded "A"==64 else 32
+                    var cap = topologyConfig.Nodes
+                        .FirstOrDefault(n => n.NodeId == nodeId)?.MaxConcurrentRequests ?? 32;
+                    return new NodeQueue(capacity: Math.Max(4, cap));
+                },
                 logger: sp.GetRequiredService<ILogger<RoutingService>>(),
                 healthCache: sp.GetRequiredService<INodeHealthCache>(),
                 metrics: sp.GetRequiredService<IMetricsCollector>(),
@@ -226,10 +309,11 @@ namespace SplitBrain.Dashboard
                         sp.GetRequiredKeyedService<WorkerInferenceNode>(config.NodeId),
                     NodeProviderType.Ollama =>
                         sp.GetRequiredKeyedService<OllamaInferenceNode>(config.NodeId),
-                    NodeProviderType.CopilotSdk when config.NodeId == "C" =>
-                        sp.GetRequiredService<NodeCInferenceNode>(),
                     NodeProviderType.CopilotSdk =>
                         sp.GetRequiredService<NodeCInferenceNode>(),
+                    // TSK-0001: LlamaCpp dispatch added
+                    NodeProviderType.LlamaCpp =>
+                        sp.GetRequiredKeyedService<LlamaCppInferenceNode>(config.NodeId),
                     _ => throw new InvalidOperationException(
                         $"No IInferenceNode registered for NodeId '{config.NodeId}' provider '{config.Provider}'.")
                 });

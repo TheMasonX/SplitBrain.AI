@@ -1,0 +1,29 @@
+{
+  "Id": "tsk-0006-fix-queue-capacity-hardcoded-node-id",
+  "Key": "TSK-0006",
+  "Title": "Replace hardcoded queue capacity nodeId=='A' with topology MaxConcurrentRequests",
+  "Description": "Both Mcp/Program.cs and Dashboard/Program.cs have: queueFactory: nodeId => new NodeQueue(capacity: nodeId == 'A' ? 64 : 32). This silently gives all Worker and LlamaCpp nodes a capacity of 32 regardless of MaxConcurrentRequests in NodeConfiguration. Fix: use topologyConfig.Nodes.FirstOrDefault(n => n.NodeId == nodeId)?.MaxConcurrentRequests ?? 32.",
+  "Type": "Improvement",
+  "Status": "Backlog",
+  "Priority": "Medium",
+  "AssigneeMode": "Custom",
+  "AssigneeCustomText": "AI",
+  "Labels": [
+    "c#",
+    "routing",
+    "queue"
+  ],
+  "Attachments": [],
+  "ExternalLinks": [],
+  "LinkedPages": [
+    "architecture/overview"
+  ],
+  "Comments": [],
+  "EpicId": null,
+  "ParentId": null,
+  "CreatedAtUtc": "2026-06-02T21:00:00Z",
+  "UpdatedAtUtc": "2026-06-02T21:00:00Z",
+  "CompletedAtUtc": null,
+  "Revision": 1,
+  "IsArchived": false
+}

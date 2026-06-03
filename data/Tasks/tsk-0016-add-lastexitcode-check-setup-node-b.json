@@ -1,0 +1,26 @@
+{
+  "Id": "tsk-0016-add-lastexitcode-check-setup-node-b",
+  "Key": "TSK-0016",
+  "Title": "Add $LASTEXITCODE check after ollama pull in setup-node-b.ps1",
+  "Description": "setup-node-b.ps1 does not check $LASTEXITCODE after each 'ollama pull' command. Pull failures are silently ignored. setup-node-a.ps1 correctly throws on non-zero exit. Add matching error handling to Node B.",
+  "Type": "Bug",
+  "Status": "Backlog",
+  "Priority": "Low",
+  "AssigneeMode": "Custom",
+  "AssigneeCustomText": "AI",
+  "Labels": [
+    "deploy",
+    "powershell"
+  ],
+  "Attachments": [],
+  "ExternalLinks": [],
+  "LinkedPages": [],
+  "Comments": [],
+  "EpicId": null,
+  "ParentId": null,
+  "CreatedAtUtc": "2026-06-02T21:00:00Z",
+  "UpdatedAtUtc": "2026-06-02T21:00:00Z",
+  "CompletedAtUtc": null,
+  "Revision": 1,
+  "IsArchived": false
+}

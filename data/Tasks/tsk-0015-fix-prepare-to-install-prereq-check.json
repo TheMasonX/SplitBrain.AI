@@ -1,0 +1,28 @@
+{
+  "Id": "tsk-0015-fix-prepare-to-install-prereq-check",
+  "Key": "TSK-0015",
+  "Title": "Fix PrepareToInstall prereq check silently skipped",
+  "Description": "In SplitBrainAI.iss PrepareToInstall, the function references {tmp}\\installer-scripts\\Test-Prerequisites.ps1. But PrepareToInstall runs before [Files] are copied to {app}. Scripts are never staged to {tmp}. The Exec call silently fails and prereq checks are entirely bypassed. Fix: inline a lightweight prereq check using direct PowerShell commands (dotnet --version, free disk check) rather than calling an external script.",
+  "Type": "Bug",
+  "Status": "Backlog",
+  "Priority": "Low",
+  "AssigneeMode": "Custom",
+  "AssigneeCustomText": "AI",
+  "Labels": [
+    "installer",
+    "prereq"
+  ],
+  "Attachments": [],
+  "ExternalLinks": [],
+  "LinkedPages": [
+    "ops/installer-dev-guide"
+  ],
+  "Comments": [],
+  "EpicId": null,
+  "ParentId": null,
+  "CreatedAtUtc": "2026-06-02T21:00:00Z",
+  "UpdatedAtUtc": "2026-06-02T21:00:00Z",
+  "CompletedAtUtc": null,
+  "Revision": 1,
+  "IsArchived": false
+}

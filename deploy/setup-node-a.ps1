@@ -11,6 +11,15 @@
     5. Installs the MCP server as a Windows service
     6. Configures log output to a predictable directory
 
+.PARAMETER SkipDotNet
+    Skip .NET SDK installation (use when .NET is already installed or installer handled it).
+
+.PARAMETER SkipOllama
+    Skip Ollama installation (use when Ollama is already installed or installer handled it).
+
+.PARAMETER SkipModels
+    Skip Ollama model pull (use when models are already downloaded or network is unavailable).
+
 .NOTES
     Run as Administrator.
     Node A role: Interactive + Orchestration (RTX 5060 8 GB, fast inference).
@@ -20,11 +29,14 @@
 #Requires -RunAsAdministrator
 [CmdletBinding(SupportsShouldProcess)]
 param (
-    [string]$PublishPath   = "$PSScriptRoot\..\src\Orchestrator.Mcp\publish\node-a",
-    [string]$ServiceName   = "SplitBrainMcpServer",
+    [string]$PublishPath    = "$PSScriptRoot\..\src\Orchestrator.Mcp\publish\node-a",
+    [string]$ServiceName    = "SplitBrainMcpServer",
     [string]$ServiceDisplay = "SplitBrain.AI MCP Server (Node A)",
-    [string]$LogDir        = "C:\ProgramData\SplitBrain.AI\logs\node-a",
-    [string]$DotNetVersion = "10"
+    [string]$LogDir         = "C:\ProgramData\SplitBrain.AI\logs\node-a",
+    [string]$DotNetVersion  = "10",
+    [switch]$SkipDotNet,
+    [switch]$SkipOllama,
+    [switch]$SkipModels
 )
 
 Set-StrictMode -Version Latest
@@ -48,45 +60,54 @@ function Set-PersistentEnv([string]$Name, [string]$Value) {
         return
     }
     [System.Environment]::SetEnvironmentVariable($Name, $Value, "Machine")
+    # Update in-process scope
+    Set-Item "Env:$Name" $Value
     Write-Ok "Env $Name = $Value"
 }
 
 # ---------------------------------------------------------------------------
 # 1. .NET SDK
 # ---------------------------------------------------------------------------
-Write-Step ".NET $DotNetVersion SDK"
-$sdkInstalled = (dotnet --list-sdks 2>$null) -match "^$DotNetVersion\."
-if (-not $sdkInstalled) {
-    Write-Host "    Downloading .NET $DotNetVersion SDK installer..."
-    $installerUrl = "https://dot.net/v1/dotnet-install.ps1"
-    $installerPath = "$env:TEMP\dotnet-install.ps1"
-    Invoke-WebRequest -Uri $installerUrl -OutFile $installerPath
-    & $installerPath -Channel $DotNetVersion -InstallDir "C:\Program Files\dotnet" -NoPath
-    # Add dotnet install dir to machine PATH if not already present
-    $dotnetDir = "C:\Program Files\dotnet"
-    $machinePath = [System.Environment]::GetEnvironmentVariable("PATH", "Machine")
-    if ($machinePath -notlike "*$dotnetDir*") {
-        [System.Environment]::SetEnvironmentVariable("PATH", "$machinePath;$dotnetDir", "Machine")
-        $env:PATH = "$env:PATH;$dotnetDir"
-        Write-Ok "Added $dotnetDir to machine PATH"
-    }
-    Write-Ok ".NET $DotNetVersion SDK installed"
+if ($SkipDotNet) {
+    Write-Skip ".NET $DotNetVersion SDK (skipped by -SkipDotNet)"
 } else {
-    Write-Skip ".NET $DotNetVersion SDK already present"
+    Write-Step ".NET $DotNetVersion SDK"
+    $sdkInstalled = (dotnet --list-sdks 2>$null) -match "^$DotNetVersion\."
+    if (-not $sdkInstalled) {
+        Write-Host "    Downloading .NET $DotNetVersion SDK installer..."
+        $installerUrl = "https://dot.net/v1/dotnet-install.ps1"
+        $installerPath = "$env:TEMP\dotnet-install.ps1"
+        Invoke-WebRequest -Uri $installerUrl -OutFile $installerPath -UseBasicParsing
+        & $installerPath -Channel $DotNetVersion -InstallDir "C:\Program Files\dotnet" -NoPath
+        $dotnetDir = "C:\Program Files\dotnet"
+        $machinePath = [System.Environment]::GetEnvironmentVariable("PATH", "Machine")
+        if ($machinePath -notlike "*$dotnetDir*") {
+            [System.Environment]::SetEnvironmentVariable("PATH", "$machinePath;$dotnetDir", "Machine")
+            $env:PATH = "$env:PATH;$dotnetDir"
+            Write-Ok "Added $dotnetDir to machine PATH"
+        }
+        Write-Ok ".NET $DotNetVersion SDK installed"
+    } else {
+        Write-Skip ".NET $DotNetVersion SDK already present"
+    }
 }
 
 # ---------------------------------------------------------------------------
 # 2. Ollama
 # ---------------------------------------------------------------------------
-Write-Step "Ollama"
-if (-not (Test-CommandExists "ollama")) {
-    Write-Host "    Downloading Ollama installer..."
-    $ollamaInstaller = "$env:TEMP\OllamaSetup.exe"
-    Invoke-WebRequest -Uri "https://ollama.com/download/OllamaSetup.exe" -OutFile $ollamaInstaller
-    Start-Process -FilePath $ollamaInstaller -ArgumentList "/S" -Wait
-    Write-Ok "Ollama installed"
+if ($SkipOllama) {
+    Write-Skip "Ollama (skipped by -SkipOllama)"
 } else {
-    Write-Skip "Ollama already installed"
+    Write-Step "Ollama"
+    if (-not (Test-CommandExists "ollama")) {
+        Write-Host "    Downloading Ollama installer..."
+        $ollamaInstaller = "$env:TEMP\OllamaSetup.exe"
+        Invoke-WebRequest -Uri "https://ollama.com/download/OllamaSetup.exe" -OutFile $ollamaInstaller -UseBasicParsing
+        Start-Process -FilePath $ollamaInstaller -ArgumentList "/S" -Wait
+        Write-Ok "Ollama installed"
+    } else {
+        Write-Skip "Ollama already installed"
+    }
 }
 
 # ---------------------------------------------------------------------------
@@ -103,37 +124,40 @@ Set-PersistentEnv "OLLAMA_HOST"              "0.0.0.0"
 # ---------------------------------------------------------------------------
 # 4. Pull required models
 # ---------------------------------------------------------------------------
-Write-Step "Pulling Ollama models for Node A"
+if ($SkipModels) {
+    Write-Skip "Model pull (skipped by -SkipModels)"
+} else {
+    Write-Step "Pulling Ollama models for Node A"
 
-$models = @(
-    "qwen2.5-coder:7b"   # primary inference model (qwen2.5-coder 7B Q4_K_M)
-)
+    $models = @(
+        "qwen2.5-coder:7b"   # primary inference model (qwen2.5-coder 7B Q4_K_M)
+    )
 
-# Start Ollama serve in background so pull works if not already running
-$ollamaProcess = $null
-$ollamaReady = $false
-try {
-    $resp = Invoke-WebRequest -Uri "http://127.0.0.1:11434" -TimeoutSec 2 -ErrorAction Stop
-    $ollamaReady = $resp.StatusCode -eq 200
-} catch { }
+    $ollamaProcess = $null
+    $ollamaReady = $false
+    try {
+        $resp = Invoke-WebRequest -Uri "http://127.0.0.1:11434" -TimeoutSec 2 -UseBasicParsing -ErrorAction Stop
+        $ollamaReady = $resp.StatusCode -eq 200
+    } catch { }
 
-if (-not $ollamaReady) {
-    Write-Host "    Starting Ollama serve temporarily for model pull..."
-    $ollamaProcess = Start-Process "ollama" -ArgumentList "serve" -PassThru -WindowStyle Hidden
-    Start-Sleep -Seconds 5
-}
-
-foreach ($model in $models) {
-    Write-Host "    Pulling $model ..."
-    ollama pull $model
-    if ($LASTEXITCODE -ne 0) {
-        throw "Failed to pull model '$model' (exit code $LASTEXITCODE)"
+    if (-not $ollamaReady) {
+        Write-Host "    Starting Ollama serve temporarily for model pull..."
+        $ollamaProcess = Start-Process "ollama" -ArgumentList "serve" -PassThru -WindowStyle Hidden
+        Start-Sleep -Seconds 5
     }
-    Write-Ok "Pulled $model"
-}
 
-if ($ollamaProcess) {
-    Stop-Process -Id $ollamaProcess.Id -Force -ErrorAction SilentlyContinue
+    foreach ($model in $models) {
+        Write-Host "    Pulling $model ..."
+        ollama pull $model
+        if ($LASTEXITCODE -ne 0) {
+            throw "Failed to pull model '$model' (exit code $LASTEXITCODE)"
+        }
+        Write-Ok "Pulled $model"
+    }
+
+    if ($ollamaProcess) {
+        Stop-Process -Id $ollamaProcess.Id -Force -ErrorAction SilentlyContinue
+    }
 }
 
 # ---------------------------------------------------------------------------
@@ -182,6 +206,5 @@ if (-not (Test-Path $exePath)) {
 # ---------------------------------------------------------------------------
 Write-Host "`n[Node A provisioning complete]" -ForegroundColor Green
 Write-Host "  Ollama env vars:  machine-scope (reboot or re-open shell to take effect)"
-Write-Host "  Models pulled:    $($models -join ', ')"
 Write-Host "  Logs:             $LogDir"
 Write-Host "  Service:          $ServiceName"

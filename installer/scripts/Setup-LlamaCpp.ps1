@@ -115,8 +115,9 @@ if ($Mode -eq "native") {
         Write-Ok "Found: $($asset.name) ($([math]::Round($asset.size/1MB,0)) MB)"
     } catch {
         # Fallback to a pinned known-good release URL
-        $Tag = "b5695"   # approximate pinned tag — user should update if stale
-        $downloadUrl = "https://github.com/ggml-org/llama.cpp/releases/download/$Tag/$ZipName"
+        # Use the GitHub releases/latest redirect — always resolves to the most recent release.
+        # This is safer than a pinned tag that may not exist.
+        $downloadUrl = "https://github.com/ggml-org/llama.cpp/releases/latest/download/$ZipName"
         Write-Warn "Failed to fetch release API ($($_.Exception.Message)). Using fallback URL."
         Write-Warn "If download fails, manually download $ZipName from:"
         Write-Warn "  https://github.com/ggml-org/llama.cpp/releases"
@@ -136,17 +137,17 @@ if ($Mode -eq "native") {
         $extractOk = $false
     }
 
-    # Extract
-    $extractOk = $true
+    # Extract (only if download succeeded)
+    $extractOk = $false
     if (Test-Path $zipPath) {
         New-Item -ItemType Directory -Force -Path $LlamaCppDir | Out-Null
         Write-Host "    Extracting to $LlamaCppDir ..."
         try {
             Expand-Archive -Path $zipPath -DestinationPath $LlamaCppDir -Force
             Write-Ok "Extracted"
+            $extractOk = $true   # only set true on successful extraction
         } catch {
             Write-Warn "Extraction failed: $($_.Exception.Message)"
-            $extractOk = $false
         }
         Remove-Item $zipPath -ErrorAction SilentlyContinue
     }
