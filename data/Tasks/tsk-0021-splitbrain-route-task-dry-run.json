@@ -1,0 +1,28 @@
+{
+  "Id": "tsk-0021-splitbrain-route-task-dry-run",
+  "Key": "TSK-0021",
+  "Title": "Implement splitbrain_route_task tool (dry-run routing decision)",
+  "Description": "Runs the routing scoring algorithm WITHOUT executing inference. Given a TaskType and optional requirements, returns the full routing decision: winning node+model, all candidate scores, policy applied, decision time. Critical for debugging ('why did my task go to Node B?') and for clients that want to pre-validate node availability before dispatching long tasks. Parameters: taskType, requiredCapabilities?, minContextWindow?, routingPolicy?. Returns: winnerNodeId, winnerModel, allCandidateScores, policyApplied, decisionMs.",
+  "Type": "Feature",
+  "Status": "Backlog",
+  "Priority": "Medium",
+  "Labels": [
+    "mcp",
+    "tools",
+    "routing",
+    "debugging"
+  ],
+  "Attachments": [],
+  "ExternalLinks": [],
+  "LinkedPages": [
+    "architecture/overview"
+  ],
+  "Comments": [],
+  "EpicId": null,
+  "ParentId": null,
+  "CreatedAtUtc": "2026-06-03T00:00:00Z",
+  "UpdatedAtUtc": "2026-06-03T00:00:00Z",
+  "CompletedAtUtc": null,
+  "Revision": 1,
+  "IsArchived": false
+}

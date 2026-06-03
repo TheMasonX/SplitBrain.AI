@@ -1,12 +1,12 @@
 using Microsoft.Extensions.Options;
 using Orchestrator.Core.Models;
-using SdkClient = GitHub.Copilot.SDK.CopilotClient;
-using SdkClientOptions = GitHub.Copilot.SDK.CopilotClientOptions;
+using SdkClient = GitHub.Copilot.CopilotClient;
+using SdkClientOptions = GitHub.Copilot.CopilotClientOptions;
 
 namespace NodeClient.Copilot;
 
 /// <summary>
-/// GitHub Copilot inference client backed by <c>GitHub.Copilot.SDK</c>.
+/// GitHub Copilot inference client backed by <c>GitHub.Copilot</c>.
 /// Each <see cref="ExecuteAsync"/> call opens a fresh single-turn session so
 /// that concurrent requests are fully isolated.
 ///
@@ -25,7 +25,10 @@ public sealed class CopilotClient : ICopilotClient, IAsyncDisposable
     {
         _model = options.Value.Model;
 
-        var sdkOpts = new SdkClientOptions { LogLevel = "warning" };
+        var sdkOpts = new SdkClientOptions
+        {
+            LogLevel = GitHub.Copilot.CopilotLogLevel.Warning,
+        };
 
         if (!string.IsNullOrWhiteSpace(apiToken))
         {
@@ -33,10 +36,9 @@ public sealed class CopilotClient : ICopilotClient, IAsyncDisposable
         }
 
         if (!string.IsNullOrWhiteSpace(options.Value.CliPath))
-            sdkOpts.CliPath = options.Value.CliPath;
-
-        if (!string.IsNullOrWhiteSpace(options.Value.CliUrl))
-            sdkOpts.CliUrl = options.Value.CliUrl;
+        {
+            sdkOpts.Mode = GitHub.Copilot.CopilotClientMode.CopilotCli;
+        }
 
         _sdk = new SdkClient(sdkOpts);
     }
@@ -45,37 +47,18 @@ public sealed class CopilotClient : ICopilotClient, IAsyncDisposable
     {
         var model = string.IsNullOrWhiteSpace(request.Model) ? _model : request.Model;
 
-        await using var session = await _sdk.CreateSessionAsync(new GitHub.Copilot.SDK.SessionConfig
+        await using var session = await _sdk.CreateSessionAsync(new GitHub.Copilot.SessionConfig
         {
             Model = model,
-            OnPermissionRequest = GitHub.Copilot.SDK.PermissionHandler.ApproveAll,
+            OnPermissionRequest = GitHub.Copilot.PermissionHandler.ApproveAll,
             Streaming = request.Stream,
-            InfiniteSessions = new GitHub.Copilot.SDK.InfiniteSessionConfig { Enabled = false },
+            InfiniteSessions = new GitHub.Copilot.InfiniteSessionConfig { Enabled = false },
         });
 
-        var tcs = new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously);
-        string? lastContent = null;
-
-        using var sub = session.On(evt =>
-        {
-            switch (evt)
-            {
-                case GitHub.Copilot.SDK.AssistantMessageEvent msg:
-                    lastContent = msg.Data.Content;
-                    break;
-                case GitHub.Copilot.SDK.SessionIdleEvent:
-                    tcs.TrySetResult(lastContent ?? string.Empty);
-                    break;
-                case GitHub.Copilot.SDK.SessionErrorEvent err:
-                    tcs.TrySetException(new InvalidOperationException(err.Data.Message));
-                    break;
-            }
-        });
-
-        using var reg = cancellationToken.Register(() => tcs.TrySetCanceled(cancellationToken));
-
-        await session.SendAsync(new GitHub.Copilot.SDK.MessageOptions { Prompt = request.Prompt });
-        return await tcs.Task;
+        // SDK v1.0.0: SendAsync returns the response directly.
+        using var reg = cancellationToken.Register(() => session.AbortAsync());
+        return await session.SendAsync(
+            new GitHub.Copilot.MessageOptions { Prompt = request.Prompt });
     }
 
     public async Task<bool> IsHealthyAsync(CancellationToken cancellationToken = default)

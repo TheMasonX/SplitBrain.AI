@@ -1,0 +1,29 @@
+{
+  "Id": "tsk-0002-deploy-scripts-skip-params",
+  "Key": "TSK-0002",
+  "Title": "Add -SkipDotNet/-SkipOllama/-SkipModels parameters to deploy scripts",
+  "Description": "installer/SplitBrainAI.iss [Run] section calls setup-node-a.ps1 and setup-node-b.ps1 with -SkipDotNet -SkipOllama -SkipModels flags that do not exist in either script. PowerShell throws 'A parameter cannot be found' on every service install step, silently breaking service registration. Fix: add [switch]$SkipDotNet, [switch]$SkipOllama, [switch]$SkipModels to both deploy scripts and wrap corresponding sections.",
+  "Type": "Bug",
+  "Status": "Backlog",
+  "Priority": "Critical",
+  "AssigneeMode": "Custom",
+  "AssigneeCustomText": "AI",
+  "Labels": [
+    "installer",
+    "deploy",
+    "powershell"
+  ],
+  "Attachments": [],
+  "ExternalLinks": [],
+  "LinkedPages": [
+    "ops/installer-dev-guide"
+  ],
+  "Comments": [],
+  "EpicId": null,
+  "ParentId": null,
+  "CreatedAtUtc": "2026-06-02T21:00:00Z",
+  "UpdatedAtUtc": "2026-06-02T21:00:00Z",
+  "CompletedAtUtc": null,
+  "Revision": 1,
+  "IsArchived": false
+}

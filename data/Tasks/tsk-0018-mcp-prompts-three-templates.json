@@ -1,0 +1,27 @@
+{
+  "Id": "tsk-0018-mcp-prompts-three-templates",
+  "Key": "TSK-0018",
+  "Title": "Implement MCP Prompts \u2014 3 parameterized templates",
+  "Description": "The MCP spec defines Prompts as reusable parameterized message templates that appear in client UIs (Claude Desktop, IDE extensions). Zero prompts exist in SplitBrain.AI. Implement 3: (1) code-review-structured: pre-fills language/focus/threshold; (2) test-generation-comprehensive: pre-fills framework/coverage/language; (3) refactor-preserve-behavior: behavioral preservation constraint baked in. Register via IPromptProvider in Orchestrator.Mcp. External agent B identified this as the most underutilized MCP primitive.",
+  "Type": "Feature",
+  "Status": "Backlog",
+  "Priority": "Medium",
+  "Labels": [
+    "mcp",
+    "prompts",
+    "ux"
+  ],
+  "Attachments": [],
+  "ExternalLinks": [],
+  "LinkedPages": [
+    "guides/installer"
+  ],
+  "Comments": [],
+  "EpicId": null,
+  "ParentId": null,
+  "CreatedAtUtc": "2026-06-03T00:00:00Z",
+  "UpdatedAtUtc": "2026-06-03T00:00:00Z",
+  "CompletedAtUtc": null,
+  "Revision": 1,
+  "IsArchived": false
+}

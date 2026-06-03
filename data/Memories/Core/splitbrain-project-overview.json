@@ -1,0 +1,30 @@
+{
+  "Id": "splitbrain-project-overview",
+  "Title": "SplitBrain.AI \u2014 Project Overview",
+  "Content": "SplitBrain.AI is a distributed home AI orchestrator that routes inference tasks between two local machines (Machine A and Machine B) via MCP. Node A (fast, RTX 5060) handles interactive latency-sensitive workloads; Node B (deep, GTX 1080 8 GB) handles long-context reasoning. All capabilities are exposed as MCP tools through Orchestrator.Mcp on port 5100 (streamable HTTP) and stdio (VS Code / VS 2026 integration). The system uses VRAM-aware, queue-aware, context-aware routing with role-based scoring.",
+  "Status": 2,
+  "Confidence": 0.97,
+  "Tags": [
+    "project-overview",
+    "architecture",
+    "mcp",
+    "routing"
+  ],
+  "References": [
+    "splitbrain-solution-layout",
+    "splitbrain-node-topology"
+  ],
+  "Conflicts": [],
+  "SourceLinks": [
+    {
+      "Label": "README.md",
+      "Uri": "%SplitBrainRepo%README.md"
+    },
+    {
+      "Label": "Orchestrator.Mcp",
+      "Uri": "%SplitBrainRepo%src/Orchestrator.Mcp/"
+    }
+  ],
+  "UsageCount": 0,
+  "LastUpdated": "2026-06-02T00:00:00Z"
+}

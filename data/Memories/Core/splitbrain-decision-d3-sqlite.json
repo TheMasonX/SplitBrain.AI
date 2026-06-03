@@ -1,0 +1,26 @@
+{
+  "Id": "splitbrain-decision-d3-sqlite",
+  "Title": "D3: Migrate LiteDB to SQLite",
+  "Content": "Decision D3 (locked, 2026-06-01): Migrate LiteDB storage to SQLite with WAL mode, aligning with MemorySmith's pattern. Include DatabaseProviderFactory, migrations-on-startup, and busy timeout config. Current state: LiteDB still in use for AgentEventLog (LiteDbAgentEventLog.cs in Orchestrator.Infrastructure). Migration is planned for Phase C2 (moved up from Phase E after council recommendation). SQLite provides better concurrent access, tooling, and alignment with the codebase's direction.",
+  "Status": 2,
+  "Confidence": 0.94,
+  "Tags": [
+    "decision",
+    "storage",
+    "sqlite",
+    "litedb",
+    "locked"
+  ],
+  "References": [
+    "splitbrain-solution-layout"
+  ],
+  "Conflicts": [],
+  "SourceLinks": [
+    {
+      "Label": "LiteDbAgentEventLog.cs",
+      "Uri": "%SplitBrainRepo%src/Orchestrator.Infrastructure/AgentLog/LiteDbAgentEventLog.cs"
+    }
+  ],
+  "UsageCount": 0,
+  "LastUpdated": "2026-06-02T00:00:00Z"
+}

@@ -1,0 +1,28 @@
+{
+  "Id": "tsk-0029-splitbrain-embed-text-tool",
+  "Key": "TSK-0029",
+  "Title": "Implement splitbrain_embed_text tool (expose Nomic Embed via MCP)",
+  "Description": "Expose the Nomic Embed Text model (already loaded in Ollama, already paying the VRAM cost) as an MCP tool. Returns a 768-dimensional float vector. Enables external callers to build semantic features on top of SplitBrain.AI's embedding infrastructure. Also enables the embeddings://search resource. Parameters: text, model? (default nomic-embed-text). Routes to Fast node (embeddings are fast).",
+  "Type": "Feature",
+  "Status": "Backlog",
+  "Priority": "Low",
+  "Labels": [
+    "mcp",
+    "tools",
+    "embeddings",
+    "nomic"
+  ],
+  "Attachments": [],
+  "ExternalLinks": [],
+  "LinkedPages": [
+    "research/llamacpp-turboquant"
+  ],
+  "Comments": [],
+  "EpicId": null,
+  "ParentId": null,
+  "CreatedAtUtc": "2026-06-03T00:00:00Z",
+  "UpdatedAtUtc": "2026-06-03T00:00:00Z",
+  "CompletedAtUtc": null,
+  "Revision": 1,
+  "IsArchived": false
+}

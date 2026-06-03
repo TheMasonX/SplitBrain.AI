@@ -95,4 +95,120 @@ public sealed class RoutingServiceTests
         result.Should().BeEquivalentTo(expected);
         await nodeB.Received(1).ExecuteAsync(Arg.Any<InferenceRequest>(), Arg.Any<CancellationToken>());
     }
+
+    // -----------------------------------------------------------------------
+    // SelectNode — hard rules
+    // -----------------------------------------------------------------------
+
+    [Test]
+    public void SelectNode_Autocomplete_AlwaysReturnsNodeA()
+    {
+        var nodeB = Substitute.For<IInferenceNode>();
+        nodeB.NodeId.Returns("B");
+        var queueB = new NodeQueue(capacity: 8);
+        var sut = new RoutingService(_nodeA, _queueA, _logger, nodeB, queueB);
+
+        var chosen = sut.SelectNode(TaskType.Autocomplete, new InferenceRequest { Prompt = "partial", Model = "m" });
+
+        chosen.Should().BeSameAs(_nodeA);
+    }
+
+    [Test]
+    public void SelectNode_NoNodeB_AlwaysReturnsNodeA()
+    {
+        var chosen = _sut.SelectNode(TaskType.Review, new InferenceRequest { Prompt = "review", Model = "m" });
+
+        chosen.Should().BeSameAs(_nodeA);
+    }
+
+    [Test]
+    public void SelectNode_NodeBQueueExceedsThreshold_FallsBackToNodeA()
+    {
+        var nodeB = Substitute.For<IInferenceNode>();
+        nodeB.NodeId.Returns("B");
+        var queueB = new NodeQueue(capacity: 8);
+        var dummy = new InferenceQueueItem { Request = new InferenceRequest { Prompt = "x" }, TaskType = TaskType.Chat };
+        // depth must exceed NodeBQueueFallbackThreshold = 2
+        queueB.TryEnqueue(dummy);
+        queueB.TryEnqueue(dummy);
+        queueB.TryEnqueue(dummy);
+        var sut = new RoutingService(_nodeA, _queueA, _logger, nodeB, queueB);
+
+        var chosen = sut.SelectNode(TaskType.Review, new InferenceRequest { Prompt = "review", Model = "m" });
+
+        chosen.Should().BeSameAs(_nodeA);
+    }
+
+    [Test]
+    public void SelectNode_NodeBUnavailableInCache_FallsBackToNodeA()
+    {
+        var nodeB = Substitute.For<IInferenceNode>();
+        nodeB.NodeId.Returns("B");
+        var queueB = new NodeQueue(capacity: 8);
+        var healthCache = Substitute.For<INodeHealthCache>();
+        healthCache.Get("B").Returns(new NodeHealth { NodeId = "B", Status = NodeStatus.Unavailable });
+        var sut = new RoutingService(_nodeA, _queueA, _logger, nodeB, queueB, healthCache);
+
+        var chosen = sut.SelectNode(TaskType.Review, new InferenceRequest { Prompt = "review", Model = "m" });
+
+        chosen.Should().BeSameAs(_nodeA);
+    }
+
+    // -----------------------------------------------------------------------
+    // SelectNode — scoring
+    // -----------------------------------------------------------------------
+
+    [Test]
+    public void SelectNode_ReviewTask_WithNodeB_PreferredOverNodeA()
+    {
+        var nodeB = Substitute.For<IInferenceNode>();
+        nodeB.NodeId.Returns("B");
+        var queueB = new NodeQueue(capacity: 8);
+        var sut = new RoutingService(_nodeA, _queueA, _logger, nodeB, queueB);
+
+        // Node B model-fit = 1.0 for Review; Node A model-fit = 0.5
+        var chosen = sut.SelectNode(TaskType.Review, new InferenceRequest { Prompt = "review this", Model = "m" });
+
+        chosen.NodeId.Should().Be("B");
+    }
+
+    [Test]
+    public void SelectNode_ChatTask_WithNodeB_NodeAPreferred()
+    {
+        var nodeB = Substitute.For<IInferenceNode>();
+        nodeB.NodeId.Returns("B");
+        var queueB = new NodeQueue(capacity: 8);
+        var sut = new RoutingService(_nodeA, _queueA, _logger, nodeB, queueB);
+
+        // Node A model-fit = 1.0 for Chat; Node B model-fit = 0.4
+        var chosen = sut.SelectNode(TaskType.Chat, new InferenceRequest { Prompt = "hello", Model = "m" });
+
+        chosen.NodeId.Should().Be("A");
+    }
+
+    [Test]
+    public void SelectNode_RefactorTask_WithNodeB_NodeBPreferred()
+    {
+        var nodeB = Substitute.For<IInferenceNode>();
+        nodeB.NodeId.Returns("B");
+        var queueB = new NodeQueue(capacity: 8);
+        var sut = new RoutingService(_nodeA, _queueA, _logger, nodeB, queueB);
+
+        var chosen = sut.SelectNode(TaskType.Refactor, new InferenceRequest { Prompt = "refactor this", Model = "m" });
+
+        chosen.NodeId.Should().Be("B");
+    }
+
+    [Test]
+    public void SelectNode_TestGeneration_WithNodeB_NodeBPreferred()
+    {
+        var nodeB = Substitute.For<IInferenceNode>();
+        nodeB.NodeId.Returns("B");
+        var queueB = new NodeQueue(capacity: 8);
+        var sut = new RoutingService(_nodeA, _queueA, _logger, nodeB, queueB);
+
+        var chosen = sut.SelectNode(TaskType.TestGeneration, new InferenceRequest { Prompt = "generate tests", Model = "m" });
+
+        chosen.NodeId.Should().Be("B");
+    }
 }

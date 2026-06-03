@@ -10,6 +10,20 @@ public sealed class Meta
     public int LatencyMs { get; init; }
     public int TokensIn { get; init; }
     public int TokensOut { get; init; }
+
+    /// <summary>
+    /// Creates a Meta instance from an InferenceResult, eliminating
+    /// repeated manual property-copying across MCP tools.
+    /// </summary>
+    public static Meta FromInferenceResult(string taskId, InferenceResult result) => new()
+    {
+        TaskId    = taskId,
+        Node      = result.NodeId,
+        Model     = result.Model,
+        LatencyMs = result.LatencyMs,
+        TokensIn  = result.TokensIn,
+        TokensOut = result.TokensOut
+    };
 }
 
 public sealed class McpError
@@ -47,6 +61,12 @@ public sealed class NodeHealth
     public int QueueDepth { get; init; }
     public int AvailableVramMb { get; init; }
     public DateTimeOffset CheckedAt { get; init; } = DateTimeOffset.UtcNow;
+
+    /// <summary>
+    /// Last observed health-probe round-trip latency in milliseconds.
+    /// Populated by NodeWorkerService. Defaults to 0 before the first probe completes.
+    /// </summary>
+    public double LastLatencyMs { get; init; }
 }
 
 public sealed record InferenceRequest
@@ -55,7 +75,6 @@ public sealed record InferenceRequest
     public string Model { get; init; } = default!;
     public bool Stream { get; init; } = true;
     public bool UseFallback { get; init; } = false;
-    /// <summary>Caller-assigned priority. Lower value = higher priority. Defaults to Normal (50).</summary>
     public int Priority { get; init; } = QueuePriority.Normal;
 }
 
@@ -69,7 +88,6 @@ public sealed record InferenceResult
     public int TokensOut { get; init; }
 }
 
-/// <summary>A request plus its completion source — travels through the queue together.</summary>
 public sealed class InferenceQueueItem
 {
     public InferenceRequest Request { get; init; } = default!;
@@ -79,7 +97,6 @@ public sealed class InferenceQueueItem
     public TaskCompletionSource<InferenceResult> Completion { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
 }
 
-/// <summary>Named priority constants matching the spec: Node A = high, Node B = normal.</summary>
 public static class QueuePriority
 {
     public const int High   = 10;

@@ -1,0 +1,16 @@
+{
+  "Id": "splitbrain-phase1-reconciliation",
+  "Title": "Phase 1 Reconciliation — feature/p0-p1-tools vs PR #18",
+  "Content": "Phase 1 tools reconciled 2026-06-03. PR #15 (feature/p0-p1-tools) closed. PR #18 (phase-0-v2) merged to next-gen at 1f554a87. New clean branch feature/phase-1-tools (2396a5bf) created from merged next-gen. PR #19 submitted. Decisions: ResponseCleaner (PR #18, 4-strategy) wins over ResponseParser.StripFences (PR #15, simpler). ToolTimeout constants superseded by per-tool CTS. Conditional OTel preserved from PR #18. Ported from PR #15: WriteAccessGuard/Options (3-mode write gate: Disabled/PerCallEnable/AlwaysEnabled), 5 new tools (read_file, write_file, list_files, query_allowed_root, explain_code), ApplyPatchTool write-gated, Meta.FromInferenceResult factory, NodeHealth.LastLatencyMs, ResponseParser.cs in Core, docs/QUICKSTART.md. Total MCP surface: 12 tools. Not ported: Orchestrator.Hosting (Phase 2), InferenceNodeBase/DashboardState (separate review).",
+  "Status": 1,
+  "Confidence": 0.97,
+  "Tags": ["phase-1", "reconciliation", "tools", "write-gate", "current-state"],
+  "References": ["splitbrain-phase0-implementation", "splitbrain-next-gen-branch-state"],
+  "Conflicts": [],
+  "SourceLinks": [
+    {"Label": "WriteAccessGuard.cs", "Uri": "%SplitBrainRepo%src/Orchestrator.Mcp/WriteAccess/WriteAccessGuard.cs"},
+    {"Label": "ExplainCodeTool.cs", "Uri": "%SplitBrainRepo%src/Orchestrator.Mcp/Tools/ExplainCodeTool.cs"}
+  ],
+  "UsageCount": 0,
+  "LastUpdated": "2026-06-03T08:00:00Z"
+}

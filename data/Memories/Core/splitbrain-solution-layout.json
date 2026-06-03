@@ -1,0 +1,28 @@
+{
+  "Id": "splitbrain-solution-layout",
+  "Title": "Solution Layout and Project Naming",
+  "Content": "Solution file: Orchestrator.slnx. Plan names use SplitBrain.* conceptually; actual projects use Orchestrator.* and NodeClient.* prefixes. Core projects: Orchestrator.Core (models, interfaces, configs, FluentValidation), Orchestrator.Infrastructure (registry, routing, health, metrics, logging, queue, LiteDB agent log), Orchestrator.Agents (bounded deterministic agent engine), Orchestrator.Mcp (MCP server + tools), Orchestrator.NodeWorker (HTTP inference worker for Machine B, port 5050), SplitBrain.Dashboard (Blazor dark-theme UI), Orchestrator.Hosting (host bootstrap). NodeClient projects: NodeClient.Ollama, NodeClient.Copilot, NodeClient.Worker, NodeClient.LlamaCpp. Tests: Orchestrator.Tests (NUnit 4.5.1, 221+ tests). Storage: file-backed nodes.json + routing.json + LiteDB; SQLite migration planned (D3).",
+  "Status": 2,
+  "Confidence": 0.95,
+  "Tags": [
+    "architecture",
+    "solution",
+    "projects"
+  ],
+  "References": [
+    "splitbrain-project-overview"
+  ],
+  "Conflicts": [],
+  "SourceLinks": [
+    {
+      "Label": "Orchestrator.slnx",
+      "Uri": "%SplitBrainRepo%Orchestrator.slnx"
+    },
+    {
+      "Label": "src/",
+      "Uri": "%SplitBrainRepo%src/"
+    }
+  ],
+  "UsageCount": 0,
+  "LastUpdated": "2026-06-02T00:00:00Z"
+}

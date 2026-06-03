@@ -1,0 +1,25 @@
+{
+  "Id": "tsk-0027-splitbrain-document-code-tool",
+  "Key": "TSK-0027",
+  "Title": "Implement splitbrain_document_code tool (generate inline documentation)",
+  "Description": "Generate inline documentation for code: XML doc comments for C#, JSDoc for TypeScript/JavaScript, Python docstrings, Javadoc for Java. Completely mechanical and tedious for a developer; ideal for an LLM. Natural complement to refactor_code \u2014 after refactoring, you want documentation. Routes to Quality node (documentation quality matters). Parameters: code, language, style (xml|jsdoc|docstring|javadoc), includeExamples?",
+  "Type": "Feature",
+  "Status": "Backlog",
+  "Priority": "Medium",
+  "Labels": [
+    "mcp",
+    "tools",
+    "documentation"
+  ],
+  "Attachments": [],
+  "ExternalLinks": [],
+  "LinkedPages": [],
+  "Comments": [],
+  "EpicId": null,
+  "ParentId": null,
+  "CreatedAtUtc": "2026-06-03T00:00:00Z",
+  "UpdatedAtUtc": "2026-06-03T00:00:00Z",
+  "CompletedAtUtc": null,
+  "Revision": 1,
+  "IsArchived": false
+}

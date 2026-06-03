@@ -1,0 +1,25 @@
+{
+  "Id": "splitbrain-next-gen-branch-state",
+  "Title": "next-gen Branch \u2014 Current State",
+  "Content": "next-gen branch HEAD: 9b4adf82 (2026-06-02). Full commit series: 1141eaea (audit baseline, original next-gen) \u2192 3d7fee83 (NodeClient.LlamaCpp feat) \u2192 1a301da8 (ProjectReference fix, critical) \u2192 1566611d (OI fixes: comment, VramMb config, 41 tests, streaming script) \u2192 9b4adf82 (merge all feature/batch-* branches). Six feature branches merged: feature/phase-a-foundation (Orchestrator.Hosting in slnx), feature/batch-1a through feature/batch-4. Branch is ahead of main (main at a0c7eeab). main branch is protected. Active development branch: next-gen. CI: tests target next-gen branch only.",
+  "Status": 1,
+  "Confidence": 0.97,
+  "Tags": [
+    "current-state",
+    "git",
+    "branch"
+  ],
+  "References": [
+    "splitbrain-audit-batch-status",
+    "splitbrain-llamacpp-nodeclient-status"
+  ],
+  "Conflicts": [],
+  "SourceLinks": [
+    {
+      "Label": "Orchestrator.slnx",
+      "Uri": "%SplitBrainRepo%Orchestrator.slnx"
+    }
+  ],
+  "UsageCount": 0,
+  "LastUpdated": "2026-06-02T00:00:00Z"
+}

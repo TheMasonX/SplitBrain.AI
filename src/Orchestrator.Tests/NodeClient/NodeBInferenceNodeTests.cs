@@ -38,9 +38,8 @@ public sealed class NodeBInferenceNodeTests
 
         var health = await _sut.GetHealthAsync();
 
-        health.NodeId.Should().Be("B");
-        health.Status.Should().Be(NodeStatus.Healthy);
-        health.CheckedAt.Should().BeCloseTo(DateTimeOffset.UtcNow, TimeSpan.FromSeconds(5));
+        health.State.Should().Be(HealthState.Healthy);
+        health.LastChecked.Should().BeCloseTo(DateTimeOffset.UtcNow, TimeSpan.FromSeconds(5));
     }
 
     [Test]

@@ -1,0 +1,62 @@
+{
+  "NodeTopology": {
+    "Nodes": [
+      {
+        "NodeId": "A",
+        "DisplayName": "Node A \u2014 RTX 5060 Laptop (Fast)",
+        "Provider": "Ollama",
+        "Role": "Fast",
+        "Priority": 10,
+        "MaxConcurrentRequests": 4,
+        "Tags": [ "local", "fast", "autocomplete" ],
+        "Enabled": true,
+        "HealthCheckIntervalMs": 2000,
+        "Ollama": {
+          "Host": "localhost",
+          "Port": 11434,
+          "NumParallel": 4,
+          "MaxLoadedModels": 2,
+          "FlashAttention": true,
+          "TimeoutSeconds": 30,
+          "GpuVramTotalMB": 8192
+        }
+      },
+      {
+        "NodeId": "B",
+        "DisplayName": "Node B \u2014 GTX 1080 Tower (Deep)",
+        "Provider": "Ollama",
+        "Role": "Deep",
+        "Priority": 20,
+        "MaxConcurrentRequests": 2,
+        "Tags": [ "local", "deep", "reasoning" ],
+        "Enabled": true,
+        "HealthCheckIntervalMs": 5000,
+        "Ollama": {
+          "Host": "192.168.1.101",
+          "Port": 11434,
+          "NumParallel": 2,
+          "MaxLoadedModels": 1,
+          "FlashAttention": false,
+          "TimeoutSeconds": 120,
+          "GpuVramTotalMB": 8192
+        }
+      },
+      {
+        "NodeId": "C",
+        "DisplayName": "Node C \u2014 GitHub Copilot Cloud",
+        "Provider": "CopilotSdk",
+        "Role": "Hybrid",
+        "Priority": 30,
+        "MaxConcurrentRequests": 8,
+        "Tags": [ "cloud", "copilot", "fallback" ],
+        "Enabled": true,
+        "HealthCheckIntervalMs": 10000,
+        "Copilot": {
+          "UseStdio": true,
+          "DefaultModel": "gpt-4o",
+          "TimeoutSeconds": 60
+        }
+      }
+    ]
+  }
+}

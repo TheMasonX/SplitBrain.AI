@@ -1,0 +1,753 @@
+@page "/settings"
+@rendermode InteractiveServer
+@inject INodeRegistry NodeRegistry
+@inject DashboardState State
+@inject Microsoft.Extensions.Options.IOptionsSnapshot<RoutingOptions> RoutingOpts
+@inject Orchestrator.Infrastructure.Configuration.TopologyRoutingSaveCoordinator SaveCoordinator
+@implements IDisposable
+@using Orchestrator.Core.Configuration
+@using Orchestrator.Infrastructure.Configuration
+
+<PageTitle>Settings — SplitBrain.AI</PageTitle>
+
+<h1>Node Topology</h1>
+
+@if (!string.IsNullOrEmpty(_saveMessage))
+{
+    <div class="@(_saveError ? "sb-alert sb-alert-critical" : "sb-alert sb-alert-success")">@_saveMessage</div>
+}
+
+<!-- ═══ Node Table ═══════════════════════════════════════════════════════════ -->
+<div class="sb-section-header">
+    <h2>Nodes</h2>
+    <button class="sb-btn sb-btn-primary sb-btn-sm" @onclick="BeginAddNode">+ Add Node</button>
+</div>
+
+<table class="sb-table sb-topology-table">
+    <thead>
+        <tr>
+            <th>Node</th>
+            <th>Provider</th>
+            <th>Role</th>
+            <th>Endpoint</th>
+            <th>Priority</th>
+            <th>Status</th>
+            <th>Enabled</th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var reg in _nodes)
+        {
+            var cfg = reg.Config;
+            State.NodeHealth.TryGetValue(cfg.NodeId, out var snap);
+            var healthState = snap?.Health.State;
+            var stateClass = healthState switch
+            {
+                HealthState.Healthy     => "sb-badge-running",
+                HealthState.Degraded    => "sb-badge-available",
+                HealthState.Unavailable => "sb-badge-missing",
+                _                       => ""
+            };
+
+            <tr class="@(cfg.Enabled ? "" : "sb-muted")">
+                <td>
+                    <b>@cfg.DisplayName</b>
+                    <br /><span style="font-family:var(--sb-mono);font-size:11px;color:var(--sb-muted)">@cfg.NodeId</span>
+                    @if (cfg.Tags.Any())
+                    {
+                        <br /><small style="color:var(--sb-muted)">@string.Join(", ", cfg.Tags)</small>
+                    }
+                </td>
+                <td><span class="sb-provider-tag">@cfg.Provider</span></td>
+                <td>@cfg.Role</td>
+                <td style="font-family:var(--sb-mono);font-size:12px">
+                    @(cfg.Ollama?.BaseUrl ?? cfg.Worker?.BaseUrl ?? cfg.Copilot?.CliUrl ?? "—")
+                </td>
+                <td>@cfg.Priority</td>
+                <td>
+                    @if (snap is not null)
+                    {
+                        <span class="sb-badge @stateClass">@healthState</span>
+                        <br /><small>@snap.Health.LatencyMs.ToString("F0") ms</small>
+                    }
+                    else
+                    {
+                        <span class="sb-muted">—</span>
+                    }
+                </td>
+                <td>
+                    @if (cfg.Enabled)
+                    {
+                        <span class="sb-badge sb-badge-running">Yes</span>
+                    }
+                    else
+                    {
+                        <span class="sb-badge sb-badge-missing">No</span>
+                    }
+                </td>
+                <td>
+                    <div class="sb-actions">
+                        <button class="sb-btn sb-btn-sm" title="Edit" @onclick="() => BeginEditNode(cfg)">✏️</button>
+                        <button class="sb-btn sb-btn-sm sb-btn-danger" title="Remove" @onclick="() => RemoveNode(cfg.NodeId)">🗑</button>
+                    </div>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+@if (!_nodes.Any())
+{
+    <p class="sb-muted">No nodes registered.</p>
+}
+
+<!-- ═══ Add / Edit Node Panel ════════════════════════════════════════════════ -->
+@if (_editingNode is not null)
+{
+    <div class="sb-panel" style="margin-top:24px">
+        <p class="sb-panel-title">@(_isAdding ? "Add Node" : $"Edit — {_editingNode.NodeId}")</p>
+
+        <div class="sb-form">
+            <!-- Row 1: identity -->
+            <div class="sb-form-row">
+                <div class="sb-form-group">
+                    <label>Node ID *</label>
+                    <input class="sb-input" placeholder="e.g. A" @bind="_editingNode.NodeId" disabled="@(!_isAdding)" />
+                </div>
+                <div class="sb-form-group">
+                    <label>Display Name *</label>
+                    <input class="sb-input" placeholder="e.g. Node Alpha" @bind="_editingNode.DisplayName" />
+                </div>
+                <div class="sb-form-group">
+                    <label>Provider</label>
+                    <select class="sb-select" @bind="_editingNode.Provider">
+                        @foreach (var p in Enum.GetValues<NodeProviderType>())
+                        {
+                            <option value="@p">@p</option>
+                        }
+                    </select>
+                </div>
+                <div class="sb-form-group">
+                    <label>Role</label>
+                    <select class="sb-select" @bind="_editingNode.Role">
+                        @foreach (var r in Enum.GetValues<NodeRole>())
+                        {
+                            <option value="@r">@r</option>
+                        }
+                    </select>
+                </div>
+                <div class="sb-form-group">
+                    <label>Priority (lower = preferred)</label>
+                    <input class="sb-input" type="number" min="1" max="999" @bind="_editingNode.Priority" />
+                </div>
+                <div class="sb-form-group">
+                    <label>Max Concurrent Requests</label>
+                    <input class="sb-input" type="number" min="1" max="32" @bind="_editingNode.MaxConcurrentRequests" />
+                </div>
+            </div>
+
+            <!-- Row 2: tags + enabled -->
+            <div class="sb-form-row" style="grid-template-columns:1fr auto">
+                <div class="sb-form-group">
+                    <label>Tags (comma-separated)</label>
+                    <input class="sb-input" placeholder="gpu, fast, local" @bind="_editingNode.TagsRaw" />
+                </div>
+                <div class="sb-form-group" style="justify-content:flex-end;padding-top:20px">
+                    <label class="sb-checkbox-row">
+                        <input type="checkbox" @bind="_editingNode.Enabled" />
+                        Enabled
+                    </label>
+                </div>
+            </div>
+
+            <!-- Provider-specific settings -->
+            @if (_editingNode.Provider == NodeProviderType.Ollama)
+            {
+                <div class="sb-panel" style="background:var(--sb-surface2);padding:14px">
+                    <p class="sb-panel-title">Ollama Settings</p>
+                    <div class="sb-form-row">
+                        <div class="sb-form-group">
+                            <label>Host *</label>
+                            <input class="sb-input" placeholder="localhost" @bind="_editingNode.OllamaHost" />
+                        </div>
+                        <div class="sb-form-group">
+                            <label>Port</label>
+                            <input class="sb-input" type="number" @bind="_editingNode.OllamaPort" />
+                        </div>
+                        <div class="sb-form-group">
+                            <label>Timeout (s)</label>
+                            <input class="sb-input" type="number" @bind="_editingNode.OllamaTimeout" />
+                        </div>
+                        <div class="sb-form-group">
+                            <label>Num Parallel</label>
+                            <input class="sb-input" type="number" min="1" @bind="_editingNode.OllamaNumParallel" />
+                        </div>
+                        <div class="sb-form-group">
+                            <label>Max Loaded Models</label>
+                            <input class="sb-input" type="number" min="1" @bind="_editingNode.OllamaMaxModels" />
+                        </div>
+                        <div class="sb-form-group">
+                            <label>VRAM Total (MB)</label>
+                            <input class="sb-input" type="number" min="0" @bind="_editingNode.OllamaVramMb" />
+                        </div>
+                        <div class="sb-form-group" style="justify-content:flex-end;padding-top:20px">
+                            <label class="sb-checkbox-row">
+                                <input type="checkbox" @bind="_editingNode.OllamaFlash" />
+                                Flash Attention
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            }
+            else if (_editingNode.Provider == NodeProviderType.Worker)
+            {
+                <div class="sb-panel" style="background:var(--sb-surface2);padding:14px">
+                    <p class="sb-panel-title">Worker Node Settings</p>
+                    <div class="sb-form-row">
+                        <div class="sb-form-group">
+                            <label>Base URL *</label>
+                            <input class="sb-input" placeholder="http://192.168.1.100:5100" @bind="_editingNode.WorkerBaseUrl" />
+                        </div>
+                        <div class="sb-form-group">
+                            <label>Timeout (s)</label>
+                            <input class="sb-input" type="number" @bind="_editingNode.WorkerTimeout" />
+                        </div>
+                        <div class="sb-form-group">
+                            <label>VRAM Total (MB)</label>
+                            <input class="sb-input" type="number" min="0" @bind="_editingNode.WorkerVramMb" />
+                        </div>
+                        <div class="sb-form-group">
+                            <label>Default Model</label>
+                            <input class="sb-input" placeholder="qwen2.5-coder:7b" @bind="_editingNode.WorkerDefaultModel" />
+                        </div>
+                    </div>
+                </div>
+            }
+            else if (_editingNode.Provider == NodeProviderType.CopilotSdk)
+            {
+                <div class="sb-panel" style="background:var(--sb-surface2);padding:14px">
+                    <p class="sb-panel-title">Copilot SDK Settings</p>
+                    <div class="sb-form-row">
+                        <div class="sb-form-group">
+                            <label>CLI URL</label>
+                            <input class="sb-input" placeholder="http://localhost:..." @bind="_editingNode.CopilotCliUrl" />
+                        </div>
+                        <div class="sb-form-group">
+                            <label>CLI Path</label>
+                            <input class="sb-input" placeholder="/usr/bin/gh" @bind="_editingNode.CopilotCliPath" />
+                        </div>
+                        <div class="sb-form-group">
+                            <label>Default Model</label>
+                            <input class="sb-input" placeholder="gpt-4o" @bind="_editingNode.CopilotDefaultModel" />
+                        </div>
+                        <div class="sb-form-group">
+                            <label>Timeout (s)</label>
+                            <input class="sb-input" type="number" @bind="_editingNode.CopilotTimeout" />
+                        </div>
+                        <div class="sb-form-group" style="justify-content:flex-end;padding-top:20px">
+                            <label class="sb-checkbox-row">
+                                <input type="checkbox" @bind="_editingNode.CopilotUseStdio" />
+                                Use stdio
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            }
+
+            @if (!string.IsNullOrEmpty(_formError))
+            {
+                <div class="sb-alert sb-alert-critical">@_formError</div>
+            }
+
+            <div class="sb-panel-actions">
+                <button class="sb-btn" @onclick="CancelEdit">Cancel</button>
+                <button class="sb-btn sb-btn-primary" @onclick="CommitNode">
+                    @(_isAdding ? "Add Node" : "Save Changes")
+                </button>
+            </div>
+        </div>
+    </div>
+}
+
+<!-- ═══ Fallback Chains ═══════════════════════════════════════════════════════ -->
+<div class="sb-section-header" style="margin-top:32px">
+    <h2>Fallback Chains</h2>
+</div>
+<p style="font-size:13px;color:var(--sb-muted);margin-bottom:12px">
+    When a node is unreachable, requests fall through these chains in order.
+</p>
+
+@{
+    var knownNodeIds = GetKnownNodeIdSet();
+    var unknownSources = GetUnknownSources(knownNodeIds);
+    var unknownTargetsBySource = GetUnknownTargetsBySource(knownNodeIds);
+    var hasStaleFallbackEntries = unknownSources.Count > 0 || unknownTargetsBySource.Count > 0;
+    var hasCycle = FallbackGraphValidator.TryGetFirstCyclePath(_fallbackChains, out var cyclePath);
+}
+
+@if (hasStaleFallbackEntries)
+{
+    <div class="sb-alert sb-alert-critical" style="margin-bottom:12px">
+        <div><b>Stale fallback references detected.</b> Some fallback sources or targets are not registered nodes.</div>
+        @if (unknownSources.Count > 0)
+        {
+            <div style="margin-top:6px">Unknown sources: @string.Join(", ", unknownSources)</div>
+        }
+        @if (unknownTargetsBySource.Count > 0)
+        {
+            foreach (var entry in unknownTargetsBySource)
+            {
+                <div style="margin-top:4px">Unknown targets for @entry.Key: @string.Join(", ", entry.Value)</div>
+            }
+        }
+        <div style="margin-top:8px">
+            <button class="sb-btn sb-btn-sm" @onclick="CleanupStaleFallbackEntries">Clean up stale entries</button>
+        </div>
+    </div>
+}
+
+@if (hasCycle)
+{
+    <div class="sb-alert sb-alert-critical" style="margin-bottom:12px">
+        <div><b>Fallback cycle detected.</b> Requests could loop indefinitely.</div>
+        <div style="margin-top:6px">Cycle: @cyclePath</div>
+        <div style="margin-top:6px">Remove at least one edge in the cycle before saving.</div>
+    </div>
+}
+
+<div class="sb-chain-list">
+    @foreach (var (source, chain) in _fallbackChains)
+    {
+        <div class="sb-chain-row">
+            <span class="sb-chain-node" style="font-weight:700">@source</span>
+            <span class="sb-chain-arrow">→</span>
+            @foreach (var target in chain)
+            {
+                <span class="sb-chain-node">
+                    @target
+                    <button title="Remove" @onclick="() => RemoveFallback(source, target)">✕</button>
+                </span>
+                <span class="sb-chain-arrow">→</span>
+            }
+            <div class="sb-chain-add">
+                <select class="sb-select" style="width:110px;padding:4px 8px;font-size:12px"
+                        value="@GetFallbackSelection(source)"
+                        @onchange="e => SetFallbackSelection(source, e.Value?.ToString())">
+                    <option value="">+ add</option>
+                    @foreach (var n in _nodes.Where(n => n.Config.NodeId != source && !chain.Contains(n.Config.NodeId)))
+                    {
+                        <option value="@n.Config.NodeId">@n.Config.NodeId</option>
+                    }
+                </select>
+                <button class="sb-btn sb-btn-sm" @onclick="() => AddFallback(source)">Add</button>
+            </div>
+        </div>
+    }
+</div>
+
+@if (!_fallbackChains.Any())
+{
+    <p class="sb-muted">No fallback chains configured.</p>
+}
+
+<!-- ═══ Save ══════════════════════════════════════════════════════════════════ -->
+<div class="sb-settings-actions">
+    <button class="sb-btn sb-btn-primary" @onclick="SaveTopologyAsync" disabled="@_saving">
+        @(_saving ? "Saving…" : "💾 Save Topology")
+    </button>
+    <span style="font-size:12px;color:var(--sb-muted)">Persists nodes.json and routing.json — reloaded automatically.</span>
+</div>
+
+@code {
+    // ── view model for the form ────────────────────────────────────────────────
+    private sealed class NodeForm
+    {
+        public string NodeId            { get; set; } = string.Empty;
+        public string DisplayName       { get; set; } = string.Empty;
+        public NodeProviderType Provider { get; set; } = NodeProviderType.Ollama;
+        public NodeRole Role            { get; set; } = NodeRole.Fast;
+        public int Priority             { get; set; } = 100;
+        public int MaxConcurrentRequests{ get; set; } = 2;
+        public string TagsRaw           { get; set; } = string.Empty;
+        public bool Enabled             { get; set; } = true;
+
+        // Ollama
+        public string OllamaHost        { get; set; } = "localhost";
+        public int    OllamaPort        { get; set; } = 11434;
+        public int    OllamaTimeout     { get; set; } = 10;
+        public int    OllamaNumParallel { get; set; } = 2;
+        public int    OllamaMaxModels   { get; set; } = 2;
+        public long   OllamaVramMb      { get; set; }
+        public bool   OllamaFlash       { get; set; } = true;
+
+        // Worker
+        public string WorkerBaseUrl     { get; set; } = string.Empty;
+        public int    WorkerTimeout     { get; set; } = 30;
+        public long   WorkerVramMb      { get; set; }
+        public string WorkerDefaultModel{ get; set; } = string.Empty;
+
+        // Copilot
+        public string CopilotCliUrl       { get; set; } = string.Empty;
+        public string CopilotCliPath      { get; set; } = string.Empty;
+        public string CopilotDefaultModel { get; set; } = "gpt-4o";
+        public int    CopilotTimeout      { get; set; } = 30;
+        public bool   CopilotUseStdio     { get; set; } = true;
+
+        public static NodeForm From(NodeConfiguration cfg)
+        {
+            var f = new NodeForm
+            {
+                NodeId              = cfg.NodeId,
+                DisplayName         = cfg.DisplayName,
+                Provider            = cfg.Provider,
+                Role                = cfg.Role,
+                Priority            = cfg.Priority,
+                MaxConcurrentRequests = cfg.MaxConcurrentRequests,
+                TagsRaw             = string.Join(", ", cfg.Tags),
+                Enabled             = cfg.Enabled,
+            };
+            if (cfg.Ollama is { } o)
+            {
+                f.OllamaHost        = o.Host;
+                f.OllamaPort        = o.Port;
+                f.OllamaTimeout     = o.TimeoutSeconds;
+                f.OllamaNumParallel = o.NumParallel;
+                f.OllamaMaxModels   = o.MaxLoadedModels;
+                f.OllamaVramMb      = o.GpuVramTotalMB;
+                f.OllamaFlash       = o.FlashAttention;
+            }
+            if (cfg.Worker is { } w)
+            {
+                f.WorkerBaseUrl      = w.BaseUrl;
+                f.WorkerTimeout      = w.TimeoutSeconds;
+                f.WorkerVramMb       = w.GpuVramTotalMB;
+                f.WorkerDefaultModel = w.DefaultModel;
+            }
+            if (cfg.Copilot is { } c)
+            {
+                f.CopilotCliUrl       = c.CliUrl ?? string.Empty;
+                f.CopilotCliPath      = c.CliPath ?? string.Empty;
+                f.CopilotDefaultModel = c.DefaultModel;
+                f.CopilotTimeout      = c.TimeoutSeconds;
+                f.CopilotUseStdio     = c.UseStdio;
+            }
+            return f;
+        }
+
+        public NodeConfiguration ToConfig() => new()
+        {
+            NodeId               = NodeId.Trim(),
+            DisplayName          = DisplayName.Trim(),
+            Provider             = Provider,
+            Role                 = Role,
+            Priority             = Priority,
+            MaxConcurrentRequests = MaxConcurrentRequests,
+            Tags                 = TagsRaw.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).ToList(),
+            Enabled              = Enabled,
+            Ollama               = Provider == NodeProviderType.Ollama ? new OllamaProviderConfig
+            {
+                Host            = OllamaHost.Trim(),
+                Port            = OllamaPort,
+                TimeoutSeconds  = OllamaTimeout,
+                NumParallel     = OllamaNumParallel,
+                MaxLoadedModels = OllamaMaxModels,
+                GpuVramTotalMB  = OllamaVramMb,
+                FlashAttention  = OllamaFlash,
+            } : null,
+            Worker = Provider == NodeProviderType.Worker ? new WorkerProviderConfig
+            {
+                BaseUrl        = WorkerBaseUrl.Trim(),
+                TimeoutSeconds = WorkerTimeout,
+                GpuVramTotalMB = WorkerVramMb,
+                DefaultModel   = WorkerDefaultModel.Trim(),
+            } : null,
+            Copilot = Provider == NodeProviderType.CopilotSdk ? new CopilotProviderConfig
+            {
+                CliUrl         = string.IsNullOrWhiteSpace(CopilotCliUrl) ? null : CopilotCliUrl.Trim(),
+                CliPath        = string.IsNullOrWhiteSpace(CopilotCliPath) ? null : CopilotCliPath.Trim(),
+                DefaultModel   = CopilotDefaultModel.Trim(),
+                TimeoutSeconds = CopilotTimeout,
+                UseStdio       = CopilotUseStdio,
+            } : null,
+        };
+    }
+
+    // ── component state ────────────────────────────────────────────────────────
+    private List<NodeRegistration> _nodes = [];
+    private bool _saving;
+    private string? _saveMessage;
+    private bool _saveError;
+
+    private NodeForm? _editingNode;
+    private bool _isAdding;
+    private string? _formError;
+
+    private Dictionary<string, List<string>> _fallbackChains = new();
+    private Dictionary<string, string> _newFallbackTarget = new();
+
+    // ── lifecycle ─────────────────────────────────────────────────────────────
+    protected override void OnInitialized()
+    {
+        RefreshNodes();
+        // Seed fallback chains from RoutingOptions; ensure every node has an entry
+        _fallbackChains = RoutingOpts.Value.FallbackChains
+            .ToDictionary(kv => kv.Key, kv => kv.Value.ToList());
+        EnsureFallbackUiState();
+        State.OnChange += OnStateChanged;
+    }
+
+    private void OnStateChanged()
+    {
+        RefreshNodes();
+        StateHasChanged();
+    }
+
+    private void RefreshNodes()
+    {
+        _nodes = NodeRegistry.GetAllNodes()
+            .OrderBy(n => n.Config.Priority)
+            .ThenBy(n => n.Config.NodeId)
+            .ToList();
+
+        EnsureFallbackUiState();
+    }
+
+    private void EnsureFallbackUiState()
+    {
+        // Keep fallback dicts in sync with known node ids and existing chain source ids.
+        foreach (var reg in _nodes)
+        {
+            _fallbackChains.TryAdd(reg.Config.NodeId, []);
+        }
+
+        foreach (var source in _fallbackChains.Keys)
+        {
+            _newFallbackTarget.TryAdd(source, string.Empty);
+        }
+
+        // Remove stale editor keys no longer represented by source rows.
+        var staleKeys = _newFallbackTarget.Keys
+            .Where(k => !_fallbackChains.ContainsKey(k))
+            .ToList();
+
+        foreach (var key in staleKeys)
+        {
+            _newFallbackTarget.Remove(key);
+        }
+    }
+
+    private string GetFallbackSelection(string source) =>
+        _newFallbackTarget.TryGetValue(source, out var selected) ? selected : string.Empty;
+
+    private void SetFallbackSelection(string source, string? selected)
+    {
+        _newFallbackTarget[source] = selected ?? string.Empty;
+    }
+
+    // ── add / edit ────────────────────────────────────────────────────────────
+    private void BeginAddNode()
+    {
+        _editingNode = new NodeForm();
+        _isAdding    = true;
+        _formError   = null;
+    }
+
+    private void BeginEditNode(NodeConfiguration cfg)
+    {
+        _editingNode = NodeForm.From(cfg);
+        _isAdding    = false;
+        _formError   = null;
+    }
+
+    private void CancelEdit()
+    {
+        _editingNode = null;
+        _formError   = null;
+    }
+
+    private void CommitNode()
+    {
+        if (_editingNode is null) return;
+
+        _formError = null;
+        if (string.IsNullOrWhiteSpace(_editingNode.NodeId))
+        {
+            _formError = "Node ID is required.";
+            return;
+        }
+        if (string.IsNullOrWhiteSpace(_editingNode.DisplayName))
+        {
+            _formError = "Display Name is required.";
+            return;
+        }
+        if (_editingNode.Provider == NodeProviderType.Ollama && string.IsNullOrWhiteSpace(_editingNode.OllamaHost))
+        {
+            _formError = "Ollama Host is required.";
+            return;
+        }
+        if (_editingNode.Provider == NodeProviderType.Worker && string.IsNullOrWhiteSpace(_editingNode.WorkerBaseUrl))
+        {
+            _formError = "Worker Base URL is required.";
+            return;
+        }
+
+        var config = _editingNode.ToConfig();
+        NodeRegistry.RegisterNode(config);
+
+        // Ensure a (possibly empty) fallback chain entry exists for the new node
+        _fallbackChains.TryAdd(config.NodeId, []);
+        _newFallbackTarget.TryAdd(config.NodeId, string.Empty);
+
+        RefreshNodes();
+        _editingNode = null;
+        _saveMessage = _isAdding ? $"Node '{config.NodeId}' added. Save topology to persist." : $"Node '{config.NodeId}' updated. Save topology to persist.";
+        _saveError   = false;
+    }
+
+    private void RemoveNode(string nodeId)
+    {
+        NodeRegistry.DeregisterNode(nodeId);
+        _fallbackChains.Remove(nodeId);
+        _newFallbackTarget.Remove(nodeId);
+        // Remove this node from other chains too
+        foreach (var chain in _fallbackChains.Values)
+            chain.Remove(nodeId);
+        RefreshNodes();
+        _saveMessage = $"Node '{nodeId}' removed. Save topology to persist.";
+        _saveError   = false;
+    }
+
+    // ── fallback chains ───────────────────────────────────────────────────────
+    private void AddFallback(string source)
+    {
+        if (!_newFallbackTarget.TryGetValue(source, out var target) || string.IsNullOrEmpty(target))
+            return;
+        if (!_fallbackChains.ContainsKey(source))
+            _fallbackChains[source] = [];
+        if (!_fallbackChains[source].Contains(target))
+            _fallbackChains[source].Add(target);
+        _newFallbackTarget[source] = string.Empty;
+    }
+
+    private void RemoveFallback(string source, string target)
+    {
+        if (_fallbackChains.TryGetValue(source, out var chain))
+            chain.Remove(target);
+    }
+
+    private HashSet<string> GetKnownNodeIdSet() =>
+        _nodes.Select(n => n.Config.NodeId).ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+    private List<string> GetUnknownSources(HashSet<string>? knownNodeIds = null)
+    {
+        knownNodeIds ??= GetKnownNodeIdSet();
+        return _fallbackChains.Keys
+            .Where(source => !knownNodeIds.Contains(source))
+            .OrderBy(source => source)
+            .ToList();
+    }
+
+    private Dictionary<string, List<string>> GetUnknownTargetsBySource(HashSet<string>? knownNodeIds = null)
+    {
+        knownNodeIds ??= GetKnownNodeIdSet();
+
+        var result = new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase);
+        foreach (var (source, chain) in _fallbackChains)
+        {
+            var unknownTargets = chain
+                .Where(target => !knownNodeIds.Contains(target))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .OrderBy(target => target)
+                .ToList();
+
+            if (unknownTargets.Count > 0)
+            {
+                result[source] = unknownTargets;
+            }
+        }
+
+        return result;
+    }
+
+    private bool HasStaleFallbackEntries()
+    {
+        var knownNodeIds = GetKnownNodeIdSet();
+        return GetUnknownSources(knownNodeIds).Count > 0 || GetUnknownTargetsBySource(knownNodeIds).Count > 0;
+    }
+
+    private void CleanupStaleFallbackEntries()
+    {
+        var knownNodeIds = GetKnownNodeIdSet();
+
+        var unknownSources = GetUnknownSources(knownNodeIds);
+        foreach (var source in unknownSources)
+        {
+            _fallbackChains.Remove(source);
+            _newFallbackTarget.Remove(source);
+        }
+
+        foreach (var source in _fallbackChains.Keys.ToList())
+        {
+            _fallbackChains[source] = _fallbackChains[source]
+                .Where(target => knownNodeIds.Contains(target))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
+        }
+
+        EnsureFallbackUiState();
+        _saveMessage = "Stale fallback entries removed. Review and save topology.";
+        _saveError = false;
+    }
+
+    // ── save ──────────────────────────────────────────────────────────────────
+    private async Task SaveTopologyAsync()
+    {
+        if (HasStaleFallbackEntries())
+        {
+            _saveMessage = "Cannot save while stale fallback entries exist. Use 'Clean up stale entries' first.";
+            _saveError = true;
+            return;
+        }
+
+        if (FallbackGraphValidator.TryGetFirstCyclePath(_fallbackChains, out var cyclePath))
+        {
+            _saveMessage = $"Cannot save while fallback cycles exist. Remove cycle: {cyclePath}";
+            _saveError = true;
+            return;
+        }
+
+        _saving      = true;
+        _saveMessage = null;
+        StateHasChanged();
+        try
+        {
+            await SaveCoordinator.SaveAsync(_fallbackChains);
+            _saveMessage = "Topology and fallback chains saved successfully.";
+            _saveError   = false;
+        }
+        catch (OperationCanceledException)
+        {
+            _saveMessage = "Save cancelled.";
+            _saveError   = true;
+        }
+        catch (InvalidOperationException ex)
+        {
+            _saveMessage = $"Save failed: {ex.Message}";
+            _saveError   = true;
+        }
+        catch (IOException ex)
+        {
+            _saveMessage = $"Save failed: {ex.Message}";
+            _saveError   = true;
+        }
+        finally
+        {
+            _saving = false;
+            StateHasChanged();
+        }
+    }
+
+    public void Dispose() =>
+        State.OnChange -= OnStateChanged;
+}

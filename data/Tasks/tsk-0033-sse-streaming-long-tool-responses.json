@@ -1,0 +1,26 @@
+{
+  "Id": "tsk-0033-sse-streaming-long-tool-responses",
+  "Key": "TSK-0033",
+  "Title": "Implement SSE streaming for long tool responses (review_code, agent_task)",
+  "Description": "review_code architecture focus currently takes 12+ seconds and returns in one block. Streaming tokens as they arrive would dramatically improve perceived responsiveness. The OllamaClient already returns IAsyncEnumerable<string>; the MCP layer needs to forward that stream. Requires Streamable HTTP transport (already configured) and MCP server SDK streaming support. Most impactful for review_code and agent_task long outputs.",
+  "Type": "Improvement",
+  "Status": "Backlog",
+  "Priority": "Low",
+  "Labels": [
+    "mcp",
+    "streaming",
+    "ux",
+    "performance"
+  ],
+  "Attachments": [],
+  "ExternalLinks": [],
+  "LinkedPages": [],
+  "Comments": [],
+  "EpicId": null,
+  "ParentId": null,
+  "CreatedAtUtc": "2026-06-03T00:00:00Z",
+  "UpdatedAtUtc": "2026-06-03T00:00:00Z",
+  "CompletedAtUtc": null,
+  "Revision": 1,
+  "IsArchived": false
+}

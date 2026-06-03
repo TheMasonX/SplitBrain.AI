@@ -1,0 +1,85 @@
+@page "/models"
+@rendermode InteractiveServer
+@inject IModelRegistry ModelRegistry
+@inject DashboardState State
+@implements IDisposable
+
+<PageTitle>Models — SplitBrain.AI</PageTitle>
+
+<h1>Model Registry</h1>
+
+@{
+    var allModels = ModelRegistry.GetAllModels().OrderBy(m => m.PrimaryCapability).ThenBy(m => m.ModelId).ToList();
+}
+
+@if (!allModels.Any())
+{
+    <p class="sb-muted">No models registered. Seed the registry via <code>SplitBrain:Models</code> in appsettings.</p>
+}
+else
+{
+    <table class="sb-table">
+        <thead>
+            <tr>
+                <th>Model</th>
+                <th>Family</th>
+                <th>Primary Task</th>
+                <th>Also Handles</th>
+                <th>Context</th>
+                <th>VRAM (est.)</th>
+                <th>Preferred Nodes</th>
+                <th>Node Availability</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var model in allModels)
+            {
+                <tr>
+                    <td><b>@model.ModelId</b>
+                        @if (model.QuantizationLevel is not null)
+                        {
+                            <span class="sb-badge sb-badge-quant">@model.QuantizationLevel</span>
+                        }
+                    </td>
+                    <td>@model.Family</td>
+                    <td>@model.PrimaryCapability</td>
+                    <td>@(model.SecondaryCapabilities.Any() ? string.Join(", ", model.SecondaryCapabilities) : "—")</td>
+                    <td>@(model.ContextWindow.ToString("N0")) tok</td>
+                    <td>@(model.EstimatedVramMB > 0 ? $"{model.EstimatedVramMB:N0} MB" : "—")</td>
+                    <td>@(model.PreferredNodeIds.Any() ? string.Join(", ", model.PreferredNodeIds) : "any")</td>
+                    <td>
+                        @foreach (var nodeId in model.PreferredNodeIds)
+                        {
+                            @if (State.NodeHealth.TryGetValue(nodeId, out var snap))
+                            {
+                                var isLoaded = snap.Health.RunningModels.Any(r =>
+                                    r.ModelId.Equals(model.ModelId, StringComparison.OrdinalIgnoreCase));
+                                var isAvailable = snap.Health.AvailableModels.Any(a =>
+                                    a.Equals(model.ModelId, StringComparison.OrdinalIgnoreCase));
+                                <span class="sb-badge @(isLoaded ? "sb-badge-running" : isAvailable ? "sb-badge-available" : "sb-badge-missing")">
+                                    @nodeId: @(isLoaded ? "loaded" : isAvailable ? "available" : "not found")
+                                </span>
+                            }
+                            else
+                            {
+                                <span class="sb-badge sb-badge-offline">@nodeId: offline</span>
+                            }
+                        }
+                        @if (!model.PreferredNodeIds.Any())
+                        {
+                            <span class="sb-muted">any</span>
+                        }
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    protected override void OnInitialized() =>
+        State.OnChange += StateHasChanged;
+
+    public void Dispose() =>
+        State.OnChange -= StateHasChanged;
+}

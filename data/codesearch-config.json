@@ -1,0 +1,61 @@
+{
+  "MemorySmith:CodeSearch:Enabled": true,
+  "MemorySmith:CodeSearch:ParserPipelineEnabled": true,
+  "MemorySmith:CodeSearch:ParserStrategyOrder": [
+    "roslyn",
+    "treesitter",
+    "heuristic",
+    "fixedwindow"
+  ],
+  "MemorySmith:CodeSearch:RepositoryRootPath": "..",
+  "MemorySmith:CodeSearch:TargetDirectories": [
+    "src/Orchestrator.Core",
+    "src/Orchestrator.Infrastructure",
+    "src/Orchestrator.Agents",
+    "src/Orchestrator.Mcp",
+    "src/Orchestrator.NodeWorker",
+    "src/SplitBrain.Dashboard",
+    "src/NodeClient.Ollama",
+    "src/NodeClient.LlamaCpp",
+    "src/NodeClient.Copilot",
+    "src/NodeClient.Worker",
+    "src/Orchestrator.Tests",
+    "Scripts",
+    "Docs",
+    "deploy"
+  ],
+  "MemorySmith:CodeSearch:IncludedFileExtensions": [
+    ".cs",
+    ".razor",
+    ".csproj",
+    ".slnx",
+    ".js",
+    ".ts",
+    ".ps1",
+    ".yml",
+    ".yaml",
+    ".json",
+    ".md",
+    ".cfg",
+    ".iss"
+  ],
+  "MemorySmith:CodeSearch:ExcludePatterns": [
+    "**/bin/**",
+    "**/obj/**",
+    "**/node_modules/**"
+  ],
+  "MemorySmith:CodeSearch:ChunkLineCount": 40,
+  "MemorySmith:CodeSearch:ChunkOverlapLineCount": 8,
+  "MemorySmith:CodeSearch:MaxResults": 100,
+  "MemorySmith:CodeSearch:HybridVectorWeight": 0.75,
+  "MemorySmith:CodeSearch:HybridLexicalWeight": 0.25,
+  "MemorySmith:CodeSearch:SemanticSearch:EmbeddingsEnabled": true,
+  "MemorySmith:SemanticSearch:EmbeddingsEnabled": true,
+  "MemorySmith:SemanticSearch:PrewarmOnStartupEnabled": true,
+  "MemorySmith:SemanticSearch:ModelPath": "Models/nomic-embed-text-v1.5.onnx",
+  "MemorySmith:SemanticSearch:VocabularyPath": "Models/vocab.txt",
+  "MemorySmith:SemanticSearch:TokenizerKind": "WordPiece",
+  "MemorySmith:SemanticSearch:PoolingMode": "Mean",
+  "MemorySmith:SemanticSearch:QueryPrefix": "search_query: ",
+  "MemorySmith:SemanticSearch:DocumentPrefix": "search_document: "
+}

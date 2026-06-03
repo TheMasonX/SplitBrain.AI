@@ -1,0 +1,29 @@
+{
+  "Id": "splitbrain-dashboard-theme",
+  "Title": "Dashboard Dark Theme and Charting",
+  "Content": "Dashboard (SplitBrain.Dashboard) uses Blazor Server with custom sb- CSS variable system. Key tokens: bg #0f1117, surface #1a1d27, surface2 #232636, border #2e3148, text #e2e8f0, muted #6b7280, accent #6366f1, green #22c55e, yellow #eab308, red #ef4444. Charts: Blazor-ApexCharts 6.1.0. Home page: per-node RadialBar VRAM gauges (green <=70%, yellow <=90%, red >90%). Metrics page: latency-over-time line chart + tokens/sec bar chart. Log viewer: <Virtualize> with fixed-height rows. SignalR hub: DashboardHub with IDashboardClient strongly-typed interface. Pages: Home, Nodes, Models, Tasks, Logs, Metrics, Settings, NotFound.",
+  "Status": 2,
+  "Confidence": 0.92,
+  "Tags": [
+    "dashboard",
+    "ui",
+    "blazor",
+    "css"
+  ],
+  "References": [
+    "splitbrain-solution-layout"
+  ],
+  "Conflicts": [],
+  "SourceLinks": [
+    {
+      "Label": "app.css",
+      "Uri": "%SplitBrainRepo%src/SplitBrain.Dashboard/wwwroot/app.css"
+    },
+    {
+      "Label": "SplitBrain.Dashboard/",
+      "Uri": "%SplitBrainRepo%src/SplitBrain.Dashboard/"
+    }
+  ],
+  "UsageCount": 0,
+  "LastUpdated": "2026-06-02T00:00:00Z"
+}

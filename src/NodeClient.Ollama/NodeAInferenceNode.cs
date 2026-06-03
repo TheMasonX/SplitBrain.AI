@@ -1,8 +1,10 @@
 using Microsoft.Extensions.Logging;
+using Orchestrator.Core.Configuration;
 using Orchestrator.Core.Enums;
 using Orchestrator.Core.Interfaces;
 using Orchestrator.Core.Models;
 using System.Diagnostics;
+using System.Runtime.CompilerServices;
 
 namespace NodeClient.Ollama;
 
@@ -12,8 +14,11 @@ public sealed class NodeAInferenceNode : IInferenceNode
 
     private readonly IOllamaClient _client;
     private readonly ILogger<NodeAInferenceNode> _logger;
+    private NodeHealthStatus _health = new() { State = HealthState.Unavailable, LastChecked = DateTimeOffset.MinValue };
 
     public string NodeId => "A";
+    public NodeProviderType Provider => NodeProviderType.Ollama;
+    public NodeHealthStatus Health => _health;
 
     public NodeCapabilities Capabilities { get; } = new()
     {
@@ -47,25 +52,55 @@ public sealed class NodeAInferenceNode : IInferenceNode
         };
     }
 
-    public async Task<NodeHealth> GetHealthAsync(CancellationToken cancellationToken = default)
+    public async IAsyncEnumerable<InferenceChunk> StreamAsync(
+        InferenceRequest request,
+        [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
-        NodeStatus status;
+        var result = await ExecuteAsync(request, cancellationToken);
+        yield return new InferenceChunk
+        {
+            Content = result.Text,
+            IsFinal = true,
+            FinalResult = new Orchestrator.Core.Models.InferenceResult
+            {
+                Text = result.Text,
+                NodeId = result.NodeId,
+                Model = result.Model,
+                LatencyMs = result.LatencyMs
+            }
+        };
+    }
+
+    public async Task<NodeHealthStatus> GetHealthAsync(CancellationToken cancellationToken = default)
+    {
+        NodeHealthStatus status;
         try
         {
-            status = await _client.IsHealthyAsync(cancellationToken)
-                ? NodeStatus.Healthy
-                : NodeStatus.Degraded;
+            var isHealthy = await _client.IsHealthyAsync(cancellationToken);
+            status = new NodeHealthStatus
+            {
+                State = isHealthy ? HealthState.Healthy : HealthState.Degraded,
+                LastChecked = DateTimeOffset.UtcNow
+            };
         }
         catch
         {
-            status = NodeStatus.Unavailable;
+            status = new NodeHealthStatus
+            {
+                State = HealthState.Unavailable,
+                LastChecked = DateTimeOffset.UtcNow
+            };
         }
-
-        return new NodeHealth
-        {
-            NodeId = NodeId,
-            Status = status,
-            CheckedAt = DateTimeOffset.UtcNow
-        };
+        _health = status;
+        return status;
     }
+
+    public Task<IReadOnlyList<ModelInfo>> ListModelsAsync(CancellationToken cancellationToken = default)
+    {
+        IReadOnlyList<ModelInfo> result = [new ModelInfo { ModelId = Model }];
+        return Task.FromResult(result);
+    }
+
+    public ValueTask DisposeAsync() => ValueTask.CompletedTask;
 }
+

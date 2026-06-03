@@ -1,0 +1,26 @@
+{
+  "Id": "tsk-0020-splitbrain-inspect-agent-tool",
+  "Key": "TSK-0020",
+  "Title": "Implement splitbrain_inspect_agent tool (live agent state during execution)",
+  "Description": "Returns live state of a running agent: iteration count, token usage so far, tool calls made in each iteration, current role (Planner/Implementer/Reviewer), approaching-limit warnings. Parameters: agentId. The current agent system is a black box during execution. An agent on iteration 7/10 with 45k/50k tokens should surface that to callers. Required for the bounded, deterministic agent design goal of full observability.",
+  "Type": "Feature",
+  "Status": "Backlog",
+  "Priority": "Medium",
+  "Labels": [
+    "mcp",
+    "tools",
+    "agents",
+    "observability"
+  ],
+  "Attachments": [],
+  "ExternalLinks": [],
+  "LinkedPages": [],
+  "Comments": [],
+  "EpicId": null,
+  "ParentId": null,
+  "CreatedAtUtc": "2026-06-03T00:00:00Z",
+  "UpdatedAtUtc": "2026-06-03T00:00:00Z",
+  "CompletedAtUtc": null,
+  "Revision": 1,
+  "IsArchived": false
+}

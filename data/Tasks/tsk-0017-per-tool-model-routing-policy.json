@@ -1,0 +1,27 @@
+{
+  "Id": "tsk-0017-per-tool-model-routing-policy",
+  "Key": "TSK-0017",
+  "Title": "Implement per-tool model routing policy (analysis vs codegen vs reasoning)",
+  "Description": "Each tool type should declare a preferred model/routing policy. Analysis tools (review_code, explain_code) \u2192 qcoder:latest on Fast node. Code generation tools (refactor_code, generate_tests, document_code) \u2192 qwen2.5-coder:7b-instruct. Reasoning/multi-step tools (agent_task, plan_task) \u2192 deepseek-r1:7b on Deep node. Embeddings \u2192 nomic-embed-text. Implement via RoutingHint field on InferenceRequest or per-tool RoutingOptions in config. Three external evaluators independently reached this conclusion.",
+  "Type": "Improvement",
+  "Status": "Backlog",
+  "Priority": "Medium",
+  "Labels": [
+    "routing",
+    "models",
+    "architecture"
+  ],
+  "Attachments": [],
+  "ExternalLinks": [],
+  "LinkedPages": [
+    "architecture/overview"
+  ],
+  "Comments": [],
+  "EpicId": null,
+  "ParentId": null,
+  "CreatedAtUtc": "2026-06-03T00:00:00Z",
+  "UpdatedAtUtc": "2026-06-03T00:00:00Z",
+  "CompletedAtUtc": null,
+  "Revision": 1,
+  "IsArchived": false
+}

@@ -9,13 +9,14 @@ namespace NodeClient.Ollama;
 public sealed class OllamaClient : IOllamaClient, IDisposable
 {
     private readonly HttpClient _http;
+    private readonly string _baseUrl;
     private readonly string _generateEndpoint;
 
     public OllamaClient(HttpClient http, IOptions<OllamaClientOptions> options)
     {
         _http = http;
-        var baseUrl = options.Value.BaseUrl.TrimEnd('/');
-        _generateEndpoint = $"{baseUrl}/api/generate";
+        _baseUrl = options.Value.BaseUrl.TrimEnd('/');
+        _generateEndpoint = $"{_baseUrl}/api/generate";
         _http.Timeout = TimeSpan.FromSeconds(options.Value.TimeoutSeconds);
     }
 
@@ -45,9 +46,10 @@ public sealed class OllamaClient : IOllamaClient, IDisposable
         await using var stream = await response.Content.ReadAsStreamAsync(cancellationToken);
         using var reader = new System.IO.StreamReader(stream);
 
-        while (!reader.EndOfStream)
+        while (true)
         {
             var line = await reader.ReadLineAsync(cancellationToken);
+            if (line is null) break;
             if (string.IsNullOrWhiteSpace(line)) continue;
 
             var chunk = JsonSerializer.Deserialize(line, OllamaJsonContext.Default.OllamaGenerateResponse);
@@ -66,8 +68,7 @@ public sealed class OllamaClient : IOllamaClient, IDisposable
     {
         try
         {
-            var baseUrl = _generateEndpoint[.._generateEndpoint.LastIndexOf('/')];
-            using var response = await _http.GetAsync($"{baseUrl}/api/tags", cancellationToken);
+            using var response = await _http.GetAsync($"{_baseUrl}/api/tags", cancellationToken);
             return response.IsSuccessStatusCode;
         }
         catch

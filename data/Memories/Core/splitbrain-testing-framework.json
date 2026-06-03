@@ -1,0 +1,28 @@
+{
+  "Id": "splitbrain-testing-framework",
+  "Title": "Testing Framework and Coverage",
+  "Content": "Test project: Orchestrator.Tests (NUnit 4.5.1 + NSubstitute 5.3.0 + FluentAssertions 8.9.0 + Microsoft.NET.Test.Sdk 18.4.0). 221+ tests as of 2026-06-01. Test folders: AgentLog, Agents, Idempotency, Infrastructure, Logging, NodeClient (OllamaNode, LlamaCppNode \u2014 41 tests, WorkerNode), Registry, Routing (16 RoutingServiceRegistryTests), SemanticKernel, Validation, Worker. GlobalUsings: NUnit.Framework, FluentAssertions, NSubstitute. Pattern: constructor-based setup (not [SetUp] attribute). All NUnit tests are [TestFixture]-based. No xUnit in this project.",
+  "Status": 2,
+  "Confidence": 0.95,
+  "Tags": [
+    "testing",
+    "nunit",
+    "nsubstitute"
+  ],
+  "References": [
+    "splitbrain-solution-layout"
+  ],
+  "Conflicts": [],
+  "SourceLinks": [
+    {
+      "Label": "Orchestrator.Tests.csproj",
+      "Uri": "%SplitBrainRepo%src/Orchestrator.Tests/Orchestrator.Tests.csproj"
+    },
+    {
+      "Label": "LlamaCppInferenceNodeTests.cs",
+      "Uri": "%SplitBrainRepo%src/Orchestrator.Tests/NodeClient/LlamaCppInferenceNodeTests.cs"
+    }
+  ],
+  "UsageCount": 0,
+  "LastUpdated": "2026-06-02T00:00:00Z"
+}

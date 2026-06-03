@@ -1,0 +1,34 @@
+{
+  "Id": "splitbrain-llamacpp-nodeclient-status",
+  "Title": "NodeClient.LlamaCpp \u2014 Implementation Status",
+  "Content": "NodeClient.LlamaCpp is complete as of 2026-06-01 (next-gen branch, commit 1566611d). Five new files: LlamaCppClientOptions (BaseUrl, TimeoutSeconds, ModelLabel, NodeId, VramMb \u2014 all configurable), ILlamaCppClient (ExecuteAsync, StreamChunksAsync SSE, IsHealthyAsync, GetServerStatusAsync, ListModelsAsync), LlamaCppClient (true SSE parsing with doneSeen flag, event: line handling, malformed JSON tolerance), LlamaCppInferenceNode (health state mapping: ok=Healthy, loading model=Degraded, other=Unavailable; LatencyMs=TTLT documented). 41 NUnit tests (18 node tests + 23 SSE client tests). ProjectReference added to NodeWorker.csproj. Remaining polish (low priority): F1 ChatMessage.Content string?, F5 FakeHttpMessageHandler try/catch, F6 cancellation-mid-stream test.",
+  "Status": 1,
+  "Confidence": 0.96,
+  "Tags": [
+    "llamacpp",
+    "nodeclient",
+    "implementation",
+    "current-state"
+  ],
+  "References": [
+    "splitbrain-decision-d8-llamacpp-parallel",
+    "splitbrain-llamacpp-gtx1080-flags"
+  ],
+  "Conflicts": [],
+  "SourceLinks": [
+    {
+      "Label": "NodeClient.LlamaCpp/",
+      "Uri": "%SplitBrainRepo%src/NodeClient.LlamaCpp/"
+    },
+    {
+      "Label": "LlamaCppClientSseTests.cs",
+      "Uri": "%SplitBrainRepo%src/Orchestrator.Tests/NodeClient/LlamaCppClientSseTests.cs"
+    },
+    {
+      "Label": "test-llamacpp-streaming.sh",
+      "Uri": "%SplitBrainRepo%scripts/test-llamacpp-streaming.sh"
+    }
+  ],
+  "UsageCount": 0,
+  "LastUpdated": "2026-06-02T00:00:00Z"
+}

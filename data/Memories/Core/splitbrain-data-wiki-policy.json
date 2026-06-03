@@ -1,0 +1,27 @@
+{
+  "Id": "splitbrain-data-wiki-policy",
+  "Title": "Data Wiki Policy \u2014 This Directory",
+  "Content": "The data/ directory at the SplitBrain.AI repository root is a MemorySmith wiki for this project. To use it: point MemorySmith's DataPath at <repo>/data/. data/Memories/ contains JSON memory records (Core=durable facts, Working=active state, Deprecated=archived, Unconsolidated=raw captures). data/Pages/ contains markdown documentation pages (no YAML front matter; pure markdown starting with # Title). data/Graph/code-search/ holds the SQLite code search index at runtime (gitignored). data/Policies/tag-policy.json governs tag governance. data/vars.json maps %SplitBrainRepo% to the local clone path. Codesearch is configured in MemorySmith's appsettings.json pointing at src/ subdirectories.",
+  "Status": 2,
+  "Confidence": 0.99,
+  "Tags": [
+    "wiki",
+    "data-folder",
+    "memorysmith",
+    "policy"
+  ],
+  "References": [],
+  "Conflicts": [],
+  "SourceLinks": [
+    {
+      "Label": "data/",
+      "Uri": "%SplitBrainRepo%data/"
+    },
+    {
+      "Label": "data/vars.json",
+      "Uri": "%SplitBrainRepo%data/vars.json"
+    }
+  ],
+  "UsageCount": 0,
+  "LastUpdated": "2026-06-02T00:00:00Z"
+}

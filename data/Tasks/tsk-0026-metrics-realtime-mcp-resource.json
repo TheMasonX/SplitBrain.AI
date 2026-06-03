@@ -1,0 +1,26 @@
+{
+  "Id": "tsk-0026-metrics-realtime-mcp-resource",
+  "Key": "TSK-0026",
+  "Title": "Add metrics://realtime MCP resource (OTel meter data)",
+  "Description": "Expose the OpenTelemetry meter data as a readable MCP resource. Same data the Blazor dashboard shows, but queryable programmatically. Enables integration with Grafana/Prometheus/home lab observability stacks without requiring the dashboard browser. Backs the splitbrain_get_metrics tool with a streaming resource alternative.",
+  "Type": "Feature",
+  "Status": "Backlog",
+  "Priority": "Low",
+  "Labels": [
+    "mcp",
+    "resources",
+    "metrics",
+    "otel"
+  ],
+  "Attachments": [],
+  "ExternalLinks": [],
+  "LinkedPages": [],
+  "Comments": [],
+  "EpicId": null,
+  "ParentId": null,
+  "CreatedAtUtc": "2026-06-03T00:00:00Z",
+  "UpdatedAtUtc": "2026-06-03T00:00:00Z",
+  "CompletedAtUtc": null,
+  "Revision": 1,
+  "IsArchived": false
+}

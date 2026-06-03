@@ -2,6 +2,9 @@ using System.Text.Json;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
+using NodeClient.LlamaCpp;
 using NodeClient.Ollama;
 using Orchestrator.Core.Interfaces;
 using Orchestrator.Core.Models;
@@ -11,17 +14,105 @@ using Orchestrator.NodeWorker;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.Configure<OllamaClientOptions>(
-    builder.Configuration.GetSection(OllamaClientOptions.Section));
+// Signal Windows SCM that this process is a Windows Service (no-op when run interactively)
+builder.Host.UseWindowsService();
 
-builder.Services.AddHttpClient<IOllamaClient, OllamaClient>();
-builder.Services.AddSingleton<NodeBInferenceNode>();
-builder.Services.AddSingleton<IInferenceNode>(sp => sp.GetRequiredService<NodeBInferenceNode>());
+// -------------------------------------------------------------------------
+// Backend selection: set NODE_B_BACKEND=llamacpp to use llama.cpp server,
+// leave unset (or set to "ollama") for the default Ollama backend.
+//
+// llama.cpp backend: configure "LlamaCppNode" section in appsettings.NodeB.json
+//   and launch llama-server on Machine B before starting this worker.
+//   Key server flags: --n-cpu-moe 25 --no-mmap --mlock
+//     --cache-type-k turbo4 --cache-type-v turbo3
+//     --host 0.0.0.0 --port 8080
+//
+// Ollama backend: configure "OllamaNode" section (existing behaviour).
+// -------------------------------------------------------------------------
+var backend = Environment.GetEnvironmentVariable("NODE_B_BACKEND") ?? "ollama";
+
+if (backend.Equals("llamacpp", StringComparison.OrdinalIgnoreCase))
+{
+    builder.Services.Configure<LlamaCppClientOptions>(
+        builder.Configuration.GetSection(LlamaCppClientOptions.Section));
+
+    // Timeout is set here via ConfigureHttpClient, not in LlamaCppClient constructor.
+    builder.Services.AddHttpClient<ILlamaCppClient, LlamaCppClient>()
+        .ConfigureHttpClient((sp, client) =>
+        {
+            var opts = sp.GetRequiredService<IOptions<LlamaCppClientOptions>>().Value;
+            client.Timeout = TimeSpan.FromSeconds(opts.TimeoutSeconds);
+        });
+
+    builder.Services.AddSingleton<LlamaCppInferenceNode>();
+    builder.Services.AddSingleton<IInferenceNode>(sp =>
+        sp.GetRequiredService<LlamaCppInferenceNode>());
+}
+else
+{
+    builder.Services.Configure<OllamaClientOptions>(
+        builder.Configuration.GetSection(OllamaClientOptions.Section));
+
+    builder.Services.AddHttpClient<IOllamaClient, OllamaClient>();
+    builder.Services.AddSingleton<NodeBInferenceNode>();
+    builder.Services.AddSingleton<IInferenceNode>(sp =>
+        sp.GetRequiredService<NodeBInferenceNode>());
+}
+
 builder.Services.AddSingleton<INodeHealthCache, InMemoryNodeHealthCache>();
 builder.Services.AddSingleton<IMetricsCollector, InMemoryMetricsCollector>();
 builder.Services.AddHostedService<NodeWorkerService>();
 
+// -------------------------------------------------------------------------
+// Optional bearer token auth for the inference endpoints.
+// Set NodeWorker:Auth:RequireToken=true in appsettings.json to enable.
+// Default: false (unauthenticated — suitable for trusted LAN deployments).
+// When enabled, set NodeWorker:Auth:Token or SPLITBRAIN_WORKER_TOKEN env var.
+// If RequireToken=true but no token is configured, a one-time ephemeral token
+// is generated and logged at startup (Warning level).
+// -------------------------------------------------------------------------
+var requireAuth = builder.Configuration.GetValue<bool>("NodeWorker:Auth:RequireToken", false);
+var workerToken = builder.Configuration["NodeWorker:Auth:Token"]
+    ?? Environment.GetEnvironmentVariable("SPLITBRAIN_WORKER_TOKEN")
+    ?? string.Empty;
+
+if (requireAuth && string.IsNullOrWhiteSpace(workerToken))
+{
+    workerToken = Guid.NewGuid().ToString("N");
+    // Log via the builder's logging provider (available before Build())
+    Console.Error.WriteLine(
+        $"[WARN] NodeWorker:Auth:RequireToken=true but no token is configured. " +
+        $"Generated ephemeral token: {workerToken}  " +
+        $"Set NodeWorker:Auth:Token in appsettings.json to persist across restarts.");
+}
+
 var app = builder.Build();
+
+// Apply auth middleware BEFORE routing (if enabled)
+if (requireAuth && !string.IsNullOrWhiteSpace(workerToken))
+{
+    var capturedToken = workerToken;
+    app.Use(async (context, next) =>
+    {
+        // Skip auth for the health endpoint — health probes must always succeed
+        if (context.Request.Path.StartsWithSegments("/health"))
+        {
+            await next(context);
+            return;
+        }
+
+        var authHeader = context.Request.Headers.Authorization.ToString();
+        var expectedHeader = $"Bearer {capturedToken}";
+        if (!authHeader.Equals(expectedHeader, StringComparison.Ordinal))
+        {
+            context.Response.StatusCode = 401;
+            context.Response.Headers.Append("WWW-Authenticate", "Bearer");
+            await context.Response.WriteAsync("Unauthorized — set Authorization: Bearer <token>");
+            return;
+        }
+        await next(context);
+    });
+}
 
 // -------------------------------------------------------------------------
 // GET /health — returns current node status and last health snapshot
@@ -41,15 +132,31 @@ app.MapGet("/health", async (IInferenceNode node, INodeHealthCache cache, Cancel
         });
 
     // Cold cache: probe live
-    var health = await node.GetHealthAsync(ct);
-    cache.Set(health);
+    var nodeHealth = await node.GetHealthAsync(ct);
+    var legacyStatus = nodeHealth.State switch
+    {
+        Orchestrator.Core.Models.HealthState.Healthy => Orchestrator.Core.Enums.NodeStatus.Healthy,
+        Orchestrator.Core.Models.HealthState.Degraded => Orchestrator.Core.Enums.NodeStatus.Degraded,
+        _ => Orchestrator.Core.Enums.NodeStatus.Unavailable
+    };
+    var legacy = new NodeHealth
+    {
+        NodeId = node.NodeId,
+        Status = legacyStatus,
+        QueueDepth = nodeHealth.ActiveRequests,
+        AvailableVramMb = nodeHealth.VramLoadedMB.HasValue && nodeHealth.VramTotalMB.HasValue
+            ? (int)(nodeHealth.VramTotalMB.Value - nodeHealth.VramLoadedMB.Value)
+            : 0,
+        CheckedAt = nodeHealth.LastChecked
+    };
+    cache.Set(legacy);
     return Results.Ok(new
     {
-        nodeId = health.NodeId,
-        status = health.Status.ToString(),
-        queueDepth = health.QueueDepth,
-        availableVramMb = health.AvailableVramMb,
-        checkedAt = health.CheckedAt
+        nodeId = legacy.NodeId,
+        status = legacy.Status.ToString(),
+        queueDepth = legacy.QueueDepth,
+        availableVramMb = legacy.AvailableVramMb,
+        checkedAt = legacy.CheckedAt
     });
 });
 
@@ -112,6 +219,15 @@ app.MapPost("/inference", async (HttpRequest req, IInferenceNode node, IMetricsC
         });
         return Results.Problem(ex.Message, statusCode: 500);
     }
+});
+
+// -------------------------------------------------------------------------
+// GET /models — list models available on this node
+// -------------------------------------------------------------------------
+app.MapGet("/models", async (IInferenceNode node, CancellationToken ct) =>
+{
+    var models = await node.ListModelsAsync(ct);
+    return Results.Ok(models);
 });
 
 // -------------------------------------------------------------------------
