@@ -1,0 +1,27 @@
+{
+  "Id": "tsk-0019-splitbrain-plan-task-tool",
+  "Key": "TSK-0019",
+  "Title": "Implement splitbrain_plan_task tool (decompose goal without executing)",
+  "Description": "Separate from agent_task. plan_task decomposes a goal into an ordered step list using a reasoning model (deepseek-r1:7b) and returns the plan without executing any steps. Enables human-review-before-execute workflows, especially important for write operations. Pattern: plan_task \u2192 human approval \u2192 agent_task with plan attached. Routes to Quality/Deep node. Parameters: goal, context?, maxSteps? (default 10).",
+  "Type": "Feature",
+  "Status": "Backlog",
+  "Priority": "Medium",
+  "Labels": [
+    "mcp",
+    "tools",
+    "agents"
+  ],
+  "Attachments": [],
+  "ExternalLinks": [],
+  "LinkedPages": [
+    "architecture/overview"
+  ],
+  "Comments": [],
+  "EpicId": null,
+  "ParentId": null,
+  "CreatedAtUtc": "2026-06-03T00:00:00Z",
+  "UpdatedAtUtc": "2026-06-03T00:00:00Z",
+  "CompletedAtUtc": null,
+  "Revision": 1,
+  "IsArchived": false
+}

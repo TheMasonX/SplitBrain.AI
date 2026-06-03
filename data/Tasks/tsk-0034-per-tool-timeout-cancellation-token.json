@@ -1,0 +1,26 @@
+{
+  "Id": "tsk-0034-per-tool-timeout-cancellation-token",
+  "Key": "TSK-0034",
+  "Title": "Add per-tool 30s CancellationToken timeout with structured error response",
+  "Description": "All LLM-backed tools should have a 30-second configurable hard timeout (separate from the connection-level timeout) that returns a structured error instead of hanging: { error: { code: TOOL_TIMEOUT, message: 'Tool timed out after 30s. Try smaller input or check node health.', retryable: true }, meta: {...} }. The 30s value should be configurable per tool in appsettings. This is independent of the NodeB fast-fail fix (TSK-0001/P0.1) \u2014 even when NodeB fast-fails in 5s, individual tool operations on Node A could still hang.",
+  "Type": "Improvement",
+  "Status": "Backlog",
+  "Priority": "High",
+  "Labels": [
+    "mcp",
+    "tools",
+    "reliability",
+    "timeout"
+  ],
+  "Attachments": [],
+  "ExternalLinks": [],
+  "LinkedPages": [],
+  "Comments": [],
+  "EpicId": null,
+  "ParentId": null,
+  "CreatedAtUtc": "2026-06-03T00:00:00Z",
+  "UpdatedAtUtc": "2026-06-03T00:00:00Z",
+  "CompletedAtUtc": null,
+  "Revision": 1,
+  "IsArchived": false
+}

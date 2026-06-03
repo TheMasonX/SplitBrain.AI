@@ -1,0 +1,28 @@
+{
+  "Id": "tsk-0022-splitbrain-get-metrics-tool",
+  "Key": "TSK-0022",
+  "Title": "Implement splitbrain_get_metrics tool (aggregate metrics over MCP)",
+  "Description": "Returns aggregate performance metrics from the OpenTelemetry meters: total requests, p50/p95/p99 latency by tool type, fallback rate, circuit breaker events, token usage by model. Enables CI pipelines, alerting integrations, and programmatic monitoring that cannot open the Blazor dashboard. Parameters: since? (DateTime), tool? (filter). Reads from IMetricsCollector.",
+  "Type": "Feature",
+  "Status": "Backlog",
+  "Priority": "Low",
+  "Labels": [
+    "mcp",
+    "tools",
+    "metrics",
+    "observability"
+  ],
+  "Attachments": [],
+  "ExternalLinks": [],
+  "LinkedPages": [
+    "ops/configuration-reference"
+  ],
+  "Comments": [],
+  "EpicId": null,
+  "ParentId": null,
+  "CreatedAtUtc": "2026-06-03T00:00:00Z",
+  "UpdatedAtUtc": "2026-06-03T00:00:00Z",
+  "CompletedAtUtc": null,
+  "Revision": 1,
+  "IsArchived": false
+}

@@ -1,0 +1,26 @@
+{
+  "Id": "tsk-0024-routing-decisions-mcp-resource",
+  "Key": "TSK-0024",
+  "Title": "Add routing://decisions MCP resource (recent routing decision log)",
+  "Description": "Expose the routing engine's RoutingDecision records as a readable MCP resource. Each decision includes: taskId, selected node+model, all candidate scores, policy applied, fallback chain traversed, decision duration. Currently only visible in Serilog logs and Blazor dashboard. As a resource, external clients can replay recent decisions and debug why tasks landed where they did. Implement as a circular buffer of last N=100 decisions.",
+  "Type": "Feature",
+  "Status": "Backlog",
+  "Priority": "Low",
+  "Labels": [
+    "mcp",
+    "resources",
+    "routing",
+    "debugging"
+  ],
+  "Attachments": [],
+  "ExternalLinks": [],
+  "LinkedPages": [],
+  "Comments": [],
+  "EpicId": null,
+  "ParentId": null,
+  "CreatedAtUtc": "2026-06-03T00:00:00Z",
+  "UpdatedAtUtc": "2026-06-03T00:00:00Z",
+  "CompletedAtUtc": null,
+  "Revision": 1,
+  "IsArchived": false
+}

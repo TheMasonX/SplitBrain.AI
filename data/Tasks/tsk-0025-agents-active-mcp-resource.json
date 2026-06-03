@@ -1,0 +1,25 @@
+{
+  "Id": "tsk-0025-agents-active-mcp-resource",
+  "Key": "TSK-0025",
+  "Title": "Add agents://active MCP resource (live running agents)",
+  "Description": "A live view of all currently executing agents: agentId, goal, current iteration, node+model assigned, token usage, elapsed time. Pairs with splitbrain_inspect_agent tool for per-agent drill-down. Currently there is no way to enumerate running agents from outside the process. Implement as a resource backed by IAgentOrchestrator.",
+  "Type": "Feature",
+  "Status": "Backlog",
+  "Priority": "Low",
+  "Labels": [
+    "mcp",
+    "resources",
+    "agents"
+  ],
+  "Attachments": [],
+  "ExternalLinks": [],
+  "LinkedPages": [],
+  "Comments": [],
+  "EpicId": null,
+  "ParentId": null,
+  "CreatedAtUtc": "2026-06-03T00:00:00Z",
+  "UpdatedAtUtc": "2026-06-03T00:00:00Z",
+  "CompletedAtUtc": null,
+  "Revision": 1,
+  "IsArchived": false
+}

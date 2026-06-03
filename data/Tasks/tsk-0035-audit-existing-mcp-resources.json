@@ -1,0 +1,27 @@
+{
+  "Id": "tsk-0035-audit-existing-mcp-resources",
+  "Key": "TSK-0035",
+  "Title": "Audit and document the 3 existing MCP resources",
+  "Description": "External Agent B observed 3 live MCP resources: nodes://health, models://registry, tasks://history. These are not documented in any wiki page or in PLAN.md. Read the MCP resource registration code in Program.cs, document what each resource returns, verify they match what callers would expect, and add them to data/Pages/architecture/. The resource definitions are likely correct but undocumented.",
+  "Type": "Task",
+  "Status": "Backlog",
+  "Priority": "Low",
+  "Labels": [
+    "mcp",
+    "resources",
+    "documentation"
+  ],
+  "Attachments": [],
+  "ExternalLinks": [],
+  "LinkedPages": [
+    "architecture/overview"
+  ],
+  "Comments": [],
+  "EpicId": null,
+  "ParentId": null,
+  "CreatedAtUtc": "2026-06-03T00:00:00Z",
+  "UpdatedAtUtc": "2026-06-03T00:00:00Z",
+  "CompletedAtUtc": null,
+  "Revision": 1,
+  "IsArchived": false
+}

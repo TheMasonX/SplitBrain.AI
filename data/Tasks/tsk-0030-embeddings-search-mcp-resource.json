@@ -1,0 +1,26 @@
+{
+  "Id": "tsk-0030-embeddings-search-mcp-resource",
+  "Key": "TSK-0030",
+  "Title": "Add embeddings://search MCP resource (raw semantic search via Nomic)",
+  "Description": "Expose the Nomic embedding index as a queryable MCP resource. Caller passes a query string and gets back semantically similar document chunks. Distinct from splitbrain_search_codebase tool \u2014 this is a raw semantic search endpoint that can be used against any indexed corpus. Requires background indexing (Phase 3). Backed by SQLite-vec store.",
+  "Type": "Feature",
+  "Status": "Backlog",
+  "Priority": "Low",
+  "Labels": [
+    "mcp",
+    "resources",
+    "embeddings",
+    "search"
+  ],
+  "Attachments": [],
+  "ExternalLinks": [],
+  "LinkedPages": [],
+  "Comments": [],
+  "EpicId": null,
+  "ParentId": null,
+  "CreatedAtUtc": "2026-06-03T00:00:00Z",
+  "UpdatedAtUtc": "2026-06-03T00:00:00Z",
+  "CompletedAtUtc": null,
+  "Revision": 1,
+  "IsArchived": false
+}

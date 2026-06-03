@@ -1,0 +1,26 @@
+{
+  "Id": "tsk-0031-splitbrain-find-symbol-tool",
+  "Key": "TSK-0031",
+  "Title": "Implement splitbrain_find_symbol tool (find classes/methods by name)",
+  "Description": "Find classes, functions, methods, or interfaces by name across the codebase using grep/ripgrep (not LLM). Fast, deterministic, exact. Parameters: name, rootPath, language?, symbolType? (class|method|interface|all). Returns list of matches with file path and line number. Does NOT use LLM \u2014 pure text search. Complement to search_codebase (which is semantic/fuzzy).",
+  "Type": "Feature",
+  "Status": "Backlog",
+  "Priority": "Medium",
+  "Labels": [
+    "mcp",
+    "tools",
+    "search",
+    "navigation"
+  ],
+  "Attachments": [],
+  "ExternalLinks": [],
+  "LinkedPages": [],
+  "Comments": [],
+  "EpicId": null,
+  "ParentId": null,
+  "CreatedAtUtc": "2026-06-03T00:00:00Z",
+  "UpdatedAtUtc": "2026-06-03T00:00:00Z",
+  "CompletedAtUtc": null,
+  "Revision": 1,
+  "IsArchived": false
+}

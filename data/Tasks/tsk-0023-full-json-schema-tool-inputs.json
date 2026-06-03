@@ -1,0 +1,25 @@
+{
+  "Id": "tsk-0023-full-json-schema-tool-inputs",
+  "Key": "TSK-0023",
+  "Title": "Add full JSON Schema to all tool inputSchema definitions",
+  "Description": "Every tool's inputSchema should be fully specified with types, required fields, enums for constrained values (e.g. focus: bugs|performance|security|readability|architecture), and min/max for numeric parameters. This enables IDE clients to generate UI for tool invocation, gives the server an early validation layer before hitting Ollama, and enables MCP client auto-validation. Currently many tools have incomplete schemas or rely only on FluentValidation runtime checks.",
+  "Type": "Improvement",
+  "Status": "Backlog",
+  "Priority": "Medium",
+  "Labels": [
+    "mcp",
+    "schema",
+    "validation"
+  ],
+  "Attachments": [],
+  "ExternalLinks": [],
+  "LinkedPages": [],
+  "Comments": [],
+  "EpicId": null,
+  "ParentId": null,
+  "CreatedAtUtc": "2026-06-03T00:00:00Z",
+  "UpdatedAtUtc": "2026-06-03T00:00:00Z",
+  "CompletedAtUtc": null,
+  "Revision": 1,
+  "IsArchived": false
+}

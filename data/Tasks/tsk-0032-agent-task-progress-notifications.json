@@ -1,0 +1,26 @@
+{
+  "Id": "tsk-0032-agent-task-progress-notifications",
+  "Key": "TSK-0032",
+  "Title": "Emit MCP progress notifications from agent_task at each iteration",
+  "Description": "agent_task should emit notifications/progress at each iteration boundary: { progressToken: '...', progress: currentIter, total: maxIters, message: 'Iteration 2/4: Reviewing...' }. The MCP spec defines this natively. Gives callers a live iteration counter without polling get_task_status. Pairs with the streaming transport (already Streamable HTTP). Fix Meta null (TSK-0003) first since that affects the same tool.",
+  "Type": "Feature",
+  "Status": "Backlog",
+  "Priority": "Medium",
+  "Labels": [
+    "mcp",
+    "agents",
+    "streaming",
+    "ux"
+  ],
+  "Attachments": [],
+  "ExternalLinks": [],
+  "LinkedPages": [],
+  "Comments": [],
+  "EpicId": null,
+  "ParentId": null,
+  "CreatedAtUtc": "2026-06-03T00:00:00Z",
+  "UpdatedAtUtc": "2026-06-03T00:00:00Z",
+  "CompletedAtUtc": null,
+  "Revision": 1,
+  "IsArchived": false
+}

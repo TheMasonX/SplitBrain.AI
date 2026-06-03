@@ -1,0 +1,25 @@
+{
+  "Id": "tsk-0028-splitbrain-explain-code-tool",
+  "Key": "TSK-0028",
+  "Title": "Implement splitbrain_explain_code tool (explain what code does, not what's wrong)",
+  "Description": "Most frequent IDE use case: developer pastes unfamiliar code and wants 'what does this do?' not 'what's wrong with it?' Distinct from review_code. Routes to Fast node (latency-sensitive \u2014 developer waiting at keyboard). Model: qcoder:latest (analysis, not generation). Parameters: code, language, verbosity (brief|detailed|eli5, default brief). All three sources independently identified this as the highest-value missing tool.",
+  "Type": "Feature",
+  "Status": "Backlog",
+  "Priority": "High",
+  "Labels": [
+    "mcp",
+    "tools",
+    "analysis"
+  ],
+  "Attachments": [],
+  "ExternalLinks": [],
+  "LinkedPages": [],
+  "Comments": [],
+  "EpicId": null,
+  "ParentId": null,
+  "CreatedAtUtc": "2026-06-03T00:00:00Z",
+  "UpdatedAtUtc": "2026-06-03T00:00:00Z",
+  "CompletedAtUtc": null,
+  "Revision": 1,
+  "IsArchived": false
+}
