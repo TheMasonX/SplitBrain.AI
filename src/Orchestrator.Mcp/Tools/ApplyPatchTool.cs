@@ -5,20 +5,29 @@ using Orchestrator.Core.Models;
 using Orchestrator.Core.Serialization;
 using Orchestrator.Core.Validation;
 using Orchestrator.Mcp.Patching;
+using Orchestrator.Mcp.WriteAccess;
 
 namespace Orchestrator.Mcp.Tools;
 
 [McpServerToolType]
 public sealed class ApplyPatchTool
 {
+    private readonly WriteAccessGuard _writeGuard;
+
+    public ApplyPatchTool(WriteAccessGuard writeGuard) => _writeGuard = writeGuard;
+
     [McpServerTool(Name = "apply_patch"), Description("Applies a unified diff patch to a file on disk within the allowed root directory.")]
     public async Task<string> ApplyPatchAsync(
         [Description("Absolute path to the file to patch")] string filePath,
         [Description("Unified diff patch content (output of `diff -u`)")] string patch,
         [Description("Allowed root directory — patch is rejected if filePath is outside this scope")] string allowedRoot,
         [Description("When true, validates the patch without writing to disk")] bool dryRun = false,
+        [Description("Required when write gate is PerCallEnable. Set true to authorize mutation.")] bool enableWrite = false,
         CancellationToken cancellationToken = default)
     {
+        var writeError = _writeGuard.CheckWrite("apply_patch", enableWrite);
+        if (writeError is not null) return writeError;
+
         var request = new ApplyPatchRequest
         {
             DryRun = dryRun,
