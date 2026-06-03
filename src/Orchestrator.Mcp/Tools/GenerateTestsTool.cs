@@ -2,6 +2,7 @@ using System.ComponentModel;
 using System.Text;
 using System.Text.Json;
 using FluentValidation;
+using Microsoft.Extensions.Logging;
 using ModelContextProtocol.Server;
 using Orchestrator.Core.Enums;
 using Orchestrator.Core.Interfaces;
@@ -16,11 +17,13 @@ public sealed class GenerateTestsTool
 {
     private readonly IRoutingService _routing;
     private readonly IIdempotencyCache _idempotency;
+    private readonly ILogger<GenerateTestsTool> _logger;
 
-    public GenerateTestsTool(IRoutingService routing, IIdempotencyCache idempotency)
+    public GenerateTestsTool(IRoutingService routing, IIdempotencyCache idempotency, ILogger<GenerateTestsTool> logger)
     {
         _routing = routing;
         _idempotency = idempotency;
+        _logger = logger;
     }
 
     [McpServerTool(Name = "generate_tests"), Description("Generates unit tests for the provided source code.")]
@@ -49,6 +52,10 @@ public sealed class GenerateTestsTool
                 TaskType.TestGeneration,
                 new InferenceRequest { Prompt = prompt, Stream = true, Priority = QueuePriority.Normal },
                 cancellationToken);
+
+            _logger.LogDebug("[{ToolName}] Raw response (node={Node}, model={Model}, {Tokens} chars): {Preview}",
+                GetType().Name, result.NodeId, result.Model, result.Text.Length,
+                result.Text.Length > 500 ? result.Text[..500] + "…" : result.Text);
 
             var response = new GenerateTestsResponse
             {
