@@ -70,7 +70,7 @@ public sealed class RefactorCodeTool
         var prompt = BuildPrompt(code, language, goal);
 
         // Log request (fire-and-forget safe — log failures never abort inference)
-        try { await _log.LogRequestAsync("refactor_code", request, ct); } catch { }
+        try { await _log.LogRequestAsync("refactor_code", request, ct); } catch (Exception) { /* log failure — intentionally silent; tool must not fail on logging errors */ }
 
         // Per-tool timeout — avoids 4-minute hangs when NodeB is unreachable.
         // If THIS timeout fires (not the caller's ct), return a structured error.
@@ -85,7 +85,7 @@ public sealed class RefactorCodeTool
                 cts.Token);
 
             // Log raw inference result before cleaning
-            try { await _log.LogInferenceAsync(taskId, prompt, result.Text, result.Model, result.NodeId, result.LatencyMs, ct); } catch { }
+            try { await _log.LogInferenceAsync(taskId, prompt, result.Text, result.Model, result.NodeId, result.LatencyMs, ct); } catch (Exception) { /* log failure — intentionally silent; tool must not fail on logging errors */ }
 
             // --- MAXIMALLY FORGIVING output cleaning ---
             // The model may wrap the refactored code in markdown fences or add
@@ -106,7 +106,7 @@ public sealed class RefactorCodeTool
                 }
             };
 
-            try { await _log.LogResponseAsync("refactor_code", response, result.LatencyMs, ct); } catch { }
+            try { await _log.LogResponseAsync("refactor_code", response, result.LatencyMs, ct); } catch (Exception) { /* log failure — intentionally silent; tool must not fail on logging errors */ }
 
             return JsonSerializer.Serialize(response, JsonConfig.Default);
         }

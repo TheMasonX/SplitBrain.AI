@@ -61,7 +61,7 @@ public sealed class GenerateTestsTool
         var taskId = Guid.NewGuid().ToString("N");
         var prompt = BuildPrompt(code, language, framework, coverage);
 
-        try { await _log.LogRequestAsync("generate_tests", new { code, language, framework, coverage }, ct); } catch { }
+        try { await _log.LogRequestAsync("generate_tests", new { code, language, framework, coverage }, ct); } catch (Exception) { /* log failure — intentionally silent; tool must not fail on logging errors */ }
 
         using var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
         cts.CancelAfter(TimeSpan.FromSeconds(DefaultToolTimeoutSeconds));
@@ -73,7 +73,7 @@ public sealed class GenerateTestsTool
                 new InferenceRequest { Prompt = prompt, Stream = true, Priority = QueuePriority.Normal },
                 cts.Token);
 
-            try { await _log.LogInferenceAsync(taskId, prompt, result.Text, result.Model, result.NodeId, result.LatencyMs, ct); } catch { }
+            try { await _log.LogInferenceAsync(taskId, prompt, result.Text, result.Model, result.NodeId, result.LatencyMs, ct); } catch (Exception) { /* log failure — intentionally silent; tool must not fail on logging errors */ }
 
             // Clean the model output — strip markdown fences, preamble, and outro
             var cleanedTests = ResponseCleaner.ExtractCode(result.Text, language);
@@ -102,7 +102,7 @@ public sealed class GenerateTestsTool
                 }
             };
 
-            try { await _log.LogResponseAsync("generate_tests", response, result.LatencyMs, ct); } catch { }
+            try { await _log.LogResponseAsync("generate_tests", response, result.LatencyMs, ct); } catch (Exception) { /* log failure — intentionally silent; tool must not fail on logging errors */ }
 
             return JsonSerializer.Serialize(response, JsonConfig.Default);
         }

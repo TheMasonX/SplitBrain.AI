@@ -67,7 +67,7 @@ public sealed class SearchCodebaseTool
         var files = CollectFiles(rootPath, pattern, topK * 5);
         var prompt = BuildPrompt(query, files, topK);
 
-        try { await _log.LogRequestAsync("search_codebase", request, ct); } catch { }
+        try { await _log.LogRequestAsync("search_codebase", request, ct); } catch (Exception) { /* log failure — intentionally silent; tool must not fail on logging errors */ }
 
         using var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
         cts.CancelAfter(TimeSpan.FromSeconds(DefaultToolTimeoutSeconds));
@@ -79,7 +79,7 @@ public sealed class SearchCodebaseTool
                 new InferenceRequest { Prompt = prompt, Stream = false, Priority = QueuePriority.Normal },
                 cts.Token);
 
-            try { await _log.LogInferenceAsync(taskId, prompt, result.Text, result.Model, result.NodeId, result.LatencyMs, ct); } catch { }
+            try { await _log.LogInferenceAsync(taskId, prompt, result.Text, result.Model, result.NodeId, result.LatencyMs, ct); } catch (Exception) { /* log failure — intentionally silent; tool must not fail on logging errors */ }
 
             // Parse the model's JSON array response — maximally forgiving
             var results = TryParseResults(result.Text, topK);

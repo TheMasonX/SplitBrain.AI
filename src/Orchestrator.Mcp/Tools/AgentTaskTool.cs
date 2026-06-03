@@ -68,7 +68,7 @@ public sealed class AgentTaskTool
         var taskId = Guid.NewGuid().ToString("N");
         var sw     = Stopwatch.StartNew();
 
-        try { await _log.LogRequestAsync("agent_task", new { goal, workingDirectory, applyChanges }, ct); } catch { }
+        try { await _log.LogRequestAsync("agent_task", new { goal, workingDirectory, applyChanges }, ct); } catch (Exception) { /* log failure — intentionally silent; tool must not fail on logging errors */ }
 
         using var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
         cts.CancelAfter(TimeSpan.FromSeconds(DefaultAgentTimeoutSeconds));
@@ -126,7 +126,7 @@ public sealed class AgentTaskTool
                 }
             };
 
-            try { await _log.LogResponseAsync("agent_task", response, sw.ElapsedMilliseconds, ct); } catch { }
+            try { await _log.LogResponseAsync("agent_task", response, sw.ElapsedMilliseconds, ct); } catch (Exception) { /* log failure — intentionally silent; tool must not fail on logging errors */ }
 
             return JsonSerializer.Serialize(response, JsonConfig.Default);
         }
