@@ -37,8 +37,9 @@ DefaultGroupName={#MyAppName}
 AllowNoIcons=yes
 OutputDir={#OutputBase}
 OutputBaseFilename=SplitBrainAI-Setup-{#MyAppVersion}
-Compression=lzma2/ultra64
-SolidCompression=yes
+; Fast compression — lzma2/ultra is painfully slow on copilot.exe (~106 MB native binary)
+Compression=zip
+SolidCompression=no
 WizardStyle=modern
 WizardResizable=yes
 PrivilegesRequired=admin
@@ -63,16 +64,19 @@ Name: "installservice";     Description: "Install as Windows &Service (auto-star
 Name: "installservice\mcp"; Description: "MCP Server service";                                 GroupDescription: "Service options:"; Check: HasOrchestrator
 Name: "installservice\wrk"; Description: "Node Worker service";                                GroupDescription: "Service options:"; Check: HasWorker
 Name: "addfirewall";        Description: "Add Windows &Firewall rules for LAN access";         GroupDescription: "Network:"
-Name: "pullmodels";         Description: "Download &Ollama models now (auto-skipped if llama.cpp selected)"; GroupDescription: "Ollama models:"
+Name: "pullmodels";         Description: "Download &Ollama models now (auto-skipped if llama.cpp selected)"; GroupDescription: "Ollama models:"; Flags: unchecked
 Name: "desktopicon";        Description: "Create a &Desktop shortcut";                         GroupDescription: "Shortcuts:"; Flags: unchecked
 
 [Files]
 ; ── Node A binaries ───────────────────────────────────────────────────────────
-Source: "output\node-a\mcp\*";       DestDir: "{app}\node-a\mcp";       Flags: recursesubdirs ignoreversion
-Source: "output\node-a\dashboard\*"; DestDir: "{app}\node-a\dashboard"; Flags: recursesubdirs ignoreversion
+; copilot.exe (~106 MB native binary) — no compression to speed up build
+Source: "output\node-a\mcp\runtimes\win-x64\native\copilot.exe"; DestDir: "{app}\node-a\mcp\runtimes\win-x64\native"; Flags: ignoreversion
+Source: "output\node-a\dashboard\runtimes\win-x64\native\copilot.exe"; DestDir: "{app}\node-a\dashboard\runtimes\win-x64\native"; Flags: ignoreversion
+Source: "output\node-a\mcp\*";       DestDir: "{app}\node-a\mcp";       Flags: recursesubdirs ignoreversion; Excludes: "*.pdb, copilot.exe"
+Source: "output\node-a\dashboard\*"; DestDir: "{app}\node-a\dashboard"; Flags: recursesubdirs ignoreversion; Excludes: "*.pdb, copilot.exe"
 
 ; ── Node B binaries ───────────────────────────────────────────────────────────
-Source: "output\node-b\worker\*";    DestDir: "{app}\node-b\worker";    Flags: recursesubdirs ignoreversion
+Source: "output\node-b\worker\*";    DestDir: "{app}\node-b\worker";    Flags: recursesubdirs ignoreversion; Excludes: "*.pdb"
 
 ; ── Deploy / setup scripts ────────────────────────────────────────────────────
 Source: "{#RepoRoot}\deploy\*";      DestDir: "{app}\deploy";           Flags: recursesubdirs ignoreversion
@@ -231,6 +235,21 @@ begin
   Result := (CBackend = 'llamacpp-docker');
 end;
 
+// ── Registry helpers for value persistence ──────────────────────────────────
+// Must be declared before any page creation procedure that calls them.
+function RestoreValue(KeyName, Default: String): String;
+begin
+  Result := Default;
+  if RegQueryStringValue(HKCU, 'Software\SplitBrain.AI\Setup', KeyName, Result) then
+    Exit;
+  Result := Default;
+end;
+
+procedure SaveValue(KeyName, Value: String);
+begin
+  RegWriteStringValue(HKCU, 'Software\SplitBrain.AI\Setup', KeyName, Value);
+end;
+
 // ── RolePage: Orchestrator / Worker / Full ────────────────────────────────────
 procedure CreateRolePage;
 var
@@ -246,6 +265,8 @@ begin
   Lbl.Width    := RolePage.SurfaceWidth;
   Lbl.Caption  := 'SplitBrain.AI can run as an Orchestrator, a Worker, or both on the same machine:';
   Lbl.WordWrap := True;
+  Lbl.AutoSize := False;
+  Lbl.Height   := ScaleY(50);
 
   // ── Orchestrator ──────────────────────────────────────────────────────────
   RbOrchestrator := TNewRadioButton.Create(RolePage);
@@ -264,6 +285,8 @@ begin
   LblO.Width    := RolePage.SurfaceWidth - 20;
   LblO.Caption  := 'Installs the MCP Server (port 5100) and Dashboard. Routes inference tasks to remote workers. Use this on your primary laptop or workstation.';
   LblO.WordWrap := True;
+  LblO.AutoSize := False;
+  LblO.Height   := ScaleY(45);
 
   // ── Worker ────────────────────────────────────────────────────────────────
   RbWorker := TNewRadioButton.Create(RolePage);
@@ -281,6 +304,8 @@ begin
   LblW.Width    := RolePage.SurfaceWidth - 20;
   LblW.Caption  := 'Installs the NodeWorker service (port 5050). Exposes local GPU inference to the Orchestrator over the network. Use this on a dedicated inference tower.';
   LblW.WordWrap := True;
+  LblW.AutoSize := False;
+  LblW.Height   := ScaleY(45);
 
   // ── Orchestrator + Worker ─────────────────────────────────────────────────
   RbFull := TNewRadioButton.Create(RolePage);
@@ -298,6 +323,74 @@ begin
   LblF.Width    := RolePage.SurfaceWidth - 20;
   LblF.Caption  := 'Installs everything: MCP Server, Dashboard, and NodeWorker. The Orchestrator routes tasks to the local Worker. Ideal for single-machine setups or when this machine has a capable GPU and you want a self-contained installation.';
   LblF.WordWrap := True;
+  LblF.AutoSize := False;
+  LblF.Height   := ScaleY(65);
+end;
+
+// ── File open dialog via PowerShell (real file picker with .gguf filter) ───
+function SelectModelFile(const InitialDir: String): String;
+var
+  ScriptFile, TmpFile, PsCode: String;
+  ResultVal: AnsiString;
+  ResultCode: Integer;
+  SafeDir: String;
+  Wd: String;
+begin
+  Result := '';
+  ScriptFile := ExpandConstant('{tmp}\_filedlg.ps1');
+  TmpFile    := ExpandConstant('{tmp}\_filedlg_out.txt');
+  DeleteFile(TmpFile);
+
+  // Escape backslashes for PowerShell string
+  SafeDir := InitialDir;
+  StringChange(SafeDir, '\', '\\');
+  StringChange(SafeDir, '"', '\"');
+
+  // Use the working directory of the current path, or fall back to C:\
+  Wd := ExtractFileDir(InitialDir);
+  if Wd = '' then Wd := 'C:\';
+  StringChange(Wd, '\', '\\');
+
+  PsCode :=
+    'Add-Type -AssemblyName System.Windows.Forms; ' +
+    '[System.Windows.Forms.Application]::EnableVisualStyles(); ' +
+    '$d = New-Object System.Windows.Forms.OpenFileDialog; ' +
+    '$d.Title = ''Select llama.cpp GGUF Model File''; ' +
+    '$d.Filter = ''GGUF model files (*.gguf)|*.gguf|All files (*.*)|*.*''; ' +
+    '$d.RestoreDirectory = $true; ' +
+    'if (''' + SafeDir + ''' -ne '''') { ' +
+    '  if (Test-Path ''' + Wd + ''') { $d.InitialDirectory = ''' + Wd + '''; }; ' +
+    '  if (Test-Path ''' + SafeDir + ''') { $d.FileName = ''' + SafeDir + '''; }; ' +
+    '}; ' +
+    'if ($d.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK) { ' +
+    '  [System.IO.File]::WriteAllText(''' + TmpFile + ''', $d.FileName); ' +
+    '}';
+  SaveStringToFile(ScriptFile, PsCode, False);
+
+  if not Exec('powershell.exe',
+    '-NoProfile -NonInteractive -ExecutionPolicy Bypass -Command "' +
+    '& { $e = $ErrorActionPreference; $ErrorActionPreference=''Stop''; ' +
+    '. ''' + ScriptFile + '''; ' +
+    '$ErrorActionPreference = $e }"',
+    '', SW_HIDE, ewWaitUntilTerminated, ResultCode) then
+    Exit;
+
+  if FileExists(TmpFile) then
+  begin
+    LoadStringFromFile(TmpFile, ResultVal);
+    Result := Trim(ResultVal);
+    DeleteFile(TmpFile);
+  end;
+end;
+
+// ── Browse button handler — opens real file dialog, sets the path if chosen ──
+procedure ModelBrowseClick(Sender: TObject);
+var
+  Chosen: String;
+begin
+  Chosen := SelectModelFile(OptionalPage.Values[1]);
+  if Chosen <> '' then
+    OptionalPage.Values[1] := Chosen;
 end;
 
 // ── Network configuration page ────────────────────────────────────────────────
@@ -308,32 +401,47 @@ begin
     'Configure ports and peer addresses. Leave Peer IP as-is if running Orchestrator+Worker on one machine.',
     '');
 
-  NetworkPage.Add('Peer Orchestrator IP (Workers only, or leave empty for local):', False); // [0]
-  NetworkPage.Add('MCP Server port:', False);    // [1]
-  NetworkPage.Add('Node Worker port:', False);   // [2]
-  NetworkPage.Add('Ollama URL (this machine):', False);  // [3]
+  NetworkPage.Add('Orchestrator IP (Worker only):', False); // [0]
+  NetworkPage.Add('MCP Server port:', False);                // [1]
+  NetworkPage.Add('Node Worker port:', False);               // [2]
+  NetworkPage.Add('Ollama URL:', False);                     // [3]
 
-  // Defaults
-  NetworkPage.Values[0] := '192.168.1.X';
-  NetworkPage.Values[1] := '5100';
-  NetworkPage.Values[2] := '5050';
-  NetworkPage.Values[3] := 'http://localhost:11434';
+  // Defaults (restored from previous install if available)
+  NetworkPage.Values[0] := RestoreValue('PeerIp', '192.168.1.X');
+  NetworkPage.Values[1] := RestoreValue('McpPort', '5100');
+  NetworkPage.Values[2] := RestoreValue('WorkerPort', '5050');
+  NetworkPage.Values[3] := RestoreValue('OllamaUrl', 'http://localhost:11434');
 end;
 
 // ── Optional settings page (token, model path) ──────────────────────────────
 procedure CreateOptionalPage;
+var
+  BrowseBtn: TNewButton;
 begin
   OptionalPage := CreateInputQueryPage(NetworkPage.ID,
     'Optional Settings',
     'GitHub Copilot token and llama.cpp model path. These are optional and can be configured later.',
     '');
 
-  OptionalPage.Add('GitHub Copilot token (optional):', True); // [0] password
-  OptionalPage.Add('llama.cpp model file path (e.g. C:\Models\model.gguf):', False); // [1]
+  OptionalPage.Add('GitHub Copilot token:', True); // [0] password
+  OptionalPage.Add('llama.cpp model path:', False);        // [1]
 
-  // Defaults
-  OptionalPage.Values[0] := '';
-  OptionalPage.Values[1] := 'C:\Models\qwen3-coder-30b-a3b.gguf';
+  // Defaults (restored from previous install if available)
+  OptionalPage.Values[0] := RestoreValue('CopilotToken', '');
+  OptionalPage.Values[1] := RestoreValue('ModelPath', '');
+
+  // ── "Browse..." button for the model path field ─────────────────────────
+  // Shrink edit width to make room, then place button to its right.
+  OptionalPage.Edits[1].Width := OptionalPage.Edits[1].Width - 85;
+
+  BrowseBtn := TNewButton.Create(OptionalPage);
+  BrowseBtn.Parent := OptionalPage.Surface;
+  BrowseBtn.Left   := OptionalPage.Edits[1].Left + OptionalPage.Edits[1].Width + 4;
+  BrowseBtn.Top    := OptionalPage.Edits[1].Top;
+  BrowseBtn.Width  := 79;
+  BrowseBtn.Height := OptionalPage.Edits[1].Height;
+  BrowseBtn.Caption := 'Browse...';
+  BrowseBtn.OnClick := @ModelBrowseClick;
 end;
 
 // ── Backend page (Worker / Full roles) ───────────────────────────────────────
@@ -357,6 +465,8 @@ begin
   Lbl.Width    := BackendPage.SurfaceWidth;
   Lbl.Caption  := 'Select the inference backend for this Worker machine:';
   Lbl.WordWrap := True;
+  Lbl.AutoSize := False;
+  Lbl.Height   := ScaleY(50);
 
   // ── Option 1: Ollama ───────────────────────────────────────────────────────
   RbOllama := TNewRadioButton.Create(BackendPage);
@@ -375,6 +485,8 @@ begin
   LblOllama.Width    := BackendPage.SurfaceWidth - 24;
   LblOllama.Caption  := 'Standard setup using Ollama. Broad GPU support, easy model management. Flash attention disabled automatically for GTX 1080 (Pascal) stability.';
   LblOllama.WordWrap := True;
+  LblOllama.AutoSize := False;
+  LblOllama.Height   := ScaleY(45);
 
   // ── Option 2: llama.cpp Native (no Docker) ────────────────────────────────
   RbLlamaCppNative := TNewRadioButton.Create(BackendPage);
@@ -392,6 +504,8 @@ begin
   LblNative.Width    := BackendPage.SurfaceWidth - 24;
   LblNative.Caption  := 'Downloads llama-server.exe (CUDA 12.4 build) from GitHub Releases and creates a launch script. Runs natively on Windows with full GPU access. Enables MoE offloading (--n-cpu-moe) for 30B+ models on limited VRAM. No Docker or container runtime required.';
   LblNative.WordWrap := True;
+  LblNative.AutoSize := False;
+  LblNative.Height   := ScaleY(65);
 
   // ── Option 3: llama.cpp Docker ────────────────────────────────────────────
   RbLlamaCppDocker := TNewRadioButton.Create(BackendPage);
@@ -409,6 +523,8 @@ begin
   LblDocker.Width    := BackendPage.SurfaceWidth - 24;
   LblDocker.Caption  := 'Runs ghcr.io/ggml-org/llama.cpp:server-cuda in a Docker container. Identical flags and performance to Native. Use this if you prefer containerized deployments or already have Docker set up.';
   LblDocker.WordWrap := True;
+  LblDocker.AutoSize := False;
+  LblDocker.Height   := ScaleY(45);
 
   // ── Shared note ────────────────────────────────────────────────────────────
   LblNote := TNewStaticText.Create(BackendPage);
@@ -418,6 +534,8 @@ begin
   LblNote.Width      := BackendPage.SurfaceWidth;
   LblNote.Caption    := 'All three options expose http://localhost:8080 — SplitBrain.AI''s NodeClient.LlamaCpp connects to the same endpoint regardless. Switch anytime via NODE_B_BACKEND=llamacpp (or ollama).';
   LblNote.WordWrap   := True;
+  LblNote.AutoSize   := False;
+  LblNote.Height     := ScaleY(65);
   LblNote.Font.Color := clGray;
 end;
 
@@ -471,13 +589,21 @@ begin
     Result := True;
 end;
 
-// ── Capture final values before install ───────────────────────────────────────
+// ── Persist wizard values on install ─────────────────────────────────────────
 procedure CurStepChanged(CurStep: TSetupStep);
 begin
   if CurStep = ssInstall then
   begin
     CaptureRole;
     CaptureBackend;
+
+    // Persist wizard values for next run
+    SaveValue('PeerIp',      Trim(NetworkPage.Values[0]));
+    SaveValue('McpPort',     Trim(NetworkPage.Values[1]));
+    SaveValue('WorkerPort',  Trim(NetworkPage.Values[2]));
+    SaveValue('OllamaUrl',   Trim(NetworkPage.Values[3]));
+    SaveValue('CopilotToken',Trim(OptionalPage.Values[0]));
+    SaveValue('ModelPath',   Trim(OptionalPage.Values[1]));
   end;
 end;
 
@@ -495,9 +621,9 @@ begin
     // For Orchestrator-only or Full, it's optional (Full routes to localhost).
     CaptureRole;
     PeerIp := Trim(NetworkPage.Values[0]);
-    if (CRole = 'Worker') and ((PeerIp = '') or (PeerIp = '192.168.1.X')) then
+    if (CRole = 'Worker') and (PeerIp = '') then
     begin
-      MsgBox('For a Worker installation, please enter the IP address of the Orchestrator machine (e.g. 192.168.1.10). This is the machine running the MCP Server.' + #13#10 + #13#10 + 'Tip: for Orchestrator+Worker on one machine, choose the "Orchestrator + Worker" role instead.', mbError, MB_OK);
+      MsgBox('Please enter the Orchestrator machine IP address (e.g. 192.168.1.10).' + #13#10 + #13#10 + 'Tip: for a single-machine setup, choose "Orchestrator + Worker" instead.', mbError, MB_OK);
       Result := False;
       Exit;
     end;
@@ -602,18 +728,32 @@ end;
 function PrepareToInstall(var NeedsRestart: Boolean): String;
 var
   ResultCode : Integer;
+  CheckCmd  : String;
+  CheckDesc : String;
 begin
   Result := '';
-  // Inline .NET check — external scripts not yet available at this stage.
-  // {app} doesn't exist until ssInstall; run a direct dotnet check instead.
+
+  // Role-aware .NET 10 check:
+  //   Server (Orchestrator/Full) — need ASP.NET Core Runtime (hosting bundle)
+  //   Worker only               — need .NET Runtime only
+  CaptureRole;
+  if HasOrchestrator then
+  begin
+    CheckCmd  := 'if (-not (dotnet --list-runtimes 2>$null | Select-String ''Microsoft.AspNetCore.App 10.'')) { exit 1 }';
+    CheckDesc := 'ASP.NET Core Runtime 10 (hosting bundle)';
+  end else begin
+    CheckCmd  := 'if (-not (dotnet --list-runtimes 2>$null | Select-String ''Microsoft.NETCore.App 10.'')) { exit 1 }';
+    CheckDesc := '.NET Runtime 10';
+  end;
+
   if not Exec('powershell.exe',
-    '-NonInteractive -Command "if (-not (dotnet --list-runtimes 2>$null | Select-String ''Microsoft.NETCore.App 10.'')) { exit 1 }"',
+    '-NonInteractive -Command "' + CheckCmd + '"',
     '', SW_HIDE, ewWaitUntilTerminated, ResultCode) then
     ResultCode := 0;  // Exec failed — skip, let installer proceed
 
   if ResultCode = 1 then
     MsgBox(
-      '.NET 10 runtime was not detected on this machine.' + #13#10 +
+      CheckDesc + ' was not detected on this machine.' + #13#10 +
       'The installer will attempt to install it automatically.' + #13#10 + #13#10 +
       'If automatic install fails, download .NET 10 from:' + #13#10 +
       '  https://dotnet.microsoft.com/download/dotnet/10.0',

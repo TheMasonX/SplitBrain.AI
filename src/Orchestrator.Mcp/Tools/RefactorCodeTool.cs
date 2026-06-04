@@ -120,24 +120,6 @@ public sealed class RefactorCodeTool
                 meta = new { taskId, node = (string?)null }
             }, JsonConfig.Default);
         }
-        catch (OperationCanceledException) when (!ct.IsCancellationRequested)
-        {
-            // OUR timeout fired (not the caller's) — return structured error
-            _logger.LogWarning("refactor_code timed out after {Timeout}s for task {TaskId}",
-                DefaultToolTimeoutSeconds, taskId);
-
-            return JsonSerializer.Serialize(new
-            {
-                error = new
-                {
-                    code      = "tool_timeout",
-                    message   = $"refactor_code timed out after {DefaultToolTimeoutSeconds}s. " +
-                                "Try a smaller input or check node health via get_node_status.",
-                    retryable = true
-                },
-                meta = new { taskId, node = (string?)null }
-            }, JsonConfig.Default);
-        }
     }
 
     private static string BuildPrompt(string code, string language, string goal)

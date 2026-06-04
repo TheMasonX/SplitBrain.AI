@@ -82,7 +82,7 @@ $LlamaCppDir   = Join-Path $InstallDir "llama.cpp"
 $ScriptsOutDir = Join-Path $InstallDir "llama.cpp-launch"
 
 # Standard flags for GTX 1080 (Pascal) with Qwen3 30B A3B
-$StandardFlags = "--n-gpu-layers $GpuLayers --n-cpu-moe $NcpuMoe --no-mmap --mlock --cache-type-k turbo4 --cache-type-v turbo3 --host 0.0.0.0 --port $LlamaCppPort"
+$StandardFlags = "--n-gpu-layers $GpuLayers --n-cpu-moe $NcpuMoe --no-mmap --mlock --cache-type-k q8_0 --cache-type-v q8_0 --host 0.0.0.0 --port $LlamaCppPort"
 if ($ExtraFlags) { $StandardFlags += " $ExtraFlags" }
 
 New-Item -ItemType Directory -Force -Path $ScriptsOutDir | Out-Null
@@ -174,8 +174,8 @@ if ($Mode -eq "native") {
         }
         foreach ($flag in @("cache-type-k","cache-type-v")) {
             if ($helpOutput -notmatch $flag) {
-                Write-Warn "--$flag not found — TurboQuant KV cache not in this build."
-                $StandardFlags = $StandardFlags -replace "--$flag [a-z0-9]+", ""
+                Write-Warn "--$flag not found — KV cache type not in this build."
+                $StandardFlags = $StandardFlags -replace "--$flag [a-z0-9_]+", ""
             }
         }
         Write-Ok "Flag check complete"
@@ -233,8 +233,8 @@ Write-Host ""
     --n-cpu-moe    `$NcpuMoe ``
     --no-mmap ``
     --mlock ``
-    --cache-type-k turbo4 ``
-    --cache-type-v turbo3 ``
+    --cache-type-k q8_0 ``
+    --cache-type-v q8_0 ``
     --host 0.0.0.0 ``
     --port `$LlamaCppPort
 
@@ -337,8 +337,8 @@ docker run --rm ``
     --n-cpu-moe    `$NcpuMoe ``
     --no-mmap ``
     --mlock ``
-    --cache-type-k turbo4 ``
-    --cache-type-v turbo3 ``
+    --cache-type-k q8_0 ``
+    --cache-type-v q8_0 ``
     --host 0.0.0.0 ``
     --port `$Port
 "@ | Set-Content -Path $launchPs1 -Encoding UTF8

@@ -54,31 +54,21 @@ MCP endpoint.
 | Dashboard | **5000** |
 | Node Worker | **5001** |
 
-## MCP Tools
+## MCP Tools Reference
 
-The MCP server (`Orchestrator.Mcp`) exposes these tools:
-- `review_code` — Architecture, performance, bug, readability, or security review
-- `refactor_code` — AI-driven code refactoring
-- `generate_tests` — Unit test generation
-- `search_codebase` — Semantic code search across the repo
-- `apply_patch` — Apply suggested code changes
-- `run_tests` — Execute test suites
-- `agent_task` — Multi-step agent task execution
+The MCP server (`Orchestrator.Mcp` at port **5100**) exposes **12 operational tools**
+across 5 categories. See the [MCP Tools Reference Guide](guides/mcp-tools-reference.md)
+for complete documentation, parameters, response shapes, and usage examples.
 
-## Key Documents
-
-- [Master Plan v4](../Plans/MasterPlanV4.md) — canonical architecture blueprint
-- [Design decisions](../Docs/Memories/design-decisions.md) — architecture decision records
-- [Current state](../Docs/Memories/architecture-current-state.md) — what's implemented
-
-## Service Endpoints
-
-| Service | Port |
-|---------|------|
-| Wiki (this page) | **6769** |
-| MCP Server | **5100** |
-| Dashboard | **5000** |
-| Node Worker | **5001** |
+| Category | Tools | Status |
+|----------|-------|--------|
+| **Code Analysis** | `review_code`, `splitbrain_explain_code`, `search_codebase` | ✅ Operational |
+| **Code Generation** | `refactor_code`, `generate_tests` | ✅ Operational |
+| **File System** | `splitbrain_read_file`, `splitbrain_write_file`, `splitbrain_list_files`, `apply_patch` | ✅ Operational |
+| **Build & Test** | `run_tests` | ✅ Operational |
+| **Agent** | `agent_task` | ✅ Operational |
+| **Utility** | `splitbrain_query_allowed_root` | ✅ Operational |
+| **Backlog** | `splitbrain_get_node_status`, `splitbrain_list_models`, `splitbrain_document_code`, `splitbrain_git_status`, `splitbrain_git_diff`, `splitbrain_git_commit`, `splitbrain_check_build`, MCP Prompts (3) | 📋 Planned |
 
 ## MCP Tools
 
