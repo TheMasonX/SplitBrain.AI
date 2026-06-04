@@ -5,6 +5,7 @@ using Orchestrator.Core.Enums;
 using Orchestrator.Core.Interfaces;
 using Orchestrator.Core.Models;
 using Orchestrator.Core.Utilities;
+using Orchestrator.Infrastructure.Queue;
 
 namespace Orchestrator.Infrastructure.Routing;
 
@@ -122,7 +123,7 @@ public sealed class RoutingService : IRoutingService
         var target = SelectNode(registrations, taskType, request);
         _logger.LogInformation(
             "Routing taskType={TaskType} -> node={NodeId}",
-            taskType, target.NodeId);
+            taskType, target.Node.NodeId);
 
         var item = new InferenceQueueItem
         {
@@ -257,7 +258,7 @@ public sealed class RoutingService : IRoutingService
         var latencyMs = health?.Status == NodeStatus.Degraded ? 8_000 : 500;
         var latencyPenalty = 1.0 - Math.Clamp(latencyMs / 10_000.0, 0.0, 1.0);
 
-        var tokens = EstimateTokens(request.Prompt);
+        var tokens = TokenEstimator.Estimate(request.Prompt);
         var contextFit = role is NodeRole.Deep or NodeRole.Hybrid
             ? Math.Clamp(tokens / (double)LargeContextTokenThreshold, 0.0, 1.0)
             : 1.0 - Math.Clamp(tokens / (double)LargeContextTokenThreshold, 0.0, 1.0);

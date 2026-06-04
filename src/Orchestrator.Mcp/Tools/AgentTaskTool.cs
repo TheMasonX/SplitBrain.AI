@@ -6,6 +6,7 @@ using Microsoft.Extensions.Logging;
 using ModelContextProtocol.Server;
 using Orchestrator.Agents;
 using Orchestrator.Agents.Models;
+using Orchestrator.Core.Interfaces;
 using Orchestrator.Core.Models;
 using Orchestrator.Core.Serialization;
 using Orchestrator.Mcp.Idempotency;
@@ -246,16 +247,6 @@ public sealed class AgentTaskTool
         }
 
         return applied;
-=======
-        try
-        {
-            var request = new AgentRequest { Goal = goal, WorkingDirectory = string.IsNullOrWhiteSpace(workingDirectory) ? null : workingDirectory, Context = string.IsNullOrWhiteSpace(context) ? null : context };
-            var result = await _agent.RunAsync(request, cancellationToken);
-            var response = new AgentTaskResponse { Success = result.Success, FinalState = result.FinalState.ToString(), Summary = result.Summary, Diff = result.Diff, TotalIterations = result.TotalIterations, TotalTokens = result.TotalTokensUsed, AbortReason = result.AbortReason, Steps = result.Steps.Select(s => new AgentStepSummary { Role = s.Role.ToString(), State = s.State.ToString(), Success = s.Success, Tokens = s.TokensEstimated, Response = s.Response.Length > 300 ? s.Response[..300] + "..." : s.Response }).ToList() };
-            return JsonSerializer.Serialize(response, JsonConfig.Default);
-        }
-        catch (OperationCanceledException) { throw; }
-        catch (Exception ex) { return JsonSerializer.Serialize(new { error = new { code = "internal_error", message = ex.Message, retryable = true } }, JsonConfig.Default); }
     }
 }
 

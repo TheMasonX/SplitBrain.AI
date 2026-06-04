@@ -119,16 +119,24 @@ public sealed class RefactorCodeTool
                 },
                 meta = new { taskId, node = (string?)null }
             }, JsonConfig.Default);
-        {
-            return JsonSerializer.Serialize(new { error = new { code = "validation_error", message = vex.Message, retryable = false } }, JsonConfig.Default);
         }
-        catch (OperationCanceledException)
+        catch (OperationCanceledException) when (!ct.IsCancellationRequested)
         {
-            throw; // Let cancellation propagate
-        }
-        catch (Exception ex)
-        {
-            return JsonSerializer.Serialize(new { error = new { code = "internal_error", message = ex.Message, retryable = true } }, JsonConfig.Default);
+            // OUR timeout fired (not the caller's) — return structured error
+            _logger.LogWarning("refactor_code timed out after {Timeout}s for task {TaskId}",
+                DefaultToolTimeoutSeconds, taskId);
+
+            return JsonSerializer.Serialize(new
+            {
+                error = new
+                {
+                    code      = "tool_timeout",
+                    message   = $"refactor_code timed out after {DefaultToolTimeoutSeconds}s. " +
+                                "Try a smaller input or check node health via get_node_status.",
+                    retryable = true
+                },
+                meta = new { taskId, node = (string?)null }
+            }, JsonConfig.Default);
         }
     }
 

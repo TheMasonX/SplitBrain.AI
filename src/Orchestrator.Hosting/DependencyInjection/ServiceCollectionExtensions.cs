@@ -221,7 +221,7 @@ public static class ServiceCollectionExtensions
         // ---------------------------------------------------------------
         // Node registry + health check
         // ---------------------------------------------------------------
-        services.AddSingleton<IInferenceNodeFactory, InferenceNodeFactory>();
+        services.AddSingleton<IInferenceNodeFactory, Orchestrator.Infrastructure.Registry.InferenceNodeFactory>();
 
         services.AddSingleton<Func<NodeConfiguration, IInferenceNode>>(sp => config =>
             config.NodeId switch

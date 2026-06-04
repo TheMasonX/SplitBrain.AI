@@ -59,35 +59,33 @@ public sealed class SearchCodebaseTool
     private async Task<string> ExecuteCoreAsync(
         string query, string rootPath, string pattern, int topK, CancellationToken ct)
     {
+        var request = new SearchCodebaseRequest
+        {
+            Query = query,
+            TopK = topK,
+            Filters = new SearchFilters { Path = rootPath }
+        };
+        request.ValidateOrThrow(new SearchCodebaseRequestValidator());
+
+        var taskId = Guid.NewGuid().ToString("N");
+        var files = CollectFiles(rootPath, pattern, topK * 5);
+        var prompt = BuildPrompt(query, files, topK);
+
+        try { await _log.LogRequestAsync("search_codebase", request, ct); } catch (Exception) { /* log failure — intentionally silent; tool must not fail on logging errors */ }
+
+        using var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+        cts.CancelAfter(TimeSpan.FromSeconds(DefaultToolTimeoutSeconds));
+
         try
         {
-            var request = new SearchCodebaseRequest
-            {
-                Query = query,
-                TopK = topK,
-                Filters = new SearchFilters { Path = rootPath }
-            };
-            request.ValidateOrThrow(new SearchCodebaseRequestValidator());
+            var result = await _routing.RouteAsync(
+                TaskType.AgentStep,
+                new InferenceRequest { Prompt = prompt, Stream = false, Priority = QueuePriority.Normal },
+                cts.Token);
 
-            var taskId = Guid.NewGuid().ToString("N");
-            var files = CollectFiles(rootPath, pattern, topK * 5);
-            var prompt = BuildPrompt(query, files, topK);
+            try { await _log.LogInferenceAsync(taskId, prompt, result.Text, result.Model, result.NodeId, result.LatencyMs, ct); } catch (Exception) { /* log failure — intentionally silent; tool must not fail on logging errors */ }
 
-            try { await _log.LogRequestAsync("search_codebase", request, ct); } catch (Exception) { /* log failure — intentionally silent; tool must not fail on logging errors */ }
-
-            using var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
-            cts.CancelAfter(TimeSpan.FromSeconds(DefaultToolTimeoutSeconds));
-
-            try
-            {
-                var result = await _routing.RouteAsync(
-                    TaskType.AgentStep,
-                    new InferenceRequest { Prompt = prompt, Stream = false, Priority = QueuePriority.Normal },
-                    cts.Token);
-
-                try { await _log.LogInferenceAsync(taskId, prompt, result.Text, result.Model, result.NodeId, result.LatencyMs, ct); } catch (Exception) { /* log failure — intentionally silent; tool must not fail on logging errors */ }
-
-                // Parse the model's JSON array response — maximally forgiving
+            // Parse the model's JSON array response — maximally forgiving
             var results = TryParseResults(result.Text, topK);
 
             var response = new SearchCodebaseResponse

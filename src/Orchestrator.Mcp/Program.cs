@@ -1,4 +1,4 @@
-<using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Hosting;
 using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
 using OpenTelemetry.Metrics;
@@ -39,7 +39,7 @@ Log.Logger = loggerBuilder.CreateLogger();
 builder.Logging.ClearProviders();
 builder.Logging.AddSerilog(Log.Logger, dispose: true);
 
-<// ---------------------------------------------------------------------------
+// ---------------------------------------------------------------------------
 // Shared infrastructure: options, HTTP clients, nodes, queues, routing, etc.
 // ---------------------------------------------------------------------------
 builder.Services.AddSplitBrainInfrastructure(builder.Configuration);

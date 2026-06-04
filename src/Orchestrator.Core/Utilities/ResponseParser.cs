@@ -38,6 +38,6 @@ public static class ResponseParser
 
         // Plain-text fallback: wrap in a JSON object
         var escaped = System.Text.Json.JsonSerializer.Serialize(stripped);
-        return (false, $"{{"{fallbackKey}": {escaped}}}");
+        return (false, $"{{\"{fallbackKey}\": {escaped}}}");
     }
 }
