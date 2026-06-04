@@ -87,7 +87,13 @@ $resultJson = Invoke-McpTool -Endpoint $endpoint -ToolName 'memorysmith_code_sea
 } -SkipTlsValidation $SkipCertificateCheck
 $stopwatch.Stop()
 
-$result = ConvertFrom-Json -InputObject $resultJson -AsHashtable
+$result = $resultJson | ConvertFrom-Json -ErrorAction Stop
+
+# Parse summary from response — handle both direct object and text-wrapped formats
+$indexedFileCount = 0; $indexedChunkCount = 0; $providerMode = "unknown"
+try { $indexedFileCount = [int]$result.indexedFileCount } catch { try { $indexedFileCount = [int]$result.result.indexedFileCount } catch {} }
+try { $indexedChunkCount = [int]$result.indexedChunkCount } catch { try { $indexedChunkCount = [int]$result.result.indexedChunkCount } catch {} }
+try { $providerMode = [string]$result.providerMode } catch { try { $providerMode = [string]$result.result.providerMode } catch {} }
 
 $summary = [ordered]@{
     BaseUrl = $BaseUrl
@@ -96,9 +102,9 @@ $summary = [ordered]@{
     Targets = $Targets
     ForceRebuild = [bool]$ForceRebuild
     ElapsedMilliseconds = [int][Math]::Round($stopwatch.Elapsed.TotalMilliseconds)
-    IndexedFileCount = [int]$result['indexedFileCount']
-    IndexedChunkCount = [int]$result['indexedChunkCount']
-    ProviderMode = [string]$result['providerMode']
+    IndexedFileCount = $indexedFileCount
+    IndexedChunkCount = $indexedChunkCount
+    ProviderMode = $providerMode
 }
 
 $summaryJson = $summary | ConvertTo-Json -Depth 20
