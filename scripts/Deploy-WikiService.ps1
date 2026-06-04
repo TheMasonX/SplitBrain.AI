@@ -7,6 +7,7 @@ param(
   [string]$ServiceName = "SplitBrain.AI Wiki",
   [string]$BindAddress = "0.0.0.0",
   [bool]$AllowRemoteApi = $true,
+  [string]$ApiKey = "DLxQJGounPrxit_ITQlcHBBbXLAbaryl-oduvmQMphw",
   [switch]$EnsurePrivateFirewallRule = $true
 )
 
@@ -97,6 +98,7 @@ function Get-PrimaryLanIp {
   -- `
   --urls $listenUrl `
   --MemorySmith:AllowRemoteApi $AllowRemoteApi `
+  --MemorySmith:ApiKey $ApiKey `
   --MemorySmith:SettingsOverridePath $codesearchConfigDst `
   --MemorySmith:DataProtectionKeysPath $keysPath `
   --MemorySmith:AllowedFileRoots:0 $repoRoot `
