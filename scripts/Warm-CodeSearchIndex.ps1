@@ -89,11 +89,12 @@ $stopwatch.Stop()
 
 $result = $resultJson | ConvertFrom-Json -ErrorAction Stop
 
-# Parse summary from response — handle both direct object and text-wrapped formats
-$indexedFileCount = 0; $indexedChunkCount = 0; $providerMode = "unknown"
-try { $indexedFileCount = [int]$result.indexedFileCount } catch { try { $indexedFileCount = [int]$result.result.indexedFileCount } catch {} }
-try { $indexedChunkCount = [int]$result.indexedChunkCount } catch { try { $indexedChunkCount = [int]$result.result.indexedChunkCount } catch {} }
-try { $providerMode = [string]$result.providerMode } catch { try { $providerMode = [string]$result.result.providerMode } catch {} }
+# Parse summary from response — code_search returns status nested inside a `status` property
+$st = $result.status
+$indexedFileCount = if ($st) { [int]$st.indexedFileCount } else { 0 }
+$indexedChunkCount = if ($st) { [int]$st.indexedChunkCount } else { 0 }
+$providerMode = if ($st) { [string]$st.providerMode } else { "unknown" }
+$buildState = if ($st -and $st.build) { [string]$st.build.state } else { "unknown" }
 
 $summary = [ordered]@{
     BaseUrl = $BaseUrl
@@ -105,6 +106,7 @@ $summary = [ordered]@{
     IndexedFileCount = $indexedFileCount
     IndexedChunkCount = $indexedChunkCount
     ProviderMode = $providerMode
+    BuildState = $buildState
 }
 
 $summaryJson = $summary | ConvertTo-Json -Depth 20
