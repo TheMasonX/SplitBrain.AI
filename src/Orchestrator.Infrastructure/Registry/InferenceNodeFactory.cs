@@ -1,5 +1,4 @@
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
 using Orchestrator.Core.Configuration;
 using Orchestrator.Core.Interfaces;
 
@@ -12,77 +11,58 @@ namespace Orchestrator.Infrastructure.Registry;
 public sealed class InferenceNodeFactory : IInferenceNodeFactory
 {
     private readonly IServiceProvider _services;
+    private readonly ILogger<InferenceNodeFactory> _logger;
 
-    public InferenceNodeFactory(IServiceProvider services)
+    public InferenceNodeFactory(IServiceProvider services, ILogger<InferenceNodeFactory> logger)
     {
         _services = services;
+        _logger = logger;
     }
 
     public IInferenceNode Create(NodeConfiguration config)
     {
-        return config.Provider switch
+        // Validate provider-specific config sections are present
+        ValidateProviderConfig(config);
+
+        var factory = (Func<NodeConfiguration, IInferenceNode>?)_services.GetService(
+            typeof(Func<NodeConfiguration, IInferenceNode>));
+
+        if (factory is not null)
+            return factory(config);
+
+        _logger.LogWarning(
+            "No Func<NodeConfiguration, IInferenceNode> registered for {Provider} node '{NodeId}'. " +
+            "Register a factory in DI.",
+            config.Provider, config.NodeId);
+
+        throw new InvalidOperationException(
+            $"Cannot create {config.Provider} node '{config.NodeId}' — no provider factory registered. " +
+            $"Register a Func<NodeConfiguration, IInferenceNode> in DI that handles {config.Provider} nodes.");
+    }
+
+    private static void ValidateProviderConfig(NodeConfiguration config)
+    {
+        switch (config.Provider)
         {
-            NodeProviderType.Ollama     => CreateOllamaNode(config),
-            NodeProviderType.CopilotSdk => CreateCopilotNode(config),
-            NodeProviderType.Worker     => CreateWorkerNode(config),
-            NodeProviderType.LlamaCpp   => CreateLlamaCppNode(config),
-            _ => throw new NotSupportedException(
-                $"Provider '{config.Provider}' is not registered. " +
-                $"Implement IInferenceNode and add a case to InferenceNodeFactory.")
-        };
-    }
+        case NodeProviderType.Ollama:
+            _ = config.Ollama
+                ?? throw new InvalidOperationException(
+                    $"Node '{config.NodeId}' has Provider=Ollama but no Ollama config section.");
+            break;
+                _ = config.Worker
+                    ?? throw new InvalidOperationException(
+                        $"Node '{config.NodeId}' has Provider=Worker but no Worker config section.");
+                break;
 
-    private IInferenceNode CreateOllamaNode(NodeConfiguration config)
-    {
-        var ollamaConfig = config.Ollama
-            ?? throw new InvalidOperationException(
-                $"Node '{config.NodeId}' has Provider=Ollama but no Ollama config section.");
+            case NodeProviderType.CopilotSdk:
+                // Copilot SDK has no required config section — token resolution happens at runtime
+                break;
 
-        var factory = (Func<NodeConfiguration, IInferenceNode>?)_services.GetService(
-            typeof(Func<NodeConfiguration, IInferenceNode>));
-
-        if (factory is not null)
-            return factory(config);
-
-        // Fallback: try to resolve a named provider from DI
-        var logger = (ILogger<InferenceNodeFactory>)_services.GetService(
-            typeof(ILogger<InferenceNodeFactory>))!;
-        logger.LogWarning(
-            "No Func<NodeConfiguration, IInferenceNode> registered for Ollama node '{NodeId}'. " +
-            "Register a factory in DI or use OllamaInferenceNode directly.",
-            config.NodeId);
-
-        throw new InvalidOperationException(
-            $"Cannot create Ollama node '{config.NodeId}' — no provider factory registered.");
-    }
-
-    private IInferenceNode CreateCopilotNode(NodeConfiguration config)
-    {
-        var factory = (Func<NodeConfiguration, IInferenceNode>?)_services.GetService(
-            typeof(Func<NodeConfiguration, IInferenceNode>));
-
-        if (factory is not null)
-            return factory(config);
-
-        throw new InvalidOperationException(
-            $"Cannot create Copilot node '{config.NodeId}' — no provider factory registered.");
-    }
-
-    private IInferenceNode CreateWorkerNode(NodeConfiguration config)
-    {
-        _ = config.Worker
-            ?? throw new InvalidOperationException(
-                $"Node '{config.NodeId}' has Provider=Worker but no Worker config section.");
-
-        var factory = (Func<NodeConfiguration, IInferenceNode>?)_services.GetService(
-            typeof(Func<NodeConfiguration, IInferenceNode>));
-
-        if (factory is not null)
-            return factory(config);
-
-        throw new InvalidOperationException(
-            $"Cannot create Worker node '{config.NodeId}' — no provider factory registered. " +
-            $"Register a Func<NodeConfiguration, IInferenceNode> in DI that handles Worker nodes.");
+            default:
+                throw new NotSupportedException(
+                    $"Provider '{config.Provider}' is not registered. " +
+                    $"Implement IInferenceNode and add a case to InferenceNodeFactory.");
+        }
     }
 
     private IInferenceNode CreateLlamaCppNode(NodeConfiguration config)

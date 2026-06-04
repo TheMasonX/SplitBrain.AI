@@ -119,6 +119,16 @@ public sealed class RefactorCodeTool
                 },
                 meta = new { taskId, node = (string?)null }
             }, JsonConfig.Default);
+        {
+            return JsonSerializer.Serialize(new { error = new { code = "validation_error", message = vex.Message, retryable = false } }, JsonConfig.Default);
+        }
+        catch (OperationCanceledException)
+        {
+            throw; // Let cancellation propagate
+        }
+        catch (Exception ex)
+        {
+            return JsonSerializer.Serialize(new { error = new { code = "internal_error", message = ex.Message, retryable = true } }, JsonConfig.Default);
         }
     }
 

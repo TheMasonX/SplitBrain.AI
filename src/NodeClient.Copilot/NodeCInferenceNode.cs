@@ -2,30 +2,26 @@ using Azure.Identity;
 using Azure.Security.KeyVault.Secrets;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Orchestrator.Core;
 using Orchestrator.Core.Configuration;
-using Orchestrator.Core.Enums;
-using Orchestrator.Core.Interfaces;
 using Orchestrator.Core.Models;
 using System.Diagnostics;
-using System.Runtime.CompilerServices;
 
 namespace NodeClient.Copilot;
 
 /// <summary>
 /// Node C — GitHub Copilot API inference node.
 /// </summary>
-public sealed class NodeCInferenceNode : IInferenceNode
+public sealed class NodeCInferenceNode : InferenceNodeBase
 {
     private readonly ICopilotClient _client;
     private readonly string _model;
     private readonly ILogger<NodeCInferenceNode> _logger;
-    private NodeHealthStatus _health = new() { State = HealthState.Unavailable, LastChecked = DateTimeOffset.MinValue };
 
-    public string NodeId => "C";
-    public NodeProviderType Provider => NodeProviderType.CopilotSdk;
-    public NodeHealthStatus Health => _health;
+    public override string NodeId => "C";
+    public override NodeProviderType Provider => NodeProviderType.CopilotSdk;
 
-    public NodeCapabilities Capabilities { get; }
+    public override NodeCapabilities Capabilities { get; }
 
     public NodeCInferenceNode(ICopilotClient client, IOptions<CopilotClientOptions> options, ILogger<NodeCInferenceNode> logger)
     {
@@ -42,7 +38,7 @@ public sealed class NodeCInferenceNode : IInferenceNode
         };
     }
 
-    public async Task<InferenceResult> ExecuteAsync(InferenceRequest request, CancellationToken cancellationToken = default)
+    public override async Task<InferenceResult> ExecuteAsync(InferenceRequest request, CancellationToken cancellationToken = default)
     {
         var req = request with { Model = _model };
         _logger.LogDebug("Node C executing model={Model} promptLen={Len}", _model, request.Prompt.Length);
@@ -60,37 +56,21 @@ public sealed class NodeCInferenceNode : IInferenceNode
         };
     }
 
-    public async IAsyncEnumerable<InferenceChunk> StreamAsync(
-        InferenceRequest request,
-        [EnumeratorCancellation] CancellationToken cancellationToken = default)
-    {
-        var result = await ExecuteAsync(request, cancellationToken);
-        yield return new InferenceChunk
-        {
-            Content = result.Text,
-            IsFinal = true,
-            FinalResult = new Orchestrator.Core.Models.InferenceResult
-            {
-                Text = result.Text,
-                NodeId = result.NodeId,
-                Model = result.Model,
-                LatencyMs = result.LatencyMs
-            }
-        };
-    }
-
-    public async Task<NodeHealthStatus> GetHealthAsync(CancellationToken cancellationToken = default)
+    /// <summary>
+    /// Override to include AvailableModels and ErrorMessage in health status.
+    /// </summary>
+    public override async Task<NodeHealthStatus> GetHealthAsync(CancellationToken cancellationToken = default)
     {
         NodeHealthStatus status;
         try
         {
-            var isHealthy = await _client.IsHealthyAsync(cancellationToken);
-                status = new NodeHealthStatus
-                {
-                    State = isHealthy ? HealthState.Healthy : HealthState.Degraded,
-                    LastChecked = DateTimeOffset.UtcNow,
-                    AvailableModels = new List<string> { _model }
-                };
+            var isHealthy = await CheckHealthCoreAsync(cancellationToken);
+            status = new NodeHealthStatus
+            {
+                State = isHealthy ? HealthState.Healthy : HealthState.Degraded,
+                LastChecked = DateTimeOffset.UtcNow,
+                AvailableModels = [_model]
+            };
         }
         catch (Exception ex)
         {
@@ -105,13 +85,14 @@ public sealed class NodeCInferenceNode : IInferenceNode
         return status;
     }
 
-    public Task<IReadOnlyList<ModelInfo>> ListModelsAsync(CancellationToken cancellationToken = default)
+    protected override Task<bool> CheckHealthCoreAsync(CancellationToken cancellationToken)
+        => _client.IsHealthyAsync(cancellationToken);
+
+    public override Task<IReadOnlyList<ModelInfo>> ListModelsAsync(CancellationToken cancellationToken = default)
     {
         IReadOnlyList<ModelInfo> result = new List<ModelInfo> { new ModelInfo { ModelId = _model } };
         return Task.FromResult(result);
     }
-
-    public ValueTask DisposeAsync() => ValueTask.CompletedTask;
 
     // ---------------------------------------------------------------------------
     // Factory helper

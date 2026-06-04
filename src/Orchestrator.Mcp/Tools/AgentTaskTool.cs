@@ -73,6 +73,7 @@ public sealed class AgentTaskTool
         try { await _log.LogRequestAsync("agent_task", new { goal, workingDirectory, applyChanges }, ct); }
         catch (Exception) { /* log failure — intentionally silent */ }
 
+
         using var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
         cts.CancelAfter(TimeSpan.FromSeconds(DefaultAgentTimeoutSeconds));
 
@@ -245,12 +246,18 @@ public sealed class AgentTaskTool
         }
 
         return applied;
+=======
+        try
+        {
+            var request = new AgentRequest { Goal = goal, WorkingDirectory = string.IsNullOrWhiteSpace(workingDirectory) ? null : workingDirectory, Context = string.IsNullOrWhiteSpace(context) ? null : context };
+            var result = await _agent.RunAsync(request, cancellationToken);
+            var response = new AgentTaskResponse { Success = result.Success, FinalState = result.FinalState.ToString(), Summary = result.Summary, Diff = result.Diff, TotalIterations = result.TotalIterations, TotalTokens = result.TotalTokensUsed, AbortReason = result.AbortReason, Steps = result.Steps.Select(s => new AgentStepSummary { Role = s.Role.ToString(), State = s.State.ToString(), Success = s.Success, Tokens = s.TokensEstimated, Response = s.Response.Length > 300 ? s.Response[..300] + "..." : s.Response }).ToList() };
+            return JsonSerializer.Serialize(response, JsonConfig.Default);
+        }
+        catch (OperationCanceledException) { throw; }
+        catch (Exception ex) { return JsonSerializer.Serialize(new { error = new { code = "internal_error", message = ex.Message, retryable = true } }, JsonConfig.Default); }
     }
 }
-
-// ---------------------------------------------------------------------------
-// Response models
-// ---------------------------------------------------------------------------
 
 public sealed class AgentTaskResponse : Orchestrator.Core.Interfaces.IMcpResponse
 {

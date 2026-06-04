@@ -4,35 +4,33 @@ using Orchestrator.Agents.Sandbox;
 using Orchestrator.Core.Enums;
 using Orchestrator.Core.Interfaces;
 using Orchestrator.Core.Models;
+using Orchestrator.Core.Utilities;
 
 namespace Orchestrator.Agents;
 
 /// <summary>
 /// Bounded agent loop per §9.
 ///
-/// State machine: INIT → PLAN → IMPLEMENT → REVIEW → TEST → DONE | FAIL
+/// State machine: INIT -> PLAN -> IMPLEMENT -> REVIEW -> TEST -> DONE | FAIL
 ///
 /// §9.3 limits
-///   • Max iterations:        4
-///   • Max tokens per loop:   12 000
-///   • Abort if:              no code diff produced
-///                            repeated failure (≥2 consecutive)
+///   * Max iterations:        4
+///   * Max tokens per loop:   12 000
+///   * Abort if:              no code diff produced
+///                            repeated failure (>=2 consecutive)
 ///                            no state change
 ///
-/// §9.4 role → node mapping
-///   Architect  → Node A  (TaskType.Chat)
-///   Coder      → Node A  (TaskType.Refactor)
-///   Reviewer   → Node B  (TaskType.Review)
-///   Tester     → Node B  (TaskType.TestGeneration)
+/// §9.4 role -> node mapping
+///   Architect  -> Node A  (TaskType.Chat)
+///   Coder      -> Node A  (TaskType.Refactor)
+///   Reviewer   -> Node B  (TaskType.Review)
+///   Tester     -> Node B  (TaskType.TestGeneration)
 /// </summary>
 public sealed class AgentOrchestrator : IAgentOrchestrator
 {
     private const int MaxIterations      = 4;
     private const int MaxTokensPerLoop   = 12_000;
     private const int MaxConsecFailures  = 2;
-
-    /// <summary>Rough estimate: 4 characters ≈ 1 token.</summary>
-    private static int EstimateTokens(string text) => text.Length / 4;
 
     private readonly IRoutingService _routing;
     private readonly ICodeSandbox    _sandbox;
@@ -52,6 +50,26 @@ public sealed class AgentOrchestrator : IAgentOrchestrator
     }
 
     // -----------------------------------------------------------------------
+    // Event logging helper
+    // -----------------------------------------------------------------------
+
+    private Task LogStepAsync(
+        AgentSession session,
+        AgentStepType type,
+        string summary,
+        CancellationToken ct,
+        int? tokensConsumed = null)
+        => _eventLog.AppendAsync(new AgentStepEvent
+        {
+            TaskId         = session.TaskId,
+            StepIndex      = session.Steps.Count,
+            Timestamp      = DateTimeOffset.UtcNow,
+            StepType       = type,
+            Summary        = summary,
+            TokensConsumed = tokensConsumed
+        }, ct);
+
+    // -----------------------------------------------------------------------
     // Public entry point
     // -----------------------------------------------------------------------
 
@@ -59,19 +77,12 @@ public sealed class AgentOrchestrator : IAgentOrchestrator
         AgentRequest request,
         CancellationToken cancellationToken = default)
     {
-        _logger.LogInformation("Agent started — goal: {Goal}", request.Goal);
+        _logger.LogInformation("Agent started -- goal: {Goal}", request.Goal);
 
         var session = new AgentSession();
 
         // INIT
-        await _eventLog.AppendAsync(new AgentStepEvent
-        {
-            TaskId    = session.TaskId,
-            StepIndex = 0,
-            Timestamp = DateTimeOffset.UtcNow,
-            StepType  = AgentStepType.Init,
-            Summary   = $"Goal: {request.Goal}"
-        }, cancellationToken);
+        await LogStepAsync(session, AgentStepType.Init, $"Goal: {request.Goal}", cancellationToken);
 
         session.State = AgentState.Plan;
 
@@ -104,26 +115,14 @@ public sealed class AgentOrchestrator : IAgentOrchestrator
 
                 case AgentState.Done:
                     _logger.LogInformation("Agent completed successfully after {Iter} iteration(s)", session.Iteration);
-                    await _eventLog.AppendAsync(new AgentStepEvent
-                    {
-                        TaskId    = session.TaskId,
-                        StepIndex = session.Steps.Count,
-                        Timestamp = DateTimeOffset.UtcNow,
-                        StepType  = AgentStepType.Done,
-                        Summary   = $"Completed after {session.Iteration} iteration(s)",
-                        TokensConsumed = session.TokensUsed
-                    }, cancellationToken);
+                    await LogStepAsync(session, AgentStepType.Done,
+                        $"Completed after {session.Iteration} iteration(s)", cancellationToken,
+                        tokensConsumed: session.TokensUsed);
                     return BuildResult(session, success: true, abortReason: null);
 
                 case AgentState.Failed:
-                    await _eventLog.AppendAsync(new AgentStepEvent
-                    {
-                        TaskId    = session.TaskId,
-                        StepIndex = session.Steps.Count,
-                        Timestamp = DateTimeOffset.UtcNow,
-                        StepType  = AgentStepType.Fail,
-                        Summary   = "Agent state machine reached Failed"
-                    }, cancellationToken);
+                    await LogStepAsync(session, AgentStepType.Fail,
+                        "Agent state machine reached Failed", cancellationToken);
                     return BuildResult(session, success: false, "Agent state machine reached Failed");
 
                 default:
@@ -141,14 +140,8 @@ public sealed class AgentOrchestrator : IAgentOrchestrator
     private async Task PlanAsync(AgentRequest request, AgentSession session, CancellationToken ct)
     {
         _logger.LogInformation("Agent [{Iter}] PLAN", session.Iteration);
-        await _eventLog.AppendAsync(new AgentStepEvent
-        {
-            TaskId    = session.TaskId,
-            StepIndex = session.Steps.Count,
-            Timestamp = DateTimeOffset.UtcNow,
-            StepType  = AgentStepType.Plan,
-            Summary   = $"Planning iteration {session.Iteration}"
-        }, ct);
+        await LogStepAsync(session, AgentStepType.Plan,
+            $"Planning iteration {session.Iteration}", ct);
         var prevState = session.State;
 
         var prompt = BuildPlanPrompt(request, session);
@@ -169,14 +162,8 @@ public sealed class AgentOrchestrator : IAgentOrchestrator
     private async Task ImplementAsync(AgentRequest request, AgentSession session, CancellationToken ct)
     {
         _logger.LogInformation("Agent [{Iter}] IMPLEMENT", session.Iteration);
-        await _eventLog.AppendAsync(new AgentStepEvent
-        {
-            TaskId    = session.TaskId,
-            StepIndex = session.Steps.Count,
-            Timestamp = DateTimeOffset.UtcNow,
-            StepType  = AgentStepType.Implement,
-            Summary   = $"Implementing iteration {session.Iteration}"
-        }, ct);
+        await LogStepAsync(session, AgentStepType.Implement,
+            $"Implementing iteration {session.Iteration}", ct);
         session.PreviousDiff = session.LastDiff;
         var prevState = session.State;
 
@@ -201,14 +188,8 @@ public sealed class AgentOrchestrator : IAgentOrchestrator
     private async Task ReviewAsync(AgentRequest request, AgentSession session, CancellationToken ct)
     {
         _logger.LogInformation("Agent [{Iter}] REVIEW", session.Iteration);
-        await _eventLog.AppendAsync(new AgentStepEvent
-        {
-            TaskId    = session.TaskId,
-            StepIndex = session.Steps.Count,
-            Timestamp = DateTimeOffset.UtcNow,
-            StepType  = AgentStepType.Review,
-            Summary   = $"Reviewing iteration {session.Iteration}"
-        }, ct);
+        await LogStepAsync(session, AgentStepType.Review,
+            $"Reviewing iteration {session.Iteration}", ct);
         var prevState = session.State;
 
         var prompt = BuildReviewPrompt(request, session);
@@ -236,14 +217,8 @@ public sealed class AgentOrchestrator : IAgentOrchestrator
     private async Task TestAsync(AgentRequest request, AgentSession session, CancellationToken ct)
     {
         _logger.LogInformation("Agent [{Iter}] TEST", session.Iteration);
-        await _eventLog.AppendAsync(new AgentStepEvent
-        {
-            TaskId    = session.TaskId,
-            StepIndex = session.Steps.Count,
-            Timestamp = DateTimeOffset.UtcNow,
-            StepType  = AgentStepType.Test,
-            Summary   = $"Testing iteration {session.Iteration}"
-        }, ct);
+        await LogStepAsync(session, AgentStepType.Test,
+            $"Testing iteration {session.Iteration}", ct);
         var prevState = session.State;
 
         // Step 1: generate tests via Node B
@@ -306,13 +281,13 @@ public sealed class AgentOrchestrator : IAgentOrchestrator
                 State           = session.State,
                 Prompt          = prompt,
                 Response        = result.Text,
-                TokensEstimated = EstimateTokens(prompt) + EstimateTokens(result.Text),
+                TokensEstimated = TokenEstimator.Estimate(prompt) + TokenEstimator.Estimate(result.Text),
                 Success         = true
             };
             session.RecordStep(step);
 
             _logger.LogDebug(
-                "Agent step {Role} completed — tokensEst={Tokens} nodeId={Node}",
+                "Agent step {Role} completed -- tokensEst={Tokens} nodeId={Node}",
                 role, step.TokensEstimated, result.NodeId);
 
             return result.Text;
@@ -327,7 +302,7 @@ public sealed class AgentOrchestrator : IAgentOrchestrator
                 State           = session.State,
                 Prompt          = prompt,
                 Response        = string.Empty,
-                TokensEstimated = EstimateTokens(prompt),
+                TokensEstimated = TokenEstimator.Estimate(prompt),
                 Success         = false
             });
             return null;
@@ -355,11 +330,11 @@ public sealed class AgentOrchestrator : IAgentOrchestrator
             && string.IsNullOrWhiteSpace(session.LastDiff))
             return "No code diff produced";
 
-        // Same diff as last iteration — no state change
+        // Same diff as last iteration -- no state change
         if (session.Iteration > 1
             && session.LastDiff == session.PreviousDiff
             && !string.IsNullOrWhiteSpace(session.LastDiff))
-            return "No state change — repeated identical diff";
+            return "No state change -- repeated identical diff";
 
         return null;
     }

@@ -88,50 +88,31 @@ if (requireAuth && string.IsNullOrWhiteSpace(workerToken))
 
 var app = builder.Build();
 
-// Apply auth middleware BEFORE routing (if enabled)
-if (requireAuth && !string.IsNullOrWhiteSpace(workerToken))
+// Auth middleware
+var sharedKey = app.Configuration["Auth:SharedKey"];
+if (!string.IsNullOrWhiteSpace(sharedKey))
 {
-    var capturedToken = workerToken;
-    app.Use(async (context, next) =>
+    app.Use(async (ctx, next) =>
     {
-        // Skip auth for the health endpoint — health probes must always succeed
-        if (context.Request.Path.StartsWithSegments("/health"))
+        if (!ctx.Request.Path.StartsWithSegments("/health"))
         {
-            await next(context);
-            return;
+            if (!ctx.Request.Headers.TryGetValue("X-Api-Key", out var providedKey) ||
+                providedKey != sharedKey)
+            {
+                ctx.Response.StatusCode = StatusCodes.Status401Unauthorized;
+                ctx.Response.ContentType = "application/json";
+                await ctx.Response.WriteAsync("{\"error\":\"unauthorized\",\"hint\":\"Provide X-Api-Key header matching Auth:SharedKey config\"}");
+                return;
+            }
         }
-
-        var authHeader = context.Request.Headers.Authorization.ToString();
-        var expectedHeader = $"Bearer {capturedToken}";
-        if (!authHeader.Equals(expectedHeader, StringComparison.Ordinal))
-        {
-            context.Response.StatusCode = 401;
-            context.Response.Headers.Append("WWW-Authenticate", "Bearer");
-            await context.Response.WriteAsync("Unauthorized — set Authorization: Bearer <token>");
-            return;
-        }
-        await next(context);
+        await next(ctx);
     });
 }
-
-// -------------------------------------------------------------------------
-// GET /health — returns current node status and last health snapshot
-// -------------------------------------------------------------------------
 app.MapGet("/health", async (IInferenceNode node, INodeHealthCache cache, CancellationToken ct) =>
 {
-    // Always return the cached snapshot so this endpoint is fast
     var cached = cache.Get(node.NodeId);
     if (cached is not null)
-        return Results.Ok(new
-        {
-            nodeId = cached.NodeId,
-            status = cached.Status.ToString(),
-            queueDepth = cached.QueueDepth,
-            availableVramMb = cached.AvailableVramMb,
-            checkedAt = cached.CheckedAt
-        });
-
-    // Cold cache: probe live
+        return Results.Ok(new { nodeId = cached.NodeId, status = cached.Status.ToString(), queueDepth = cached.QueueDepth, availableVramMb = cached.AvailableVramMb, checkedAt = cached.CheckedAt });
     var nodeHealth = await node.GetHealthAsync(ct);
     var legacyStatus = nodeHealth.State switch
     {
@@ -139,104 +120,36 @@ app.MapGet("/health", async (IInferenceNode node, INodeHealthCache cache, Cancel
         Orchestrator.Core.Models.HealthState.Degraded => Orchestrator.Core.Enums.NodeStatus.Degraded,
         _ => Orchestrator.Core.Enums.NodeStatus.Unavailable
     };
-    var legacy = new NodeHealth
-    {
-        NodeId = node.NodeId,
-        Status = legacyStatus,
-        QueueDepth = nodeHealth.ActiveRequests,
-        AvailableVramMb = nodeHealth.VramLoadedMB.HasValue && nodeHealth.VramTotalMB.HasValue
-            ? (int)(nodeHealth.VramTotalMB.Value - nodeHealth.VramLoadedMB.Value)
-            : 0,
-        CheckedAt = nodeHealth.LastChecked
-    };
+    var legacy = new NodeHealth { NodeId = node.NodeId, Status = legacyStatus, QueueDepth = nodeHealth.ActiveRequests, AvailableVramMb = nodeHealth.VramLoadedMB.HasValue && nodeHealth.VramTotalMB.HasValue ? (int)(nodeHealth.VramTotalMB.Value - nodeHealth.VramLoadedMB.Value) : 0, CheckedAt = nodeHealth.LastChecked };
     cache.Set(legacy);
-    return Results.Ok(new
-    {
-        nodeId = legacy.NodeId,
-        status = legacy.Status.ToString(),
-        queueDepth = legacy.QueueDepth,
-        availableVramMb = legacy.AvailableVramMb,
-        checkedAt = legacy.CheckedAt
-    });
+    return Results.Ok(new { nodeId = legacy.NodeId, status = legacy.Status.ToString(), queueDepth = legacy.QueueDepth, availableVramMb = legacy.AvailableVramMb, checkedAt = legacy.CheckedAt });
 });
 
-// -------------------------------------------------------------------------
-// POST /inference — executes an InferenceRequest directly on this node
-// -------------------------------------------------------------------------
 app.MapPost("/inference", async (HttpRequest req, IInferenceNode node, IMetricsCollector metrics, CancellationToken ct) =>
 {
     InferenceRequest? request;
-    try
-    {
-        request = await JsonSerializer.DeserializeAsync<InferenceRequest>(
-            req.Body,
-            new JsonSerializerOptions { PropertyNameCaseInsensitive = true },
-            ct);
-    }
-    catch
-    {
-        return Results.BadRequest(new { error = "Invalid JSON body." });
-    }
-
-    if (request is null || string.IsNullOrWhiteSpace(request.Prompt))
-        return Results.BadRequest(new { error = "prompt is required." });
-
+    try { request = await JsonSerializer.DeserializeAsync<InferenceRequest>(req.Body, new JsonSerializerOptions { PropertyNameCaseInsensitive = true }, ct); }
+    catch { return Results.BadRequest(new { error = "Invalid JSON body." }); }
+    if (request is null || string.IsNullOrWhiteSpace(request.Prompt)) return Results.BadRequest(new { error = "prompt is required." });
     var sw = System.Diagnostics.Stopwatch.StartNew();
     try
     {
         var result = await node.ExecuteAsync(request, ct);
         sw.Stop();
-
-        metrics.Record(new RequestMetric
-        {
-            TaskId    = Guid.NewGuid().ToString("N"),
-            NodeId    = result.NodeId,
-            Model     = result.Model,
-            TaskType  = "Remote",
-            TokensIn  = result.TokensIn,
-            TokensOut = result.TokensOut,
-            LatencyMs = result.LatencyMs,
-            Success   = true
-        });
-
+        metrics.Record(new RequestMetric { TaskId = Guid.NewGuid().ToString("N"), NodeId = result.NodeId, Model = result.Model, TaskType = "Remote", TokensIn = result.TokensIn, TokensOut = result.TokensOut, LatencyMs = result.LatencyMs, Success = true });
         return Results.Ok(result);
     }
-    catch (OperationCanceledException)
-    {
-        return Results.StatusCode(503);
-    }
+    catch (OperationCanceledException) { return Results.StatusCode(503); }
     catch (Exception ex)
     {
         sw.Stop();
-        metrics.Record(new RequestMetric
-        {
-            TaskId    = Guid.NewGuid().ToString("N"),
-            NodeId    = node.NodeId,
-            Model     = node.Capabilities.Model,
-            TaskType  = "Remote",
-            LatencyMs = (int)sw.ElapsedMilliseconds,
-            Success   = false
-        });
+        metrics.Record(new RequestMetric { TaskId = Guid.NewGuid().ToString("N"), NodeId = node.NodeId, Model = node.Capabilities.Model, TaskType = "Remote", LatencyMs = (int)sw.ElapsedMilliseconds, Success = false });
         return Results.Problem(ex.Message, statusCode: 500);
     }
 });
 
-// -------------------------------------------------------------------------
-// GET /models — list models available on this node
-// -------------------------------------------------------------------------
-app.MapGet("/models", async (IInferenceNode node, CancellationToken ct) =>
-{
-    var models = await node.ListModelsAsync(ct);
-    return Results.Ok(models);
-});
-
-// -------------------------------------------------------------------------
-// GET /metrics — aggregated request telemetry
-// -------------------------------------------------------------------------
-app.MapGet("/metrics", (IMetricsCollector metrics) =>
-    Results.Ok(metrics.GetSummary()));
-
-app.MapGet("/metrics/recent", (IMetricsCollector metrics, int count = 50) =>
-    Results.Ok(metrics.GetRecent(count)));
+app.MapGet("/models", async (IInferenceNode node, CancellationToken ct) => { var models = await node.ListModelsAsync(ct); return Results.Ok(models); });
+app.MapGet("/metrics", (IMetricsCollector metrics) => Results.Ok(metrics.GetSummary()));
+app.MapGet("/metrics/recent", (IMetricsCollector metrics, int count = 50) => Results.Ok(metrics.GetRecent(count)));
 
 await app.RunAsync();

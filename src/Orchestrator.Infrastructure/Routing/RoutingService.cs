@@ -4,7 +4,7 @@ using Orchestrator.Core.Configuration;
 using Orchestrator.Core.Enums;
 using Orchestrator.Core.Interfaces;
 using Orchestrator.Core.Models;
-using Orchestrator.Infrastructure.Queue;
+using Orchestrator.Core.Utilities;
 
 namespace Orchestrator.Infrastructure.Routing;
 
@@ -16,7 +16,7 @@ public sealed class RoutingService : IRoutingService
     /// <summary>If a node's queue depth exceeds this, skip it during selection.</summary>
     private const int QueueFallbackThreshold = 2;
 
-    /// <summary>Assumed VRAM capacity per node in MB — used when health cache is cold.</summary>
+    /// <summary>Assumed VRAM capacity per node in MB -- used when health cache is cold.</summary>
     private const int DefaultVramMb = 8_192;
 
     private readonly INodeRegistry _registry;
@@ -121,8 +121,8 @@ public sealed class RoutingService : IRoutingService
 
         var target = SelectNode(registrations, taskType, request);
         _logger.LogInformation(
-            "Routing taskType={TaskType} → node={NodeId} role={Role}",
-            taskType, target.Node.NodeId, target.Config.Role);
+            "Routing taskType={TaskType} -> node={NodeId}",
+            taskType, target.NodeId);
 
         var item = new InferenceQueueItem
         {
@@ -336,7 +336,7 @@ public sealed class RoutingService : IRoutingService
                 lastEx = ex;
                 var reason = IsConnectivityException(ex) ? "unreachable" : "failed";
                 _logger.LogWarning(ex,
-                    "Node {NodeId} {Reason} — trying next fallback", candidate.NodeId, reason);
+                    "Node {NodeId} {Reason} -- trying next fallback", candidate.NodeId, reason);
 
                 _metrics?.Record(new RequestMetric
                 {
@@ -384,7 +384,4 @@ public sealed class RoutingService : IRoutingService
         }
         return false;
     }
-
-    /// <summary>Rough token estimate: ~4 chars per token.</summary>
-    private static int EstimateTokens(string text) => text.Length / 4;
 }

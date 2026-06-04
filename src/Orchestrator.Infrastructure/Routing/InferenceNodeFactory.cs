@@ -16,6 +16,13 @@ public sealed class InferenceNodeFactory
         _services = services;
     }
 
+    /// <summary>
+    /// Returns the registered <see cref="IInferenceNode"/> instance.
+    /// </summary>
+    /// <exception cref="InvalidOperationException">
+    /// Thrown when no <see cref="IInferenceNode"/> has been registered.
+    /// Ensure <c>AddSplitBrainInfrastructure</c> (or equivalent DI setup) was called.
+    /// </exception>
     public IInferenceNode GetNode()
     {
         return _services.GetService<IInferenceNode>()
@@ -23,6 +30,13 @@ public sealed class InferenceNodeFactory
                 "No IInferenceNode factory registered. Ensure AddSplitBrainInfrastructure was called.");
     }
 
+    /// <summary>
+    /// Returns the registered <see cref="IInferenceNode"/> instance resolved via
+    /// <paramref name="factory"/>, applying the same missing-registration guard.
+    /// </summary>
+    /// <exception cref="InvalidOperationException">
+    /// Thrown when the supplied factory delegate resolves to <c>null</c>.
+    /// </exception>
     public IInferenceNode GetNode(Func<IServiceProvider, IInferenceNode?> factory)
     {
         return factory(_services)

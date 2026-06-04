@@ -3,6 +3,7 @@ using System.Text;
 using System.Text.Json;
 using Microsoft.Extensions.FileSystemGlobbing;
 using Microsoft.Extensions.FileSystemGlobbing.Abstractions;
+using FluentValidation;
 using Microsoft.Extensions.Logging;
 using ModelContextProtocol.Server;
 using Orchestrator.Core.Enums;
@@ -18,7 +19,10 @@ namespace Orchestrator.Mcp.Tools;
 [McpServerToolType]
 public sealed class SearchCodebaseTool
 {
-    private readonly IRoutingService  _routing;
+    /// <summary>Maximum file size (bytes) to read during collection. Files larger than this are skipped.</summary>
+    private const long MaxFileSizeBytes = 512 * 1024; // 512 KB
+
+    private readonly IRoutingService _routing;
     private readonly IIdempotencyCache _idempotency;
     private readonly ILoggingService  _log;
     private readonly ILogger<SearchCodebaseTool> _logger;
@@ -55,33 +59,35 @@ public sealed class SearchCodebaseTool
     private async Task<string> ExecuteCoreAsync(
         string query, string rootPath, string pattern, int topK, CancellationToken ct)
     {
-        var request = new SearchCodebaseRequest
-        {
-            Query   = query,
-            TopK    = topK,
-            Filters = new SearchFilters { Path = rootPath }
-        };
-        request.ValidateOrThrow(new SearchCodebaseRequestValidator());
-
-        var taskId = Guid.NewGuid().ToString("N");
-        var files = CollectFiles(rootPath, pattern, topK * 5);
-        var prompt = BuildPrompt(query, files, topK);
-
-        try { await _log.LogRequestAsync("search_codebase", request, ct); } catch (Exception) { /* log failure — intentionally silent; tool must not fail on logging errors */ }
-
-        using var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
-        cts.CancelAfter(TimeSpan.FromSeconds(DefaultToolTimeoutSeconds));
-
         try
         {
-            var result = await _routing.RouteAsync(
-                TaskType.AgentStep,
-                new InferenceRequest { Prompt = prompt, Stream = false, Priority = QueuePriority.Normal },
-                cts.Token);
+            var request = new SearchCodebaseRequest
+            {
+                Query = query,
+                TopK = topK,
+                Filters = new SearchFilters { Path = rootPath }
+            };
+            request.ValidateOrThrow(new SearchCodebaseRequestValidator());
 
-            try { await _log.LogInferenceAsync(taskId, prompt, result.Text, result.Model, result.NodeId, result.LatencyMs, ct); } catch (Exception) { /* log failure — intentionally silent; tool must not fail on logging errors */ }
+            var taskId = Guid.NewGuid().ToString("N");
+            var files = CollectFiles(rootPath, pattern, topK * 5);
+            var prompt = BuildPrompt(query, files, topK);
 
-            // Parse the model's JSON array response — maximally forgiving
+            try { await _log.LogRequestAsync("search_codebase", request, ct); } catch (Exception) { /* log failure — intentionally silent; tool must not fail on logging errors */ }
+
+            using var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+            cts.CancelAfter(TimeSpan.FromSeconds(DefaultToolTimeoutSeconds));
+
+            try
+            {
+                var result = await _routing.RouteAsync(
+                    TaskType.AgentStep,
+                    new InferenceRequest { Prompt = prompt, Stream = false, Priority = QueuePriority.Normal },
+                    cts.Token);
+
+                try { await _log.LogInferenceAsync(taskId, prompt, result.Text, result.Model, result.NodeId, result.LatencyMs, ct); } catch (Exception) { /* log failure — intentionally silent; tool must not fail on logging errors */ }
+
+                // Parse the model's JSON array response — maximally forgiving
             var results = TryParseResults(result.Text, topK);
 
             var response = new SearchCodebaseResponse
@@ -142,11 +148,17 @@ public sealed class SearchCodebaseTool
             var fullPath = Path.Combine(rootPath, file.Path);
             try
             {
+                // Skip files that exceed the size threshold to avoid memory pressure
+                var fileInfo = new FileInfo(fullPath);
+                if (fileInfo.Length > MaxFileSizeBytes)
+                    continue;
+
                 var content = File.ReadAllText(fullPath);
                 var snippet = string.Join('\n', content.Split('\n').Take(200));
                 results.Add((fullPath, snippet));
             }
             catch (IOException) { /* skip unreadable files */ }
+            catch (UnauthorizedAccessException) { /* skip permission-denied files */ }
         }
 
         return results;

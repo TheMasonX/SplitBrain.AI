@@ -13,15 +13,16 @@ public sealed class Meta
 
     /// <summary>
     /// Creates a Meta instance from an InferenceResult, eliminating
-    /// repeated manual property-copying across MCP tools.
+    /// the repeated manual property-copying across MCP tools.
     /// </summary>
     public static Meta FromInferenceResult(string taskId, InferenceResult result) => new()
     {
-        TaskId    = taskId,
-        Node      = result.NodeId,
-        Model     = result.Model,
+        TaskId = taskId,
+        Node = result.NodeId,
+        Model = result.Model,
         LatencyMs = result.LatencyMs,
-        TokensIn  = result.TokensIn,
+        TokensIn = result.TokensIn,
+
         TokensOut = result.TokensOut
     };
 }
@@ -63,8 +64,9 @@ public sealed class NodeHealth
     public DateTimeOffset CheckedAt { get; init; } = DateTimeOffset.UtcNow;
 
     /// <summary>
-    /// Last observed health-probe round-trip latency in milliseconds.
-    /// Populated by NodeWorkerService. Defaults to 0 before the first probe completes.
+    /// Last observed probe latency in milliseconds.
+    /// Populated by NodeWorkerService from the real health-check round-trip.
+    /// Defaults to 0 when no probe has completed yet.
     /// </summary>
     public double LastLatencyMs { get; init; }
 }
@@ -88,6 +90,7 @@ public sealed record InferenceResult
     public int TokensOut { get; init; }
 }
 
+/// <summary>A request plus its completion source -- travels through the queue together.</summary>
 public sealed class InferenceQueueItem
 {
     public InferenceRequest Request { get; init; } = default!;

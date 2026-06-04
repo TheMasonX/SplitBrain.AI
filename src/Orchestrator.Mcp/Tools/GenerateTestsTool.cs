@@ -2,6 +2,7 @@ using System.ComponentModel;
 using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
+using FluentValidation;
 using Microsoft.Extensions.Logging;
 using ModelContextProtocol.Server;
 using Orchestrator.Core.Enums;
@@ -163,6 +164,49 @@ public sealed class GenerateTestsTool
     {
         var clean = new string(value.Where(c => !char.IsControl(c)).ToArray());
         return clean.Length > maxLength ? clean[..maxLength] : clean;
+=======
+        try
+        {
+            if (string.IsNullOrWhiteSpace(code))
+                throw new ArgumentException("code is required.");
+            if (string.IsNullOrWhiteSpace(language))
+                throw new ArgumentException("language is required.");
+
+            var prompt = BuildPrompt(code, language, framework, coverage);
+            var taskId = Guid.NewGuid().ToString("N");
+
+            var result = await _routing.RouteAsync(
+                TaskType.TestGeneration,
+                new InferenceRequest { Prompt = prompt, Stream = true, Priority = QueuePriority.Normal },
+                cancellationToken);
+
+            var response = new GenerateTestsResponse
+            {
+                Files =
+                [
+                    new GeneratedTestFile
+                    {
+                        Path = $"Tests.{language}",
+                        Content = result.Text
+                    }
+                ],
+                Meta = Meta.FromInferenceResult(taskId, result)
+            };
+
+            return JsonSerializer.Serialize(response, JsonConfig.Default);
+        }
+        catch (ValidationException vex)
+        {
+            return JsonSerializer.Serialize(new { error = new { code = "validation_error", message = vex.Message, retryable = false } }, JsonConfig.Default);
+        }
+        catch (OperationCanceledException)
+        {
+            throw; // Let cancellation propagate
+        }
+        catch (Exception ex)
+        {
+            return JsonSerializer.Serialize(new { error = new { code = "internal_error", message = ex.Message, retryable = true } }, JsonConfig.Default);
+        }
     }
 
     private static string BuildPrompt(string code, string language, string framework, string coverage)
